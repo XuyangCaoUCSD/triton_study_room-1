@@ -144,7 +144,7 @@ if (cluster.isMaster) {
 
 	// Adds middleware
 	app.use(function(req, res, next) {
-		// Allow react to make XMLHttpRequest with credentials. NOTE: hostname is react's (act port 3000)
+		// Allow react to make XMLHttpRequest with credentials. NOTE: port 3000 is react client port
 		var allowedOrigins = [`http://127.0.0.1:${port}`, `http://localhost:${port}`,  'http://localhost:3000'];
 		var origin = req.headers.origin;
 		// Check which origin request is comming from, and if one of allowed, add header to allow itt
@@ -192,13 +192,14 @@ if (cluster.isMaster) {
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {
-		// If not message by server where we did worker.send on line 74ish, return
+		// If not message by server for stickey connection, ignore
 		if (message !== 'sticky-session:connection') {
 			return;
 		}
 
 		// Emulate a connection event on the server by emitting the
-		// event with the connection the master sent us.
+		// event with the connection the master sent us. 
+		// So the server listening to port 0 is connected
 		server.emit('connection', connection);
 
 		// Remember we did pauseOnConnect: true
