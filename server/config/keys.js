@@ -6,6 +6,7 @@ module.exports = {
         clientSecret: 'xChdSUz3Nn6KB9FeTFj0Jtf6'
     },
 
+    // Session keys for cookies
     session: {
         secret: "Super secret key matey mate" 
     }

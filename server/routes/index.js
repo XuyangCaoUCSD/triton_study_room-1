@@ -9,13 +9,17 @@ let namespaces = require('../data/namespaces');  // Temp
 // Root route
 router.get("/", (req, res) => {
     console.log('Someone connected to root route');
-    res.send("You are connected");
+    res.send("You are connected to the root route");
 	// res.render("landing");
 });
 
-router.get('/dashboard', (req, res) => {
-    // Need to get user's groups from database and send that over
+router.get('/dashboard', isLoggedIn, (req, res) => {
+    let data = {
+        success: true,
+        nsData: null
+    }
 
+    // Need to get user's groups from database and send that over
     // Temp
     // Build an array to send back with the img and endpoint for each NS
     let nsData = namespaces.map((ns) => {
@@ -25,7 +29,10 @@ router.get('/dashboard', (req, res) => {
         }
     });
 
-    res.send(nsData);
+    data.nsData = nsData;
+
+    // Send over namespace data along with field indicating success
+    res.send(data);
 });
 
 // // Show sign up form
@@ -33,42 +40,42 @@ router.get('/dashboard', (req, res) => {
 // 	res.render("register");
 // });
 
-// Handle sign up logic
-router.post("/register", (req, res) => {
-    console.log("Someone is trying to post to /register.");
-    // // Axio posts put 3rd parameters of post in req.query
-    // console.log("Query is")
-    // console.log(req.query);
-    // console.log("Session info are");
-    // console.log(req.session);
-    // console.log(req.session.passport);
-    // console.log("Body is");
-    // console.log(req.body);
-    // console.log("user is")
-    // console.log(req.user);
-    let username = req.body.username;
-    let password = req.body.password;
-	let newUser = new User({username});
-	User.register(newUser, password, (err, user) => {
-		if (err) {
-			console.log(err);
-            req.flash("error", err.message);
-            return res.send(err.message);
-		} 
-		passport.authenticate("local")(req, res, () => {
-            req.flash("success", "Welcome" + user.username);
-            console.log("Authenticated user " + user.username);
-			res.redirect("/check");
-		});
-	});
-});
+// // Handle sign up logic
+// router.post("/register", (req, res) => {
+//     console.log("Someone is trying to post to /register.");
+//     // // Axio posts put 3rd parameters of post in req.query
+//     // console.log("Query is")
+//     // console.log(req.query);
+//     // console.log("Session info are");
+//     // console.log(req.session);
+//     // console.log(req.session.passport);
+//     // console.log("Body is");
+//     // console.log(req.body);
+//     // console.log("user is")
+//     // console.log(req.user);
+//     let username = req.body.username;
+//     let password = req.body.password;
+// 	let newUser = new User({username});
+// 	User.register(newUser, password, (err, user) => {
+// 		if (err) {
+// 			console.log(err);
+//             req.flash("error", err.message);
+//             return res.send(err.message);
+// 		} 
+// 		passport.authenticate("local")(req, res, () => {
+//             req.flash("success", "Welcome" + user.username);
+//             console.log("Authenticated user " + user.username);
+// 			res.redirect("/check");
+// 		});
+// 	});
+// });
 
 function isLoggedIn (req, res, next) {
 	if (req.isAuthenticated()) {
         console.log(req.user)
 		return next();
     } 
-    console.log(req.query);
+
     console.log(req.user);
     console.log(req.session);
 	req.flash("error", "You need to be logged in first to do that");  // Key value pair arg to display on next redirect / next route

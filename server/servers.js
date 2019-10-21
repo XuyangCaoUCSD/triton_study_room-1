@@ -21,7 +21,7 @@ const  express     = require('express'),
 	   flash       = require('connect-flash'),
 	   cors        = require('cors'),
 	   passport    = require('passport'),
-	   LocalStrategy = require('passport-local'),
+	//    LocalStrategy = require('passport-local'),
 	   methodOverride = require('method-override'),
 	   keys        = require('./config/keys'),
 	   User        = require('./models/User');
@@ -118,13 +118,17 @@ if (cluster.isMaster) {
 			// maxAge: 10000 // in ms => 10 secs for testing
 		} 
 	}));
+
+	// PASSPORT CONFIG
 	app.use(passport.initialize());
 	// passport.session() acts as a middleware to alter the req object and change 
 	// the encrypted user value that is currently the session sig (from the client cookie) into a user object.
 	app.use(passport.session());
-	passport.use(new LocalStrategy(User.authenticate()));
-	passport.serializeUser(User.serializeUser());
-	passport.deserializeUser(User.deserializeUser());
+
+	// No longer need local strategy
+	// passport.use(new LocalStrategy(User.authenticate()));
+	// passport.serializeUser(User.serializeUser());
+	// passport.deserializeUser(User.deserializeUser());
 
 	// Adds middleware to all routes. May not be needed if not serving ejs/template files from server
 	app.use((req, res, next) => {
@@ -133,7 +137,7 @@ if (cluster.isMaster) {
 		res.locals.currentUser = req.user;
 		res.locals.error = req.flash("error");
 		res.locals.success = req.flash("success");
-		next();
+		next(); // Continue after middleware, needed for custom middleware functions
 	});
 
 	// // Use this or below
@@ -142,7 +146,7 @@ if (cluster.isMaster) {
 	// 	credentials: true,
 	// }));
 
-	// Adds middleware
+	// Adds middleware to allow react to make XMLHttpRequest with credentials.
 	app.use(function(req, res, next) {
 		// Allow react to make XMLHttpRequest with credentials. NOTE: port 3000 is react client port
 		var allowedOrigins = [`http://127.0.0.1:${port}`, `http://localhost:${port}`,  'http://localhost:3000'];
