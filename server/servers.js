@@ -125,7 +125,7 @@ if (cluster.isMaster) {
 	// the encrypted user value that is currently the session sig (from the client cookie) into a user object.
 	app.use(passport.session());
 
-	// No longer need local strategy
+	// // No longer need local strategy
 	// passport.use(new LocalStrategy(User.authenticate()));
 	// passport.serializeUser(User.serializeUser());
 	// passport.deserializeUser(User.deserializeUser());
@@ -170,8 +170,8 @@ if (cluster.isMaster) {
 		next();
 	});
 
-	app.use("/", indexRoutes);
-	app.use("/auth", authRoutes)
+	app.use("/api", indexRoutes);
+	app.use("/api/auth", authRoutes)
 
 	// Don't expose our internal server to the outside world. Hence port 0.
 	// Remember master listensFor outside world

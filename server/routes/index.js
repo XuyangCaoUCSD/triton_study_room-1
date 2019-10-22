@@ -79,7 +79,10 @@ function isLoggedIn (req, res, next) {
     console.log(req.user);
     console.log(req.session);
 	req.flash("error", "You need to be logged in first to do that");  // Key value pair arg to display on next redirect / next route
-	res.send("ERROR, NOT LOGGED IN");
+    
+    res.statusMessage = "NOT LOGGED IN!";
+    res.status(401);
+    res.send("ERROR, NOT LOGGED IN");
 }
 
 router.get('/check', isLoggedIn, (req, res) => {

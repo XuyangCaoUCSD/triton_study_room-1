@@ -8,6 +8,7 @@ var UserSchema = new mongoose.Schema({
 	email: String,
 });
 
+// // Add methods for passport to User when creating model
 // UserSchema.plugin(passportLocalMongoose);
 
 module.exports = mongoose.model("User", UserSchema);

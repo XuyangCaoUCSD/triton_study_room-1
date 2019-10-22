@@ -23,7 +23,7 @@ passport.use(
     new GoogleStrategy({
         clientID: keys.google.clientID,
         clientSecret: keys.google.clientSecret,
-        callbackURL: '/auth/google/redirect'
+        callbackURL: '/api/auth/google/redirect' // Need to be an authorised route in google dev console
     }, (accessToken, refreshToken, profile, done) => {
         // Call done function param if successful
         console.log('profile._json.email is');
@@ -33,6 +33,7 @@ passport.use(
         const allowed_domain = "ucsd.edu";
         console.log(allowed_domain.length);
         // Check to make sure domain is UCSD account
+        // negative important in slice to get last characters
         if (email.slice(-allowed_domain.length) != allowed_domain) {
             console.log("NOT UCSD ACCOUNT!")
             return done(null, false, { message: 'Need UCSD email.' });
