@@ -93,6 +93,15 @@ router.get('/check', isLoggedIn, (req, res) => {
     res.send('Logged In!');
 });
 
+router.get('/isLoggedIn', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.send("true");
+    } else {
+        res.statusMessage = 'NOT LOGGED IN';
+        res.send("false");
+    }
+})
+
 
 // // Show login form
 // router.get("/login", (req, res) => {
