@@ -1,5 +1,5 @@
 # Don't commit secret keys
-server/config/keys
+# server/config/keys
 
 # Don't commit htis for now
 nodeClient/
