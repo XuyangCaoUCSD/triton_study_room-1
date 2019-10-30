@@ -17,34 +17,22 @@ export class ProtectedRoute extends Component {
     }
 
     isAuthenticated = async () => {
-        await auth.isAuthenticated()
-        .then((res) => {
-            console.log("Response is");
-            console.log(res);
-            if (this._isMounted) {
-                if (res.data === true) {
-                    console.log('changing state to true');
-                    this.setState({
-                        isAuthenticated: true
-                    });
-                    console.log(this.state.isAuthenticated);
-                } else {
-                    console.log('not authenticated');
-                    this.setState({
-                        isAuthenticated: false
-                    });
-                }
-            }
-            
-        }).catch((err) => {
-            console.log("Error checking authentication.");
-            console.log(err);
-            if (this._isMounted) {
+        let result = await auth.isAuthenticated();
+        
+        // Only set state if component is still there (not unmounted)
+        if (this._isMounted) {
+            if (result === true) {
+                this.setState({
+                    isAuthenticated: true
+                });
+                console.log(this.state.isAuthenticated);
+            } else {
+                console.log('Not Authenticated');
                 this.setState({
                     isAuthenticated: false
                 });
             }
-        });
+        } 
     }
 
     componentWillUnmount() {

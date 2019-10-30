@@ -8,7 +8,7 @@ class Auth {
     // Local Strategy
     // Pass in login data and callback
     login(data, successCallback, errorCallback) {
-        API({
+        return API({
             method: 'post',
             url: `/api/login`,
             data,
@@ -35,7 +35,7 @@ class Auth {
     }
 
     logout(successCallback, errorCallback) {
-        API({
+        return API({
             method: 'get',
             url: `/api/logout`,
             withCredentials: true
@@ -55,13 +55,26 @@ class Auth {
     }
 
     isAuthenticated() {
-        // Returns Promise
+        // Returns Promise?
         return API({
             method: 'get',
             url: `/api/isLoggedIn`,
             withCredentials: true
         
-        })
+        }).then((res) => {
+            console.log("Response is");
+            console.log(res);
+            if (res.data === true) {
+                return true;
+            } else {
+                return false;
+            }
+            
+        }).catch((err) => {
+            console.log("Error checking authentication.");
+            console.log(err);
+            return false;
+        });
     }
     
 
