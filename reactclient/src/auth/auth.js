@@ -27,8 +27,8 @@ class Auth {
 
     googleLogin(successCallback, errorCallback) {
         const auth_route_link = 'http://localhost:8181/api/auth/google';
-        window.open(auth_route_link, "_blank"); // Open new tab, best solution for now
-        // window.location.replace(auth_route_link);   
+        window.location.replace(auth_route_link); 
+        // window.open(auth_route_link, "_blank"); // Open new tab  
 
         // Todo
         successCallback();
