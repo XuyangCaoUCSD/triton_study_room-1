@@ -1,11 +1,3 @@
-// Socket.io server that will service both node
-// and react clients
-// Req:
-//  - socket.io
-//  - socket.io-redis
-//  - farmhash
-//  and more
-
 // entrypoint for our cluster which will make workers
 // and the workers will do the Socket.io handling
 
@@ -169,6 +161,11 @@ if (cluster.isMaster) {
 		req.io = io;
 		next();
 	});
+
+	// // Let express serve static assets only in production
+	// if (process.env.NODE_ENV === "production") {
+	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
+	// }
 
 	app.use("/api", indexRoutes);
 	app.use("/api/auth", authRoutes)
