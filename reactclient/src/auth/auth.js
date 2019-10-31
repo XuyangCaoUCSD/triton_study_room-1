@@ -55,7 +55,7 @@ class Auth {
     }
 
     isAuthenticated() {
-        // Returns Promise?
+        // Returns Promise
         return API({
             method: 'get',
             url: `/api/isLoggedIn`,

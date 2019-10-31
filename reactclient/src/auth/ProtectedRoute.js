@@ -1,6 +1,7 @@
 import React, {Component} from "react";
 import { Route, Redirect } from "react-router-dom";
 import auth from "./auth";
+import Loading from "../Loading";
 
 export class ProtectedRoute extends Component {   
     constructor(props) {
@@ -82,7 +83,7 @@ export class ProtectedRoute extends Component {
                         render={
                             () => {
                                 return (
-                                    <div> Loading </div>
+                                    <Loading type="spinningBubbles" color="#0B6623" />
                                 )
                             }
                         }

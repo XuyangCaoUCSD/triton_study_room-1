@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 import './App.css';
 // import socket from './utilities/socketConnection';
-import API from './utilities/API';
 import Dashboard from './routes/Dashboard';
 import Home from './routes/Home';
 import About from './routes/About';
