@@ -65,9 +65,10 @@ class Login extends Component {
     }
 
     render () {
-        // Display not logged in error if redirected from dashboard (maybe as not using valid ucsd email)
+        // Display not logged in error if redirected from dashboard, or
+        // redirected from google auth route (maybe as not using valid ucsd email)
         let redirectedFromGoogle = false;
-        if (window.location.toString().includes('#')) {
+        if (window.location.toString().indexOf('#') !== -1) {  // If hash in link, redirected from google
             redirectedFromGoogle = true;
         }
         let errorDisplay = 
@@ -83,7 +84,10 @@ class Login extends Component {
                 {errorDisplay}
                 <h2>Login</h2>
                 <form style={{ textAlign: "center" }} onSubmit={this.googleLogInHandler}>
-                    <button>GOOGLE LOGIN</button>
+                    <button class="ui google plus button">
+                        <i aria-hidden="true" class="google plus icon"></i>
+                        Google Login
+                    </button>
                 </form>
                 <UserForm getUser={this.getUser} />
 
