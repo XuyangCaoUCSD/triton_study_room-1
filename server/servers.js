@@ -100,8 +100,15 @@ if (cluster.isMaster) {
 	app.use(flash());
 	app.use(helmet());
 
-	// PASSPORT CONFIGURATION
-	app.use(require('express-session')({
+
+	// PASSPORT/SESSION CONFIGURATION
+	const session = require('express-session');
+	const MongoStore = require('connect-mongo')(session);
+	
+	app.use(session({
+		store: new MongoStore({
+			url: "mongodb://localhost:27017/triton_study_room"
+		}),
 		secret: keys.session.secret,
 		resave: false,
 		saveUninitialized: false,

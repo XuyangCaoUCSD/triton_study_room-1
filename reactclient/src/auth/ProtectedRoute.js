@@ -20,7 +20,7 @@ export class ProtectedRoute extends Component {
     isAuthenticated = async () => {
         let result = await auth.isAuthenticated();
         
-        // Only set state if component is still there (not unmounted)
+        // Only set state if component is still there (not unmounted) to avoid memory leak
         if (this._isMounted) {
             if (result === true) {
                 this.setState({
