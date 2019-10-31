@@ -9,6 +9,10 @@ module.exports = {
     // Session keys for cookies
     session: {
         secret: "Super secret key matey mate" 
-    }
+    },
     // Eventually mongo db keys should go here too
+
+    mongoDB: {
+        connectionURI: "mongodb://localhost:27017/triton_study_room"
+    }
 };

@@ -52,6 +52,7 @@ passport.use(
                 console.log('Existing user is:', currentUser);
                 done(null, currentUser);
             } else {
+                // Create new
                 new User({
                     username: profile.displayName,
                     googleId: profile.id,

@@ -13,9 +13,13 @@ router.get('/google', passport.authenticate('google',
 });
 
 // Callback route for google to redirect to
-router.get('/google/redirect', passport.authenticate('google'), (req, res) => {
-    res.send("Logged in success, reached google callback/redirect route");
-});
+router.get('/google/redirect', 
+            passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login' }), // localhost:3000 hardcoded for now
+            (req, res) => {
+                // res.send("Logged in success, reached google callback/redirect route");
+                res.redirect('http://localhost:3000/dashboard');  // localhost:3000 hardcoded for now
+            }
+);
 
 // var host_save;
 // var origin_save;

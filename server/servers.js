@@ -1,11 +1,3 @@
-// Socket.io server that will service both node
-// and react clients
-// Req:
-//  - socket.io
-//  - socket.io-redis
-//  - farmhash
-//  and more
-
 // entrypoint for our cluster which will make workers
 // and the workers will do the Socket.io handling
 
@@ -99,7 +91,7 @@ if (cluster.isMaster) {
 	
 	var app = new express();
 
-	mongoose.connect("mongodb://localhost:27017/triton_study_room", {useNewUrlParser: true, useUnifiedTopology: true});
+	mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true});
 	app.use(bodyParser.json()); // handle json data, needed for axios requests to put things in req.body
 	app.use(bodyParser.urlencoded({extended: true}));
 	app.set("view engine", "ejs");
@@ -108,8 +100,15 @@ if (cluster.isMaster) {
 	app.use(flash());
 	app.use(helmet());
 
-	// PASSPORT CONFIGURATION
-	app.use(require('express-session')({
+
+	// PASSPORT/SESSION CONFIGURATION
+	const session = require('express-session');
+	const MongoStore = require('connect-mongo')(session);
+	
+	app.use(session({
+		store: new MongoStore({
+			url: keys.mongoDB.connectionURI
+		}),
 		secret: keys.session.secret,
 		resave: false,
 		saveUninitialized: false,
@@ -169,6 +168,11 @@ if (cluster.isMaster) {
 		req.io = io;
 		next();
 	});
+
+	// // Let express serve static assets only in production
+	// if (process.env.NODE_ENV === "production") {
+	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
+	// }
 
 	app.use("/api", indexRoutes);
 	app.use("/api/auth", authRoutes)
