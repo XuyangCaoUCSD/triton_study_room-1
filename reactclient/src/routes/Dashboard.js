@@ -10,8 +10,8 @@ import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
 
 class Dashboard extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
       chat_groups: {}
     }
@@ -46,10 +46,10 @@ class Dashboard extends Component {
   render() {
     console.log(this.props);
     let chat_group_icons = [];
-    const data = this.state.chat_groups;
+    const chat_groups_info = this.state.chat_groups;
     // grab each group and its value which is endpoint
     // Object.entries returns an array of key value pairs
-    Object.entries(data).forEach(([key, value]) => {
+    Object.entries(chat_groups_info).forEach(([key, value]) => {
       // Push chat group icon component onto array
       chat_group_icons.push(<ChatGroupIcon key={key} data={value} />);
     });

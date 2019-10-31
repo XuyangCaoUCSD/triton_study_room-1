@@ -30,7 +30,7 @@ class Auth {
         window.location.replace(auth_route_link); 
         // window.open(auth_route_link, "_blank"); // Open new tab  
 
-        // Todo
+        // TODO below not doing much right now as being redirected by server
         successCallback();
     }
 
@@ -44,8 +44,6 @@ class Auth {
             console.log("Check response is");
             console.log(res);
             successCallback(res);
-            // const data = res.data;
-            // this.setState({});
         })
         .catch((err) => {
             console.log("Failed check");

@@ -60,13 +60,14 @@ export class ProtectedRoute extends Component {
                         {...this.state.rest}
                         render={
                             (props) => {
-                                // return <Redirect to="/"/>
+                                // return <Redirect to="/login"/>
 
                                 // can use object to track redirector's location https://reacttraining.com/react-router/web/api/Redirect
                                 return <Redirect 
                                             to={{
-                                                pathname: "/",
+                                                pathname: "/login",
                                                 state: {
+                                                    error: true,
                                                     from: props.location  // location auto passed in by Route component to ...rest
                                                 }
                                             }}   

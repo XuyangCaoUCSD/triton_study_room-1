@@ -7,14 +7,18 @@ import {
 } from "react-router-dom";
 import UserForm from '../UserForm';
 import auth from "../auth/auth";
+import { Message } from 'semantic-ui-react';
 
 class Login extends Component {
-    constructor() {
-        super();
+    constructor(props) {
+        super(props);
         this.state = {}
         this.getUser = this.getUser.bind(this);
         this.testLogoutListener = this.testLogoutListener.bind(this);
         this.googleLogInHandler = this.googleLogInHandler.bind(this);
+    }
+
+    componentDidMount() {
     }
 
     getUser = (e) => {
@@ -34,21 +38,6 @@ class Login extends Component {
                 console.log(err);
             }   
         );
-        // API({
-        //     method: 'post',
-        //     url: `/login`,
-        //     data,
-        //     withCredentials: true
-        // })
-        // .then((res) => {
-        //     console.log(res);
-        //     // const data = res.data;
-        //     // this.setState({});
-        // })
-        // .catch((err) => {
-        //     console.log("Error logging in");
-        //     console.log(err);
-        // });
     }
 
     // Temporary testing authorisation logout
@@ -62,48 +51,7 @@ class Login extends Component {
                 console.log(err);
             }
         );
-        // API({
-        //     method: 'get',
-        //     url: `/logout`,
-        //     withCredentials: true
-        // })
-        // .then((res) => {
-        //     console.log("Check response is");
-        //     console.log(res);
-        //     // const data = res.data;
-        //     // this.setState({});
-        // })
-        // .catch((err) => {
-        //     console.log("Failed check");
-        //     console.log(err);
-        // });
-
-      
     }
-
-    // googleLogInHandler(e) {
-    //     e.preventDefault();
-    //     API({
-    //         method: 'get',
-    //         url: `/auth/google`,
-    //         withCredentials: true,
-
-    //         // headers: {
-    //         //     'Access-Control-Allow-Origin': '*',
-    //         // }
-            
-    //     })
-    //     .then((res) => {
-    //         console.log("Google auth response is");
-    //         console.log(res);
-    //         // const data = res.data;
-    //         // this.setState({});
-    //     })
-    //     .catch((err) => {
-    //         console.log("Failed google auth");
-    //         console.log(err);
-    //     });
-    // }
 
     googleLogInHandler (e) {
         e.preventDefault(); // needed to prevent form from refreshing page
@@ -117,8 +65,22 @@ class Login extends Component {
     }
 
     render () {
+        // Display not logged in error if redirected from dashboard (maybe as not using valid ucsd email)
+        let redirectedFromGoogle = false;
+        if (window.location.toString().includes('#')) {
+            redirectedFromGoogle = true;
+        }
+        let errorDisplay = 
+            (redirectedFromGoogle || (this.props.location.state && this.props.location.state.error)) ? 
+            <Message negative>
+                <Message.Header>Login Error</Message.Header>
+                <p>{"Please use a valid UCSD email to log in!"}</p>
+            </Message> : 
+            "";
+        
         return (
             <div>
+                {errorDisplay}
                 <h2>Login</h2>
                 <form style={{ textAlign: "center" }} onSubmit={this.googleLogInHandler}>
                     <button>GOOGLE LOGIN</button>

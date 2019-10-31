@@ -91,7 +91,7 @@ if (cluster.isMaster) {
 	
 	var app = new express();
 
-	mongoose.connect("mongodb://localhost:27017/triton_study_room", {useNewUrlParser: true, useUnifiedTopology: true});
+	mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true});
 	app.use(bodyParser.json()); // handle json data, needed for axios requests to put things in req.body
 	app.use(bodyParser.urlencoded({extended: true}));
 	app.set("view engine", "ejs");
@@ -107,7 +107,7 @@ if (cluster.isMaster) {
 	
 	app.use(session({
 		store: new MongoStore({
-			url: "mongodb://localhost:27017/triton_study_room"
+			url: keys.mongoDB.connectionURI
 		}),
 		secret: keys.session.secret,
 		resave: false,
