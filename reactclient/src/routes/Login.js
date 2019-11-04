@@ -84,8 +84,8 @@ class Login extends Component {
                 {errorDisplay}
                 <h2>Login</h2>
                 <form style={{ textAlign: "center" }} onSubmit={this.googleLogInHandler}>
-                    <button class="ui google plus button">
-                        <i aria-hidden="true" class="google plus icon"></i>
+                    <button className="ui google plus button">
+                        <i aria-hidden="true" className="google plus icon"></i>
                         Google Login
                     </button>
                 </form>
