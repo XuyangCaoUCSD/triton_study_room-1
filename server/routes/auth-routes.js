@@ -21,17 +21,4 @@ router.get('/google/redirect',
             }
 );
 
-// var host_save;
-// var origin_save;
-// function saveRequestHost(req, res, next) {
-//     host_save = req.get('host');
-//     console.log('host is');
-//     console.log(host_save);
-//     origin_save = req.get('origin');
-//     console.log('origin is');
-//     console.log(origin_save);
-//     next();
-// }
-
-
 module.exports = router;

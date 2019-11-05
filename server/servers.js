@@ -3,9 +3,6 @@
 
 //See https://github.com/elad/node-cluster-socket.io
 
-// const express = require('express');
-
-
 // Express requires
 const  express     = require('express'),
 	   bodyParser  = require('body-parser'),
@@ -20,8 +17,9 @@ const  express     = require('express'),
 // seedDB      = require('./seeds');
 
 // Requiring routes
-const indexRoutes = require("./routes/index"),
-      authRoutes  = require('./routes/auth-routes');
+const indexRoutes     = require("./routes/index"),
+	  authRoutes      = require('./routes/auth-routes'),
+	  namespaceRoutes = require('./routes/namespace-routes');
 
 const cluster = require('cluster');
 const net = require('net');
@@ -105,7 +103,7 @@ if (cluster.isMaster) {
 	const session = require('express-session');
 	const MongoStore = require('connect-mongo')(session);
 	
-	app.use(session({
+	const sessionMiddleware = app.use(session({
 		store: new MongoStore({
 			url: keys.mongoDB.connectionURI
 		}),
@@ -175,7 +173,8 @@ if (cluster.isMaster) {
 	// }
 
 	app.use("/api", indexRoutes);
-	app.use("/api/auth", authRoutes)
+	app.use("/api/auth", authRoutes);
+	app.use("/api/namespace", namespaceRoutes);
 
 	// Don't expose our internal server to the outside world. Hence port 0.
 	// Remember master listensFor outside world
@@ -190,12 +189,32 @@ if (cluster.isMaster) {
 	// redis-cli monitor
 	io.adapter(io_redis({ host: 'localhost', port: 6379 }));
 
-    // Here you might use Socket.IO middleware for authorization etc.
+	// Here you might use Socket.IO middleware for authorization etc.
 	// on connection, send the socket over to our module with socket stuff
+	
+	io.use((socket, next) => {
+		var handshakeData = socket.request;
+		console.log('handshakeData is');
+		console.log(handshakeData);
+		// Possibly check passport session here (req.session.passport)
+
+	
+		sessionMiddleware(handshakeData, {}, next);
+		// make sure the handshake data looks good
+		// if error
+		  // next(new Error('not authorized'));
+		// else call next
+		// next();
+	});
+
+   
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
 		// socketMain(io,socket);
 		console.log(`connected to worker: ${cluster.worker.id}`);
+
+		var userId = socket.request.session.passport.user;
+        console.log("User id is", userId);
     });
 
 	// Listen to messages sent from the master. Ignore everything else.

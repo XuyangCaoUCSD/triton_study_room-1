@@ -4,25 +4,23 @@ const Room =  require('../classes/Room');
 
 // Set up the namespaces
 let namespaces = [];
-let wikiNs = new Namespace(0,'Wiki','https://upload.wikimedia.org/wikipedia/en/thumb/8/80/Wikipedia-logo-v2.svg/103px-Wikipedia-logo-v2.svg.png','/wiki');
-let mozNs = new Namespace(1,'Mozilla','https://www.mozilla.org/media/img/logos/firefox/logo-quantum.9c5e96634f92.png','/mozilla');
-let linuxNs = new Namespace(2,'Linux','https://upload.wikimedia.org/wikipedia/commons/a/af/Tux.png','/linux');
+let cse110Ns = new Namespace(0,'cse110','https://i.ytimg.com/vi/O753uuutqH8/maxresdefault.jpg','/cse110');
+let cse100Ns = new Namespace(1,'cse100','https://cecieee.org/wp-content/uploads/2018/11/data-structure.jpg','/cse100');
+let cse101Ns = new Namespace(2,'cse101','https://i.ytimg.com/vi/rL8X2mlNHPM/maxresdefault.jpg','/cse101');
 
 // Make the main room and add it to rooms. it will ALWAYS be 0
-wikiNs.addRoom(new Room(0,'New Articles','Wiki'));
-wikiNs.addRoom(new Room(1,'Editors','Wiki'));
-wikiNs.addRoom(new Room(2,'Other','Wiki'));
+cse110Ns.addRoom(new Room(0,'General','cse110'));
+cse110Ns.addRoom(new Room(1,'Labs','cse110'));
+cse110Ns.addRoom(new Room(2,'Other','cse110'));
 
-mozNs.addRoom(new Room(0,'Firefox','Mozilla'));
-mozNs.addRoom(new Room(1,'SeaMonkey','Mozilla'));
-mozNs.addRoom(new Room(2,'SpiderMonkey','Mozilla'));
-mozNs.addRoom(new Room(3,'Rust','Mozilla'));
+cse100Ns.addRoom(new Room(0,'General','cse100'));
+cse100Ns.addRoom(new Room(1,'Programming Assignments','cse100'));
+cse100Ns.addRoom(new Room(2,'Other','cse100'));
 
-linuxNs.addRoom(new Room(0,'Debian','Linux'));
-linuxNs.addRoom(new Room(1,'Red Hat','Linux'));
-linuxNs.addRoom(new Room(2,'MacOs','Linux'));
-linuxNs.addRoom(new Room(3,'Kernal Development','Linux'));
+cse101Ns.addRoom(new Room(0,'General','cse101'));
+cse101Ns.addRoom(new Room(1,'Homework','cse101'));
+cse101Ns.addRoom(new Room(2,'Other','cse101'));
 
-namespaces.push(wikiNs,mozNs,linuxNs);
+namespaces.push(cse110Ns,cse100Ns,cse101Ns);
 
 module.exports = namespaces;

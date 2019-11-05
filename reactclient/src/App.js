@@ -12,6 +12,7 @@ import Home from './routes/Home';
 import About from './routes/About';
 import Login from './routes/Login';
 import Register from './routes/Register';
+import Namespace from './routes/Namespace';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
 
@@ -19,21 +20,20 @@ class App extends Component {
     constructor() {
         super();
         this.state = {}
+        
     }
 
     componentDidMount() {
         // socket.on('data', (data) => {
         //   // inside this callback , we just got some new data!
         //   // let's update state so we can 
-        //   // re-render App --> CPU/Mem/Info
+        //   // re-render App
         //   // We need to make copy of current state so we can mutate it
-        //   const currentState = ({...this.state.performanceData});
-        //   // const currentState = Object.assign(this.state.performanceData, {});
+        //   const currentState = ({...this.state.data});
+        //   // const currentState = Object.assign(this.state.data, {});
         //   // current state is an object! Not an array!
-        //   // The reason for this is so we can use the machine's MacA as its property
-        //   currentState[data.macA] = data;
         //   this.setState({
-        //     performanceData: currentState
+        //     t_data: currentState
         //   });
         // });
     }
@@ -76,6 +76,7 @@ class App extends Component {
                         <Route exact path="/register" component={Register} />
                         <Route exact path="/about" component={About} />
                         <ProtectedRoute exact path="/dashboard" component={Dashboard} />
+                        <ProtectedRoute exact path="/namespace/:name" component={Namespace} />
                         
                         <Route path="*" component={() => "404 NOT FOUND"} />
                     </Switch>

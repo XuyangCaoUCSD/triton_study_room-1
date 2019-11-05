@@ -1,7 +1,8 @@
 const  express       = require('express'),
        passport      = require('passport'),
        passportSetup = require('../config/passport-setup'), // Need to require to run file so google auth is initialised
-       User          = require('../models/User');
+       User          = require('../models/User'),
+       middleware    = require('../middleware/index');
 
 var router = express.Router();
 let namespaces = require('../data/namespaces');  // Temp
@@ -13,7 +14,7 @@ router.get("/", (req, res) => {
 	// res.render("landing");
 });
 
-router.get('/dashboard', isLoggedIn, (req, res) => {
+router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
     let data = {
         success: true,
         nsData: null
@@ -70,22 +71,7 @@ router.get('/dashboard', isLoggedIn, (req, res) => {
 // 	});
 // });
 
-function isLoggedIn (req, res, next) {
-	if (req.isAuthenticated()) {
-        console.log(req.user)
-		return next();
-    } 
-
-    console.log(req.user);
-    console.log(req.session);
-	req.flash("error", "You need to be logged in first to do that");  // Key value pair arg to display on next redirect / next route
-    
-    res.statusMessage = "NOT LOGGED IN!";
-    res.status(401);
-    res.send("ERROR, NOT LOGGED IN");
-}
-
-router.get('/check', isLoggedIn, (req, res) => {
+router.get('/check', middleware.isLoggedIn, (req, res) => {
     console.log("Passed validation");
     console.log("User details are");
     console.log(req.user);
