@@ -1,84 +1,18 @@
-// const mongoose = require('mongoose');
-// mongoose.connect('mongodb://127.0.0.1/testPerfData', {useNewUrlParser: true, useUnifiedTopology: true });
-// const Machine = require('./models/Machine');
+const mongoose = require('mongoose');
+const keys = require('./config/keys');
+mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
-// function socketMain(io, socket) {
-//     // console.log("A socket connected!", socket.id);
+function socketMain(io, socket) {
+    console.log("A socket connected!", socket.id);
     
-//     socket.on('clientAuth', (key) => {
-//         if (key === '5jaldfa8923jnlk9fvqpnc902fs') {
-//             // valid nodeClient
-//             socket.join('clients');
-//         } else if (key === 'uixa02mdcdvw') {
-//             // valid ui client has joined
-//             socket.join('ui');
-//             console.log('A react client has joined!');
-//             Machine.find({}, (err, docs) => {
-//                 docs.forEach((aMachine) => {
-//                     // On load, assume that all machines are offline
-//                     aMachine.isActive = false;
-//                     io.to('ui').emit('data', aMachine);
-//                 });
-//             });
-//         } else {
-//             // an invalid client has joined. Goodbye
-//             socket.disconnect(true);
-//         }
-//     });
+    socket.on('disconnect', () => {
+        // Reduce number of users in namespace
+    })
 
-//     socket.on('disconnect', () => {
-//         // macA variable made available to function few lines below in initPerfData event
-//         Machine.findOne({macA: macA}, (err, machine) => {
-//             if (machine != {}) {
-//                 // send one last emit to React
-//                 machine.isActive = false;
-//                 io.to('ui').emit('data', machine);
-//             }
-//         })
-//     })
 
-//     // a machine has connected, check to see if it's new
-//     // if it is, add it!
-//     socket.on('initPerfData', async (data) => {
-//         // update our socket function scoped variable
-//         macA = data.macA;
+}
 
-//         // now go check mongo
-//         const mongooseResponse = await checkAndAdd(data);
-//         console.log(mongooseResponse);
-//     });
-    
-//     socket.on('perfData', (data) => {
-//         console.log("Tick...");
-//         io.to('ui').emit('data', data);
-//     });
-// }
-
-// function checkAndAdd(data) {
-//     // because we are doing db stuff, JS won't wait for db
-//     // so we need to make this a promise
-//     return new Promise((resolve, reject) => {
-//         Machine.findOne(
-//             {macA: data.macA},
-//             (err, foundMachine) => {
-//                 if (err) {
-//                     throw err;
-//                     reject(err);
-//                 } else if (foundMachine === null) {
-//                     // if record not in db add it
-//                     let newMachine = new Machine(data);
-//                     newMachine.save(); // save to db
-//                     resolve('added');
-//                 } else {
-//                     // it is in db, just resolve
-//                     resolve('found');
-//                 }
-//             }
-//         )
-//     });
-// }
-
-// module.exports = socketMain;
+module.exports = socketMain;
 
 
 
@@ -149,11 +83,3 @@
 //         });
 //     });
 // });
-
-// function updateUsersInRoom(namespace, roomToJoin) {      
-//     // Send back num of users in this room to all sockets connected to this room
-//     io.of(namespace.endpoint).in(roomToJoin).clients((error, clients) => {
-//         // console.log(`There are ${clients.length} users in this room`);
-//         io.of(namespace.endpoint).in(roomToJoin).emit('updateMembers', clients.length);
-//     });
-// }

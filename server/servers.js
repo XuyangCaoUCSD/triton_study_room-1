@@ -11,10 +11,10 @@ const  express     = require('express'),
 	   cors        = require('cors'),
 	   passport    = require('passport'),
 	//    LocalStrategy = require('passport-local'),
+	   sharedSession = require("express-socket.io-session"),
 	   methodOverride = require('method-override'),
 	   keys        = require('./config/keys'),
 	   User        = require('./models/User');
-// seedDB      = require('./seeds');
 
 // Requiring routes
 const indexRoutes     = require("./routes/index"),
@@ -100,10 +100,10 @@ if (cluster.isMaster) {
 
 
 	// PASSPORT/SESSION CONFIGURATION
-	const session = require('express-session');
-	const MongoStore = require('connect-mongo')(session);
-	
-	const sessionMiddleware = app.use(session({
+	const expressSession = require('express-session');
+	const MongoStore = require('connect-mongo')(expressSession);
+
+	session = expressSession({
 		store: new MongoStore({
 			url: keys.mongoDB.connectionURI
 		}),
@@ -114,7 +114,8 @@ if (cluster.isMaster) {
 			maxAge: 24 * 60 * 60 * 1000 // in ms => 1 day
 			// maxAge: 10000 // in ms => 10 secs for testing
 		} 
-	}));
+	});
+	app.use(session);
 
 	// PASSPORT CONFIG
 	app.use(passport.initialize());
@@ -192,29 +193,39 @@ if (cluster.isMaster) {
 	// Here you might use Socket.IO middleware for authorization etc.
 	// on connection, send the socket over to our module with socket stuff
 	
-	io.use((socket, next) => {
-		var handshakeData = socket.request;
-		console.log('handshakeData is');
-		console.log(handshakeData);
-		// Possibly check passport session here (req.session.passport)
+	// io.use((socket, next) => {
+	// 	var handshakeData = socket.request;
+	// 	// Possibly check passport session here (req.session.passport)
+	// 	if (handshakeData.isAuthenticated()) {
+	// 		console.log(req.user);
+	// 		next();
+	// 	} else {
+	// 		console.log('Error');
+	// 	}
 
-	
-		sessionMiddleware(handshakeData, {}, next);
-		// make sure the handshake data looks good
-		// if error
-		  // next(new Error('not authorized'));
-		// else call next
-		// next();
-	});
+	// 	// console.log('socket middleware excuting');
+	// 	// sessionMiddleware(handshakeData, {}, next);
 
-   
+	// 	// make sure the handshake data looks good
+	// 	// if error
+	// 	  // next(new Error('not authorized'));
+	// 	// else call next
+	// 	// next();
+
+	// });
+
+	// "session" parameter is express session
+	io.use(sharedSession(session));
+
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
-		// socketMain(io,socket);
+		
 		console.log(`connected to worker: ${cluster.worker.id}`);
 
-		var userId = socket.request.session.passport.user;
-        console.log("User id is", userId);
+		// var userId = socket.request.session.passport.user;
+		// console.log("User id is", userId);
+		
+		socketMain(io,socket);
     });
 
 	// Listen to messages sent from the master. Ignore everything else.

@@ -19,6 +19,7 @@ class Namespace extends Component {
         this.state = {
         }
 
+
         // this.socket = io.connect(`/api${this.props.endpoint}`);
     }
 
@@ -59,6 +60,15 @@ class Namespace extends Component {
                 nsTitle: cse110Namespace.nsTitle,
                 chatGroups
             });
+
+            this.socket = io.connect(`localhost:8181/`);
+            // this.socket = io.connect("");
+
+            console.log(`client socket connecting to /api${cse110Namespace.endpoint}`);
+
+            this.socket.on('connect', () => {
+                console.log('connected!');
+            })
 
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
@@ -124,8 +134,8 @@ class Namespace extends Component {
             // grab each group and its value which is endpoint
             // Object.entries returns an array of key value pairs
             Object.entries(roomsInfo).forEach(([key, value]) => {
-            // Push namespace group icon component onto array
-            rooms.push(<li key={key} data={value}>{value.roomTitle}</li>);
+                // Push namespace group icon component onto array
+                rooms.push(<li key={key} data={value}>{value.roomName}</li>);
             });
 
             let chatGroupIcons = [];
@@ -141,10 +151,9 @@ class Namespace extends Component {
             // chatHistory.push(buildMessage("Hello There"));
             // chatHistory.push(buildMessage("Lorem Ipsum"));
             // chatHistory.push(buildMessage("Pig latin"));
-            this.state.currRoom.history.forEach((message) => {
+            this.state.currRoom.chatHistory.forEach((message) => {
                 chatHistory.push(buildMessage(message));
             })
-            
 
             return (
                 <div>
@@ -170,7 +179,7 @@ function namespaceHTML(chatGroups, rooms, messages, messageInputHandler) {
             </div>
             <div className="two wide column rooms">
                 <h3>Rooms <i aria-hidden="true" className="lock open small icon"></i></h3>
-                <ul className="room-list">
+                <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
                     {rooms}
                 </ul>
             </div>
@@ -182,45 +191,8 @@ function namespaceHTML(chatGroups, rooms, messages, messageInputHandler) {
                     </div> */}
                 </div> 
                 <Segment color="teal" style={{overflow: 'auto', height: '100%' }}>
-                    <ul id="messages" className="twelve wide column">
+                    <ul id="messages" className="twelve wide column" style={{listStyleType: "none", padding: 0}}>
                         {messages}
-                        {/* <li>
-                            <div className="user-image">
-                                <img src="https://via.placeholder.com/30" />
-                            </div>
-                            <div className="user-message">
-                                <div className="user-name-time">Mate <span>1:25 pm</span></div>
-                                <div className="message-text">I ate food today.</div>
-                            </div>
-                        </li>
-
-                        <li>
-                            <div className="user-image">
-                                <img src="https://via.placeholder.com/30" />
-                            </div>
-                            <div className="user-message">
-                                <div className="user-name-time">Buddy <span>2:25 pm</span></div>
-                                <div className="message-text">So did I mate.</div>
-                            </div>
-                        </li>
-                        <li>
-                            <div className="user-image">
-                                <img src="https://via.placeholder.com/30" />
-                            </div>
-                            <div className="user-message">
-                                <div className="user-name-time">Mate <span>2:29 pm</span></div>
-                                <div className="message-text">I like messaging.</div>
-                            </div>
-                        </li>
-                        <li>
-                            <div className="user-image">
-                                <img src="https://via.placeholder.com/30" />
-                            </div>
-                            <div className="user-message">
-                                <div className="user-name-time">Buddy <span>2:59 pm</span></div>
-                                <div className="message-text">Lol, ok mate.</div>
-                            </div>
-                        </li>  */}
                     </ul>
                 </Segment>
                 <div className="message-form">
@@ -251,12 +223,12 @@ function buildMessage(messageText) {
 
     return (
         <li>
-            <div class="user-image">
+            <div className="user-image">
                 <img src={msg.avatar} style={{maxHeight: '30px'}}/>
             </div>
-            <div class="user-message">
-                <div class="user-name-time">{msg.username} <span>{msg.time}</span></div>
-                <div class="message-text">{msg.text}</div>
+            <div className="user-message">
+                <div className="user-name-time">{msg.username} <span>{msg.time}</span></div>
+                <div className="message-text">{msg.text}</div>
             </div>
         </li>
     )

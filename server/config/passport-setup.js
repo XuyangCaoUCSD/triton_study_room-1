@@ -56,7 +56,14 @@ passport.use(
                 new User({
                     username: profile.displayName,
                     googleId: profile.id,
-                    email: email
+                    email: email,
+                    
+                    // // Temp give default namesapces
+                    // namespaces: [
+                    //     "5dc1ccd891f14a01f8c1f4ff",
+                    //     "5dc1ccd891f14a01f8c1f503",
+                    //     "5dc1ccd891f14a01f8c1f505"
+                    // ]
                 }).save().then((newUser) => {
                     console.log('new user created: ' + newUser);
                     done(null, newUser);
