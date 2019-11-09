@@ -17,9 +17,9 @@ class Namespace extends Component {
     constructor(props) {
         super(props);
         this.state = {
+        
         }
-
-
+        this.socket = null;
         // this.socket = io.connect(`/api${this.props.endpoint}`);
     }
 
@@ -61,14 +61,31 @@ class Namespace extends Component {
                 chatGroups
             });
 
-            this.socket = io.connect(`localhost:8181/`);
-            // this.socket = io.connect("");
+            if (this.socket) {
+                this.socket.disconnect();
+            }
+            // this.socket = io.connect(`/namespace${cse110Namespace.endpoint}`, {transports: ['websocket']});
+            this.socket = io.connect(`/namespace${cse110Namespace.endpoint}`);
+            // this.socket = io.connect("");       
 
-            console.log(`client socket connecting to /api${cse110Namespace.endpoint}`);
+
+            console.log(`client socket connecting to /namespace${cse110Namespace.endpoint}`);
 
             this.socket.on('connect', () => {
                 console.log('connected!');
-            })
+            });
+
+            this.socket.on('message', (msg) => {
+                console.log(this.state.currRoom);
+                let chatHistory = [...this.state.currRoom.chatHistory, msg]; // assume immutable, make copy
+
+                let newCurrRoom = {...this.state.currRoom};
+                newCurrRoom.chatHistory = chatHistory;
+                
+                this.setState({
+                    currRoom: newCurrRoom
+                });
+            });
 
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
@@ -83,7 +100,7 @@ class Namespace extends Component {
     }
   
     componentWillUnmount() {
-        this.socket.close();
+        this.socket.disconnect();
     }
 
     iconsClickHandler = (data) => {
@@ -120,7 +137,7 @@ class Namespace extends Component {
         console.log(message);
 
         // Do socket emit
-        // socket.emit('message', message)
+        this.socket.emit('message', message);
     }
 
     render() {

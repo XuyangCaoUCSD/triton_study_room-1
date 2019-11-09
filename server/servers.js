@@ -10,6 +10,7 @@ const  express     = require('express'),
 	   flash       = require('connect-flash'),
 	   cors        = require('cors'),
 	   passport    = require('passport'),
+	   passportSocketIo =  require('passport.socketio'),
 	//    LocalStrategy = require('passport-local'),
 	   sharedSession = require("express-socket.io-session"),
 	   methodOverride = require('method-override'),
@@ -214,18 +215,37 @@ if (cluster.isMaster) {
 
 	// });
 
-	// "session" parameter is express session
-	io.use(sharedSession(session));
+
+	// Alternative to passportSocketIo (will put information in socket.handshake.session.passport though)
+	// // "session" parameter is express session
+	// io.use(sharedSession(session, {
+	// 	autoSave: true
+	// }));
+
+	// Passport socketio, populates socket.request.user
+	io.use(passportSocketIo.authorize({
+		key: 'connect.sid',  // same as express session settings ('key' property is 'connect.sid' by default in express session)
+		secret: keys.session.secret,  // same as express session settings
+		store: new MongoStore({  // same as express esssion settings
+			url: keys.mongoDB.connectionURI
+		}),        
+	}));
+
 
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
 		
+		// Shared session info if used (can use either this or passportSocketIO middleware)
+		// console.log('socket.handshake.session.passport.user is')
+		// console.log(socket.handshake.session.passport.user);
+
 		console.log(`connected to worker: ${cluster.worker.id}`);
+		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 
 		// var userId = socket.request.session.passport.user;
 		// console.log("User id is", userId);
 		
-		socketMain(io,socket);
+		socketMain(io, socket);
     });
 
 	// Listen to messages sent from the master. Ignore everything else.

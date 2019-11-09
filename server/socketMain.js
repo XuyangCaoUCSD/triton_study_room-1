@@ -4,10 +4,23 @@ mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedT
 
 function socketMain(io, socket) {
     console.log("A socket connected!", socket.id);
+
+    // Hardcoded 1 namespace rn
+    io.of('/namespace/cse110').on('connection', (nsSocket) => {
+        console.log('nsSocket id is ' + nsSocket.id);
+
+        nsSocket.on('message', (msg) => {
+            console.log('received message: ' + msg);
+            // Hardcoded to cse 110 right now
+            io.of('/namespace/cse110').emit('message', msg);
+        })
     
-    socket.on('disconnect', () => {
-        // Reduce number of users in namespace
-    })
+        nsSocket.on('disconnect', () => {
+            // Reduce number of users in namespace
+        });
+    });
+
+    
 
 
 }
