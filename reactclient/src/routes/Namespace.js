@@ -9,7 +9,7 @@ import {
 import API from '../utilities/API';
 import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment } from 'semantic-ui-react';
+import { Segment, Form, TextArea } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -17,10 +17,14 @@ class Namespace extends Component {
     constructor(props) {
         super(props);
         this.state = {
-        
-        }
+            inputMessageValue: ''
+        };
         this.socket = null;
+        
         // this.socket = io.connect(`/api${this.props.endpoint}`);
+        this.namespaceHTML = this.namespaceHTML.bind(this);
+
+        this.handleInputChange = this.handleInputChange.bind(this);
     }
 
     componentDidMount() {
@@ -36,6 +40,9 @@ class Namespace extends Component {
         //     t_data: currentState
         //   });
         // });
+
+        // For cleaning up when refreshing
+        window.addEventListener('beforeunload', this.componentCleanup);  
 
         // Retrieve particular namespace information
         API({
@@ -62,6 +69,7 @@ class Namespace extends Component {
             });
 
             if (this.socket) {
+                console.log('disconnnecting old socket');
                 this.socket.disconnect();
             }
             // this.socket = io.connect(`/namespace${cse110Namespace.endpoint}`, {transports: ['websocket']});
@@ -87,6 +95,8 @@ class Namespace extends Component {
                 });
             });
 
+            this.scrollToBottom();
+
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
             // Either use toString or ==
@@ -98,9 +108,25 @@ class Namespace extends Component {
 
         });
     }
-  
+    
+    componentCleanup() {
+        if (this.socket) {
+            this.socket.disconnect();
+        }
+    }
+
     componentWillUnmount() {
-        this.socket.disconnect();
+        this.componentCleanup(); 
+    }  
+    
+    componentDidUpdate() {
+        this.scrollToBottom();
+    }
+
+    // Scroll to last message
+    scrollToBottom = () => {
+        // "Auto" to get there immediately. TODO when to use auto, when to use smooth, when to not scroll.
+        this.messagesEnd.scrollIntoView({ behavior: "smooth" });
     }
 
     iconsClickHandler = (data) => {
@@ -129,23 +155,39 @@ class Namespace extends Component {
         // });
     }
 
+    // messageInputHandler = (e) => {
+    //     e.preventDefault();
+    //     const message = e.target.elements.message.value; // Extract submitted text in in
+
+    //     console.log('message is ');
+    //     console.log(message);
+
+    //     // Do socket emit
+    //     this.socket.emit('message', message);
+    // }
+
     messageInputHandler = (e) => {
-        e.preventDefault();
-        const message = e.target.elements.message.value; // Extract submitted text in in
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const message = this.state.inputMessageValue; // Get value from state
+            this.setState({
+                inputMessageValue: '' // clear text area
+            });
+            console.log('message is ');
+            console.log(message);
 
-        console.log('message is ');
-        console.log(message);
-
-        // Do socket emit
-        this.socket.emit('message', message);
+            // Do socket emit
+            this.socket.emit('message', message);
+        }
+        
     }
 
     render() {
         if (this.state.rooms != null) {
             // These info should only be loaded once when component mounts.
             // Only messages will be updated after that
-
             console.log(this.props);
+
             let rooms = [];
             const roomsInfo = this.state.rooms;
             // grab each group and its value which is endpoint
@@ -164,6 +206,7 @@ class Namespace extends Component {
                 chatGroupIcons.push(<ChatGroupIcon key={key} data={value} onClickHandler={() => this.iconsClickHandler(value)} />);
             });
             
+            
             let chatHistory = [];
             // chatHistory.push(buildMessage("Hello There"));
             // chatHistory.push(buildMessage("Lorem Ipsum"));
@@ -173,9 +216,12 @@ class Namespace extends Component {
             })
 
             return (
-                <div>
+                // TODO make outer one screen (height: "100vh", width: "100vw")
+                // TODO appropriate inner divs 100% width and height instead of having to nest
+
+                <div className="ui container" style={{height: "100vh", width: "100vw",}}>
                     <h2>CSE 110</h2>
-                    {namespaceHTML(chatGroupIcons, rooms, chatHistory, this.messageInputHandler)}
+                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.messageInputHandler)}
                 </div>
             );
            
@@ -186,45 +232,57 @@ class Namespace extends Component {
         }
         
     }
-}
 
-function namespaceHTML(chatGroups, rooms, messages, messageInputHandler) {
-    return (
-        <div className="ui grid">
-            <div className="two wide column namespaces">
-                {chatGroups}
-            </div>
-            <div className="two wide column rooms">
-                <h3>Rooms <i aria-hidden="true" className="lock open small icon"></i></h3>
-                <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
-                    {rooms}
-                </ul>
-            </div>
-            <div className="eleven wide column">
-                <div className="room-header row col-6">
-                    <div className="three wide column"><span className="curr-room-text">Current Room</span> <span className="curr-room-num-users">Users <i aria-hidden="true" className="users disabled large icon"></i></span></div>
-                    {/* <div className="three wide column ui search pull-right">
-                        <input type="text" id="search-box" placeholder="Search" />
-                    </div> */}
-                </div> 
-                <Segment color="teal" style={{overflow: 'auto', height: '100%' }}>
-                    <ul id="messages" className="twelve wide column" style={{listStyleType: "none", padding: 0}}>
-                        {messages}
+    handleInputChange(e) {
+        this.setState({
+            inputMessageValue: e.target.value
+        })
+    }
+
+    namespaceHTML(chatGroups, rooms, messages, messageInputHandler) {
+        return (
+            <div className="ui grid" style={{height: "100%", width: '100%'}}>
+                <div className="two wide column namespaces">
+                    {chatGroups}
+                </div>
+                <div className="two wide column rooms">
+                    <h3>Rooms <i aria-hidden="true" className="lock open small icon"></i></h3>
+                    <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
+                        {rooms}
                     </ul>
-                </Segment>
-                <div className="message-form">
-                    <form id="user-input" onSubmit={messageInputHandler}>
-                        <div className="ui fluid icon input">
-                            <input name="message" type="text" placeholder="Enter your message" />
-                        </div>
-                        {/* <div className="col-sm-2">
-                            <input className="btn btn-primary" type="submit" value="send" />
-                        </div>  */}
-                    </form>
+                </div>
+                <div className="eleven wide column" style={{height: "100%", width: '100%'}}>
+                    <div className="room-header row col-6">
+                        <div className="three wide column"><span className="curr-room-text">Current Room</span> <span className="curr-room-num-users">Users <i aria-hidden="true" className="users disabled large icon"></i></span></div>
+                        {/* <div className="three wide column ui search pull-right">
+                            <input type="text" id="search-box" placeholder="Search" />
+                        </div> */}
+                    </div> 
+                    <Segment color="teal" style={{overflowY: 'scroll', height: '100%', width: '100%', wordWrap: 'break-word'}}>
+                        <ul id="messages" className="twelve wide column" style={{listStyleType: "none", padding: 0}}>
+                            {messages}
+                            {/* Dummy div below to use to scroll to bottom */}
+                            <div style={{ float:"left", clear: "both" }}
+                                ref={(el) => { this.messagesEnd = el; }}>
+                            </div>
+                        </ul>
+                    </Segment>
+                    <div className="message-form" style={{width: '100%', paddingBottom: '15px'}}>
+                        {/* <form className="ui-form" id="user-input" onSubmit={messageInputHandler} style={{width: '100%'}}>
+                            <div className="ui input fluid icon" >
+                                <input name="message" type="text" placeholder="Enter your message" maxlength="40000" style={{width: '100%', wordWrap: 'break-word'}}/>
+                            </div>
+                        </form> */}
+                        <Form style={{width: '100%'}}>
+                            <TextArea value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={messageInputHandler} maxlength="40000" placeholder="Enter your message" rows="2" />
+                        </Form>
+
+                    </div>
                 </div>
             </div>
-        </div>
-    )
+        )
+    }
+    
 }
 
 function buildMessage(messageText) {

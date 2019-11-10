@@ -5,24 +5,22 @@ mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedT
 function socketMain(io, socket) {
     console.log("A socket connected!", socket.id);
 
+    let cse110Name = '/namespace/cse110';
     // Hardcoded 1 namespace rn
-    io.of('/namespace/cse110').on('connection', (nsSocket) => {
+    io.of(cse110Name).on('connection', (nsSocket) => {
         console.log('nsSocket id is ' + nsSocket.id);
 
         nsSocket.on('message', (msg) => {
             console.log('received message: ' + msg);
             // Hardcoded to cse 110 right now
-            io.of('/namespace/cse110').emit('message', msg);
+            io.of(cse110Name).emit('message', msg);
         })
     
         nsSocket.on('disconnect', () => {
-            // Reduce number of users in namespace
+            // Update number of users in namespace
+            io.of(cse110Name).emit('numUsers', '1');
         });
     });
-
-    
-
-
 }
 
 module.exports = socketMain;
