@@ -6,19 +6,33 @@ function socketMain(io, socket) {
     console.log("A socket connected!", socket.id);
 
     let cse110Name = '/namespace/cse110';
-    // Hardcoded 1 namespace rn
+    // Hardcoded 1 namespace for now
     io.of(cse110Name).on('connection', (nsSocket) => {
         console.log('nsSocket id is ' + nsSocket.id);
 
-        nsSocket.on('message', (msg) => {
+        // The user will be in the 2nd room in the object list 
+        // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
+        // Get the keys which will be the room name
+        const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
+        nsSocket.leave(roomToLeave);
+        console.log('Leaving room: ' + roomToLeave);
+
+        let roomName = 'General';
+        nsSocket.join(roomName); // Hardcoded for now
+
+        console.log('Joining room: ' + roomName);
+
+        nsSocket.on('userMessage', (msg) => {
             console.log('received message: ' + msg);
             // Hardcoded to cse 110 right now
-            io.of(cse110Name).emit('message', msg);
+            io.of(cse110Name).to(roomName).emit('userMessage', msg);  // Hardcoded roomName for now
         })
     
         nsSocket.on('disconnect', () => {
+            console.log('Socket Disconnected: ' + nsSocket.id);
             // Update number of users in namespace
-            io.of(cse110Name).emit('numUsers', '1');
+            // io.of(cse110Name).emit('numUsers', '1');
+
         });
     });
 }

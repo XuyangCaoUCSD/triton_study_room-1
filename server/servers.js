@@ -163,11 +163,11 @@ if (cluster.isMaster) {
 	});
 
 
-	// Adds middleware to all routes to make io server available
-	app.use((req,res,next) => {
-		req.io = io;
-		next();
-	});
+	// // Adds middleware to all routes to make io server available
+	// app.use((req,res,next) => {
+	// 	req.io = io;
+	// 	next();
+	// });
 
 	// // Let express serve static assets only in production
 	// if (process.env.NODE_ENV === "production") {
