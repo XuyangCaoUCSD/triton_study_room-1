@@ -1,5 +1,6 @@
 import React, {Component } from 'react';
 import { Route, Redirect } from "react-router-dom";
+import {withRouter} from 'react-router'
 // import socket from './utilities/socketConnection';
 import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
@@ -57,11 +58,17 @@ class Dashboard extends Component {
         .then((res) => {
             console.log(`/api/namespace${data.endpoint} API responded with`);
             console.log(res);
-            if (this._isMounted) {
-                this.setState({
-                    redirectTo: `/namespace${data.endpoint}`
-                });
-            }
+            // if (this._isMounted) {
+            //     this.setState({
+            //         redirectTo: `/namespace${data.endpoint}`
+            //     });
+
+            //     // this.props.history.push(`/namespace${data.endpoint}`);
+                
+            // }
+            console.log('dashboard props are');
+            console.log(this.props);
+            this.props.history.push(`/namespace${data.endpoint}`);
             
         })
         .catch((err) => {
@@ -80,29 +87,16 @@ class Dashboard extends Component {
             // Push chat group icon component onto array
             chat_group_icons.push(<ChatGroupIcon key={key} data={value} onClickHandler={() => this.iconsClickHandler(value)} />);
         });
-        if (this.state.redirectTo == null) {
-            return (
-                <div>
-                    <h2>Dashboard</h2>
-                    {chat_group_icons}
-                </div>
-            );
-        } else {
-            return (
-                <Redirect 
-                    to={{
-                        pathname: this.state.redirectTo,
-                        state: {
-                            from: this.props.location  // location auto passed in by Route component to ...rest
-                        }
-                    }}   
-                />   
-            )
-        }
-        
+
+        return (
+            <div>
+                <h2>Dashboard</h2>
+                {chat_group_icons}
+            </div>
+        );  
     }
 }
 
-export default Dashboard;
+export default withRouter(Dashboard);
 
 

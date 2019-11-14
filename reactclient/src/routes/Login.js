@@ -3,7 +3,9 @@ import {
     BrowserRouter as Router,
     Switch,
     Route,
-    Link
+    Link,
+    useHistory,
+    useLocation
 } from "react-router-dom";
 import UserForm from '../UserForm';
 import auth from "../auth/auth";
@@ -13,31 +15,21 @@ class Login extends Component {
     constructor(props) {
         super(props);
         this.state = {}
-        this.getUser = this.getUser.bind(this);
         this.testLogoutListener = this.testLogoutListener.bind(this);
         this.googleLogInHandler = this.googleLogInHandler.bind(this);
+        
     }
 
     componentDidMount() {
-    }
+        console.log('Login props are');
+        console.log(this.props);
+        console.log('done');
 
-    getUser = (e) => {
-        e.preventDefault();
-        const username = e.target.elements.username.value; // Extract submitted text in input in UserForm
-        const password = e.target.elements.password.value;
-
-        const data = {
-            username,
-            password
+        // If already logged in redirect to dashboard
+        if (this.props.isLoggedIn) {
+            console.log('Already logged in, redirecting to dashboard')
+            this.props.history.push('/dashboard');
         }
-
-        auth.login(data, 
-            (res) => {
-                this.props.history.push("/dashboard");
-            }, (err) => {
-                console.log(err);
-            }   
-        );
     }
 
     // Temporary testing authorisation logout
@@ -46,25 +38,37 @@ class Login extends Component {
 
         auth.logout(
             (res) => {
-            this.props.history.push('/');
+                this.props.authMemoHandler();
+                this.props.history.push('/login');
             }, (err) => {
                 console.log(err);
             }
         );
+
+       
     }
 
     googleLogInHandler (e) {
         e.preventDefault(); // needed to prevent form from refreshing page
+        
         auth.googleLogin(
             (res) => {
-                this.props.history.push("/dashboard");
+                // this.props.authMemoHandler();
+                // this.props.history.push("/dashboard");
+                
             }, (err) => {
                 console.log(err);
             }
         );
     }
 
-    render () {
+    render() {
+        let history = this.props.history;
+        let location = this.props.location;
+
+        // where to redirect after login (TODO sendover to server so server can change successRedirect route)
+        let { from } = location.state || { from: { pathname: "/" } }; 
+
         // Display not logged in error if redirected from dashboard, or
         // redirected from google auth route (maybe as not using valid ucsd email)
         let redirectedFromGoogle = false;
@@ -72,7 +76,7 @@ class Login extends Component {
             redirectedFromGoogle = true;
         }
         let errorDisplay = 
-            (redirectedFromGoogle || (this.props.location.state && this.props.location.state.error)) ? 
+            (redirectedFromGoogle || (location.state && location.state.loginError)) ? 
             <Message negative>
                 <Message.Header>Login Error</Message.Header>
                 <p>{"Please use a valid UCSD email to log in!"}</p>
@@ -89,8 +93,6 @@ class Login extends Component {
                         Google Login
                     </button>
                 </form>
-                <UserForm getUser={this.getUser} />
-
                 <p></p>
                 <form style={{ textAlign: "center" }} onSubmit={this.testLogoutListener}>
                     <button>Logout</button>

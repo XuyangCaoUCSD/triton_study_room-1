@@ -3,27 +3,43 @@ import {
   BrowserRouter as Router,
   Switch,
   Route,
-  NavLink
+  NavLink,
+
 } from "react-router-dom";
 import './App.css';
 // import socket from './utilities/socketConnection';
+import Loading from "./Loading";
 import Dashboard from './routes/Dashboard';
 import Home from './routes/Home';
 import About from './routes/About';
 import Login from './routes/Login';
+import Logout from './routes/Logout';
 import Register from './routes/Register';
 import Namespace from './routes/Namespace';
+import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
 
 class App extends Component {
     constructor() {
         super();
-        this.state = {}
+        this.state = {
+            isLoggedIn: null
+        }
+
+        this._isMounted = false;
         
+        this.authMemoHandler = this.authMemoHandler.bind(this);
+        this.isAuthenticated = this.isAuthenticated.bind(this);
+
+        // setInterval( () => {
+        //     window.location.
+        // },10000);
     }
 
     componentDidMount() {
+        this._isMounted = true;
+
         // socket.on('data', (data) => {
         //   // inside this callback , we just got some new data!
         //   // let's update state so we can 
@@ -38,51 +54,98 @@ class App extends Component {
         // });
     }
 
+    componentWillUnmount() {
+        // Avoid memory leak (setting state after component unmounted)
+        this._isMounted = false;
+    }
+
+    authMemoHandler() {
+        console.log('this is ');
+        console.log(this);
+        if (this._isMounted) {
+            this.setState({
+                waitingForAPI: true
+            })
+        }
+        
+        console.log('Auth memo handler executed');
+        // Care, state variable will force rerender before redirect
+        this.isAuthenticated();
+    }
+
+    isAuthenticated = async () => {
+        console.log('Checking auth');
+        let result = await auth.isAuthenticated();
+        
+        // Only set state if component is still there (not unmounted) to avoid memory leak
+        if (this._isMounted) {
+            if (result === true) {
+                console.log('Setting login state to true');
+                this.setState({
+                    isLoggedIn: true,
+                    waitingForAPI: false
+                });
+
+            } else {
+                console.log('Setting login state to false');
+                this.setState({
+                    isLoggedIn: false,
+                    waitingForAPI: false
+                });
+            }
+        } 
+    }
 
     render() {
-        return (
-            <Router>
-                <div>
-                    <ul>
-                        <li>
-                            <NavLink to="/" activeClassName="activeLink">Home</NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/about">About</NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/login">Login</NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/register">Sign Up</NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/dashboard">Dashboard</NavLink>
-                        </li>
-                    </ul>
+        console.log('Is logged in is');
+        console.log(this.state.isLoggedIn);
+        if (!this.state.waitingForAPI) {
+            return (
+                <Router>
+                    <div>
+                        <ul>
+                            <li>
+                                <NavLink to="/" activeClassName="activeLink">Home</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/login">Login</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/logout">Logout</NavLink>
+                            </li>
+                            <li>
+                                <NavLink to="/dashboard">Dashboard</NavLink>
+                            </li>
+                        </ul>
+    
+                        <hr />
+    
+                        {/*
+                        A <Switch> looks through all its children <Route>
+                        elements and renders the first one whose path
+                        matches the current URL. Use a <Switch> any time
+                        you have multiple routes, but you want only one
+                        of them to render at a time
+                        */}
+                        <Switch>
+                            <Route exact path="/" component={Home} />
+                            <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
+                            <Route exact path="/login" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/dashboard" component={Dashboard} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/namespace/:name" component={Namespace} />
+                            
+                            <Route path="*" component={() => "404 NOT FOUND"} />
+                        </Switch>
+                    </div>
+                </Router>
+            );
 
-                    <hr />
-
-                    {/*
-                    A <Switch> looks through all its children <Route>
-                    elements and renders the first one whose path
-                    matches the current URL. Use a <Switch> any time
-                    you have multiple routes, but you want only one
-                    of them to render at a time
-                    */}
-                    <Switch>
-                        <Route exact path="/" component={Home} />
-                        <Route exact path="/login" component={Login} />
-                        <Route exact path="/register" component={Register} />
-                        <Route exact path="/about" component={About} />
-                        <ProtectedRoute exact path="/dashboard" component={Dashboard} />
-                        <ProtectedRoute exact path="/namespace/:name" component={Namespace} />
-                        
-                        <Route path="*" component={() => "404 NOT FOUND"} />
-                    </Switch>
-                </div>
-            </Router>
-        );
+        } else {
+            return (
+                <Loading type="spinningBubbles" color="#0B6623" />
+            );
+        }
+        
     }
 }
 

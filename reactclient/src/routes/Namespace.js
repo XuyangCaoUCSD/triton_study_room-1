@@ -19,9 +19,12 @@ class Namespace extends Component {
         this.state = {
             inputMessageValue: '',
             socketConnected: false,
-            endpoint: '/cse110' // TODO set by props
+            endpoint: this.props.match.params.name
         };
         
+        console.log('endpoint is ' + this.props.match.params.name);
+        
+
         this.namespaceHTML = this.namespaceHTML.bind(this);
 
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -31,7 +34,7 @@ class Namespace extends Component {
 
     componentDidMount() {
         // For cleaning up when refreshing
-        window.addEventListener('beforeunload', this.componentCleanup);  
+        window.addEventListener('beforeunload', this.componentCleanup);
 
         // TODO add is mounted checks to prevent setting state when unmounted
         // Retrieve particular namespace information
@@ -124,6 +127,7 @@ class Namespace extends Component {
     }
 
     componentWillUnmount() {
+        console.log('Calling will unmount');
         this.componentCleanup();
         window.removeEventListener('beforeunload', this.componentCleanup);
     }
