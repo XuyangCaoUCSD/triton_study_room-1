@@ -66,11 +66,8 @@ class Login extends Component {
         let history = this.props.history;
         let location = this.props.location;
         
-        console.log('error param is is');
-        console.log(this.props.match.params.error);
-
-        let paramError = this.props.match.params.error;
-        console.log('paramError is ' + paramError);
+        console.log('param is');
+        console.log(this.props.match.param);
 
         // where to redirect after login (TODO sendover to server so server can change successRedirect route)
         let { from } = location.state || { from: { pathname: "/" } }; 
