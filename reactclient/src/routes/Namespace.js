@@ -200,7 +200,7 @@ class Namespace extends Component {
             console.log(message);
 
             // Do this.socket emit
-            if (this.socket != null && this.socket.connected) {
+            if (this.socket != null) {
                 this.socket.emit('userMessage', message);
             } else {
                 console.log('No socket to emit message');
@@ -339,5 +339,3 @@ function buildMessage(messageText) {
 }
 
 export default Namespace;
-
-

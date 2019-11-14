@@ -7,7 +7,7 @@ function socketMain(io, socket) {
 
     let cse110Name = '/namespace/cse110';
     // Hardcoded 1 namespace for now
-    io.of(cse110Name).on('connection', (nsSocket) => {
+    io.of(cse110Name).once('connection', (nsSocket) => {
         console.log('nsSocket id is ' + nsSocket.id);
 
         // The user will be in the 2nd room in the object list 
