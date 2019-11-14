@@ -12,6 +12,11 @@ export const ProtectedRoute = ({ component: Comp, isLoggedIn, path, authMemoHand
             <Loading type="spinningBubbles" color="#0B6623" />
         );
     } else {
+        if (isLoggedIn === true) {
+            console.log('Logged in true');
+        } else {
+            console.log('Logged in false');
+        }
         return (
             <Route
                 path={path}

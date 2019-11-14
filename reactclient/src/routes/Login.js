@@ -65,6 +65,9 @@ class Login extends Component {
     render() {
         let history = this.props.history;
         let location = this.props.location;
+        
+        console.log('param is');
+        console.log(this.props.match.param);
 
         // where to redirect after login (TODO sendover to server so server can change successRedirect route)
         let { from } = location.state || { from: { pathname: "/" } }; 
