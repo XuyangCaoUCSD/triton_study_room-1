@@ -65,6 +65,12 @@ class Login extends Component {
     render() {
         let history = this.props.history;
         let location = this.props.location;
+        
+        console.log('error param is is');
+        console.log(this.props.match.params.error);
+
+        let paramError = this.props.match.params.error;
+        console.log('paramError is ' + paramError);
 
         // where to redirect after login (TODO sendover to server so server can change successRedirect route)
         let { from } = location.state || { from: { pathname: "/" } }; 
@@ -76,7 +82,7 @@ class Login extends Component {
             redirectedFromGoogle = true;
         }
         let errorDisplay = 
-            (redirectedFromGoogle || (location.state && location.state.loginError)) ? 
+            (redirectedFromGoogle || paramError || (location.state && location.state.loginError)) ? 
             <Message negative>
                 <Message.Header>Login Error</Message.Header>
                 <p>{"Please use a valid UCSD email to log in!"}</p>

@@ -130,7 +130,7 @@ class App extends Component {
                         <Switch>
                             <Route exact path="/" component={Home} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
-                            <Route exact path="/login" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
+                            <Route exact path="/login/:error?" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/dashboard" component={Dashboard} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/namespace/:name" component={Namespace} />
                             
