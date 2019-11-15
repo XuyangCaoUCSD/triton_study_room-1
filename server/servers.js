@@ -28,6 +28,7 @@ const socketio = require('socket.io');
 const helmet = require('helmet')
 const socketMain = require('./socketMain');
 // const expressMain = require('./expressMain');
+const socketMainTest = require('./socketMainTest');
 
 const port = 8181;
 const num_processes = require('os').cpus().length;
@@ -71,7 +72,6 @@ if (cluster.isMaster) {
 		return farmhash.fingerprint32(ip) % len; // Farmhash is the fastest and works with IPv6, too
 	};
 
-
     // in this case, we are going to start up a tcp connection via the net
     // module INSTEAD OF the http module. Express will use http, but we need
     // an independent tcp port open for cluster to work. This is the port that 
@@ -81,6 +81,7 @@ if (cluster.isMaster) {
 		// worker. Get the worker for this connection's source IP and pass
 		// it the connection.
 		let worker = workers[worker_index(connection.remoteAddress, num_processes)];
+		
 		worker.send('sticky-session:connection', connection);  // Make sure get to the right worker
     });
     server.listen(port);
@@ -243,8 +244,11 @@ if (cluster.isMaster) {
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 
 		
-		socketMain(io, socket);
-    });
+		// socketMain(io, socket);
+	});
+	
+	// Listen to other namespaces
+	socketMainTest(io, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {

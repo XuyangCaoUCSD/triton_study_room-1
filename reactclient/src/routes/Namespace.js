@@ -19,11 +19,10 @@ class Namespace extends Component {
         this.state = {
             inputMessageValue: '',
             socketConnected: false,
-            endpoint: this.props.match.params.name
+            endpoint: this.props.match.params.name  // no preceding '/'
         };
         
         console.log('endpoint is ' + this.props.match.params.name);
-        
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
 
@@ -40,8 +39,7 @@ class Namespace extends Component {
         // Retrieve particular namespace information
         API({
             method: 'get',
-            // url: `/api/namespace/${this.props.namespace}`,
-            url: `/api/namespace/cse110`, // TODO hardcoded for now
+            url: `/api/namespace/${this.state.endpoint}`,
             withCredentials: true
         }).then((res) => {
             console.log('Get on Namespace route, Server responded with:');
@@ -53,13 +51,12 @@ class Namespace extends Component {
             let chatGroups = data.nsData;
             let currRoom = data.currRoom;
 
-            let cse110Namespace = data.currNs;
+            let currNs = data.currNs;
             
             this.setState({
-                endpoint: cse110Namespace.endpoint,  // TODO should not be cse110 hardcoded
-                rooms: cse110Namespace.rooms,
+                rooms: currNs.rooms,
                 currRoom: currRoom,  // Joins first room by default
-                nsTitle: cse110Namespace.nsTitle,
+                nsTitle: currNs.nsTitle,
                 chatGroups
             });
 
@@ -74,7 +71,7 @@ class Namespace extends Component {
             
             // this.socket = io.connect(`http://localhost:8181/namespace${this.state.endpoint}`); 
             // Need full path for now to avoid warning
-            this.socket = io.connect(`http://localhost:8181/namespace/cse110`);
+            this.socket = io.connect(`http://localhost:8181/namespace/${this.state.endpoint}`);
 
             console.log('just called connect');
             console.log(this.socket);
@@ -113,16 +110,17 @@ class Namespace extends Component {
         console.log('Cleanup called');
         if (this.socket != null) {
             console.log('Disconnecting socket');
-            this.socket.removeAllListeners('connect');
-            this.socket.removeAllListeners('userMessage');
-            this.socket.removeAllListeners('connecting');
+            // this.socket.removeAllListeners('connect');
+            // this.socket.removeAllListeners('userMessage');
+            // this.socket.removeAllListeners('connecting');
             this.socket.on('disconnect', () => {
                 console.log('Confirmed disconnect on client side');
             });
+            
+            // this.socket.removeAllListeners('disconnect');
 
             this.socket.disconnect();
 
-            this.socket.removeAllListeners('disconnect');
             this.socket = null;
         }
     }
@@ -242,7 +240,7 @@ class Namespace extends Component {
             // chatHistory.push(buildMessage("Hello There"));
             // chatHistory.push(buildMessage("Lorem Ipsum"));
             // chatHistory.push(buildMessage("Pig latin"));
-            if (this.state.currRoom.chatHistory !== undefined) {
+            if (this.state.currRoom.chatHistory != null) {
                 this.state.currRoom.chatHistory.messages.forEach((message) => {
                     chatHistory.push(buildMessage(message));
                 })
@@ -254,7 +252,7 @@ class Namespace extends Component {
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "100vh", width: "100vw",}}>
-                    <h2>CSE 110</h2>
+                    <h2>{this.state.endpoint.toUpperCase()}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.messageInputHandler)}
                 </div>
             );
@@ -324,10 +322,10 @@ function buildMessage(msg) {
     return (
         <li>
             <div className="user-image">
-                <img src={msg.avatar} style={{maxHeight: '30px'}}/>
+                <img src={msg.creatorAvatar} style={{maxHeight: '30px'}}/>
             </div>
             <div className="user-message">
-                <div className="user-name-time">{msg.sender} <span>{convertedDate}</span></div>
+                <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
                 <div className="message-text">{msg.content}</div>
             </div>
         </li>

@@ -14,7 +14,7 @@ function socketMain(io, socket) {
     io.of(cse110Name).once('connection', (nsSocket) => {
         console.log('nsSocket id is ' + nsSocket.id);
 
-        let userId = socket.request.user;
+        let userId = nsSocket.request.user;
         console.log("User id is", userId);
     
         User.findById(userId).select("givenName avatar").exec(function (err, user) {

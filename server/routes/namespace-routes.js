@@ -6,7 +6,6 @@ const  express       = require('express'),
 const { ChatHistory } = require('../models/ChatHistory');
 
 const router = express.Router();
-let namespaces = require('../data/namespaces');  // Temp
 
 router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     console.log('req.params is');
@@ -29,16 +28,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     // Find if namespace name exists in db
     Namespace.findOne({
         groupName: req.params.namespace
-    })
-    // .populate(
-    //     { 
-    //         path: 'rooms',
-    //         populate: {
-    //             path: 'chatHistory',
-    //             model: 'ChatHistory'
-    //         }
-    //     }
-    // )
+    }) //.populate({ path: 'rooms', populate: { path: 'chatHistory', model: 'ChatHistory' }})
     .exec((err, foundNamespace) => {
         if (err || !foundNamespace) {
             if (err) {
@@ -49,11 +39,12 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
             res.send(data);
         } else {
             data.currNs = foundNamespace;
-            let currRoom = foundNamespace.rooms[0]; // Default first room
+            let currRoom = foundNamespace.rooms[0]; // Use Default first room to join
             let chatHistoryId = currRoom.chatHistory; 
 
             ChatHistory.findById(chatHistoryId)
             .then((foundChatHistory) => {
+                console.log('foundChatHistory is:');
                 console.log(foundChatHistory);
                 currRoom.chatHistory = foundChatHistory;  // Replace id in currRoom var with actual messages
                 data.currRoom = currRoom;
