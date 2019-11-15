@@ -1,13 +1,16 @@
 const mongoose = require('mongoose');
 
-const ObjectId = mongoose.Schema.ObjectId;
+const { MessageSchema } = require('./Message');
 
-const ChatHistory = new mongoose.Schema({
-    messages: [{
-        content: String,
-        time: Date,
-        creator: ObjectId
-    }]
+const ObjectId = mongoose.Schema.Types.ObjectId;
+
+const ChatHistorySchema = new mongoose.Schema({
+    messages: [MessageSchema]
+}, {
+    timestamps: true
 });
 
-module.exports = mongoose.model("ChatHistory", ChatHistory);
+module.exports = {
+    ChatHistory: mongoose.model("ChatHistory", ChatHistorySchema),
+    ChatHistorySchema
+}

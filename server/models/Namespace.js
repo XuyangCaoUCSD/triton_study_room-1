@@ -14,10 +14,10 @@ const NamespaceSchema = new mongoose.Schema({
                 { 
                     roomId: Number,
                     roomName: String,
-                    chatHistory: [String]
+                    chatHistory: {type: ObjectId, ref: 'ChatHistory'}
                 }
     ],
-    studySessionsHistory: [ObjectId]
+    studySessionsHistory: [{type: ObjectId, ref: 'StudySessionHistory'}]
 }, {
     timestamps: true
 });

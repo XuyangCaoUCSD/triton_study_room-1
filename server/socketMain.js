@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+const User = require('./models/User');
+const Namespace = require('./models/Namespace');
+const { ChatHistory } = require('./models/ChatHistory');
+const { Message } = require('./models/Message');
 const keys = require('./config/keys');
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -9,6 +13,82 @@ function socketMain(io, socket) {
     // Hardcoded 1 namespace for now
     io.of(cse110Name).once('connection', (nsSocket) => {
         console.log('nsSocket id is ' + nsSocket.id);
+
+        let userId = socket.request.user;
+        console.log("User id is", userId);
+    
+        User.findById(userId).select("givenName avatar").exec(function (err, user) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            
+            let givenName = user.givenName;
+            let avatar = user.avatar;
+            console.log('user.givenName is ' + givenName);
+
+            nsSocket.on('userMessage', (msg) => {
+                console.log('received message: ' + msg);
+    
+                // Find namespace and room to save in database
+                // Todo cse110 hardcoded
+                Namespace.findOne(
+                    { groupName: "cse110" }, 
+                    'groupName rooms people'
+
+                ).then((foundNamespace) => {
+                    console.log('Namespace is');
+                    console.log(foundNamespace);
+
+                    //construct the message document
+                    const createdMessage = new Message({
+                        content: msg,
+                        creatorName: givenName,
+                        creatorAvatar: avatar,
+                        creator: userId
+                    });
+
+                    let room = foundNamespace.rooms.find((room) => {
+                        return room.roomName === "General";  // TODO "general" hardcoded
+                    })
+
+                    ChatHistory.findByIdAndUpdate(
+                        room._id, 
+                        {$push: 
+                            {
+                                "messages": createdMessage
+                            }
+                        },
+                        {safe: true, upsert: true, new : true},
+                    ).then((updatedChatHistory) => {
+                        console.log(ChatHistory);
+                        let lastMessage = updatedChatHistory.messages[updatedChatHistory.messages.length - 1];
+
+                        let response = {
+                            content: msg,
+                            sender: givenName,
+                            avatar: lastMessage.creatorAvatar,
+                            time: lastMessage.time
+                        }
+
+                        console.log('message response is :');
+                        console.log(response);
+        
+                        // Hardcoded to cse 110 route right now
+                        io.of(cse110Name).to(roomName).emit('userMessage', response);  // Hardcoded roomName for now
+
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                    
+                }).catch((err) => {
+                    console.log(err);
+                });
+                
+                
+            });
+
+        });
 
         // The user will be in the 2nd room in the object list 
         // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
@@ -21,12 +101,6 @@ function socketMain(io, socket) {
         nsSocket.join(roomName); // Hardcoded for now
 
         console.log('Joining room: ' + roomName);
-
-        nsSocket.on('userMessage', (msg) => {
-            console.log('received message: ' + msg);
-            // Hardcoded to cse 110 right now
-            io.of(cse110Name).to(roomName).emit('userMessage', msg);  // Hardcoded roomName for now
-        })
     
         nsSocket.on('disconnect', () => {
             console.log('Socket Disconnected: ' + nsSocket.id);

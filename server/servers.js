@@ -242,8 +242,6 @@ if (cluster.isMaster) {
 		console.log(`connected to worker: ${cluster.worker.id}`);
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 
-		// var userId = socket.request.session.passport.user;
-		// console.log("User id is", userId);
 		
 		socketMain(io, socket);
     });

@@ -51,13 +51,14 @@ class Namespace extends Component {
             console.log(data);
             
             let chatGroups = data.nsData;
+            let currRoom = data.currRoom;
 
             let cse110Namespace = data.currNs;
             
             this.setState({
                 endpoint: cse110Namespace.endpoint,  // TODO should not be cse110 hardcoded
                 rooms: cse110Namespace.rooms,
-                currRoom: cse110Namespace.rooms[0],  // Joins first room by default
+                currRoom: currRoom,  // Joins first room by default
                 nsTitle: cse110Namespace.nsTitle,
                 chatGroups
             });
@@ -153,7 +154,9 @@ class Namespace extends Component {
 
     onSocketMessageCB = (msg) => {
         console.log(this.state.currRoom);
-        let chatHistory = [...this.state.currRoom.chatHistory, msg]; // assume immutable, make copy
+        let chatHistory = {...this.state.currRoom.chatHistory}; // assume immutable, make copy
+
+        chatHistory.messages = [...chatHistory.messages, msg];
 
         let newCurrRoom = {...this.state.currRoom};
         newCurrRoom.chatHistory = chatHistory;
@@ -239,9 +242,12 @@ class Namespace extends Component {
             // chatHistory.push(buildMessage("Hello There"));
             // chatHistory.push(buildMessage("Lorem Ipsum"));
             // chatHistory.push(buildMessage("Pig latin"));
-            this.state.currRoom.chatHistory.forEach((message) => {
-                chatHistory.push(buildMessage(message));
-            })
+            if (this.state.currRoom.chatHistory !== undefined) {
+                this.state.currRoom.chatHistory.messages.forEach((message) => {
+                    chatHistory.push(buildMessage(message));
+                })
+            }
+            
 
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
@@ -313,25 +319,16 @@ class Namespace extends Component {
     
 }
 
-function buildMessage(messageText) {
-    // const convertedDate = new Date(msg.time).toLocaleString();
-
-    // Hardcoded for now
-    let msg = {
-        username: 'Buddy',
-        text: messageText,
-        avatar: 'https://cdn5.vectorstock.com/i/1000x1000/51/99/icon-of-user-avatar-for-web-site-or-mobile-app-vector-3125199.jpg',
-        time: 10,  
-    }
-
+function buildMessage(msg) {
+    const convertedDate = new Date(msg.time).toLocaleString();
     return (
         <li>
             <div className="user-image">
                 <img src={msg.avatar} style={{maxHeight: '30px'}}/>
             </div>
             <div className="user-message">
-                <div className="user-name-time">{msg.username} <span>{msg.time}</span></div>
-                <div className="message-text">{msg.text}</div>
+                <div className="user-name-time">{msg.sender} <span>{convertedDate}</span></div>
+                <div className="message-text">{msg.content}</div>
             </div>
         </li>
     )

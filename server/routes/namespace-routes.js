@@ -3,14 +3,16 @@ const  express       = require('express'),
        middleware    = require('../middleware/index'),
        Namespace     = require('../models/Namespace');
 
+const { ChatHistory } = require('../models/ChatHistory');
+
 const router = express.Router();
 let namespaces = require('../data/namespaces');  // Temp
 
-router.get('/:name', middleware.isLoggedIn, (req, res) => {
+router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     console.log('req.params is');
     console.log(req.params);
 
-    if (req.params.name !== 'cse110') {
+    if (req.params.namespace !== 'cse110') {
         console.log('Error, Use cse110 for testing purposes!');
     }
 
@@ -19,49 +21,74 @@ router.get('/:name', middleware.isLoggedIn, (req, res) => {
     let data = {
         success: true,
         nsData: null,
-        currNs: null
+        currNs: null,
+        currRoom: null
     }
 
     // Use cse 110 namespace by default for now, and use general (first) room by default
     // Find if namespace name exists in db
     Namespace.findOne({
-        groupName: req.params.name
-    }).then((namespace) => {
-        if (!namespace) {
+        groupName: req.params.namespace
+    })
+    // .populate(
+    //     { 
+    //         path: 'rooms',
+    //         populate: {
+    //             path: 'chatHistory',
+    //             model: 'ChatHistory'
+    //         }
+    //     }
+    // )
+    .exec((err, foundNamespace) => {
+        if (err || !foundNamespace) {
+            if (err) {
+                console.log(err);
+            }
             data.success = false;
             console.log('Error, namespace not found');
             res.send(data);
         } else {
-            data.currNs = namespace;
-            
-            // Populate nsData
-            User.findById(userId).populate("namespaces").exec((err, foundUser) => {
-                if (err || !foundUser) {
-                   console.log(err);
-                   console.log('User not found')
-                } else {
-                    // console.log(foundUser);
-                    let nsData = foundUser.namespaces.map((ns) => {
-                        return {
-                            img: ns.img,
-                            endpoint: ns.endpoint
-                        }
-                    });
+            data.currNs = foundNamespace;
+            let currRoom = foundNamespace.rooms[0]; // Default first room
+            let chatHistoryId = currRoom.chatHistory; 
 
-                    // console.log('nsData is');
-                    // console.log(nsData);
-                    
-                    data.nsData = nsData;
+            ChatHistory.findById(chatHistoryId)
+            .then((foundChatHistory) => {
+                console.log(foundChatHistory);
+                currRoom.chatHistory = foundChatHistory;  // Replace id in currRoom var with actual messages
+                data.currRoom = currRoom;
+                
+                // Populate user's nsData
+                User.findById(userId).populate('namespaces').exec((err, foundUser) => {
+                    if (err || !foundUser) {
+                    console.log(err);
+                    console.log('User not found')
+                    } else {
 
-                    // Todo Put in last callback / promise resolution needed for information retrieval
-                    // Send over namespace data 
-                    res.send(data);        
-                }
-            });    
+                        let nsData = foundUser.namespaces.map((ns) => {
+                            return {
+                                img: ns.img,
+                                endpoint: ns.endpoint
+                            }
+                        });
+
+                        // console.log('nsData is');
+                        // console.log(nsData);
+                        
+                        data.nsData = nsData;
+
+                        // Todo Put in last callback / promise resolution needed for information retrieval
+                        // Send over namespace data 
+                        res.send(data);        
+                    }
+                });    
+
+            }).catch((err) => {
+                console.log(err);
+            })
+
         }
-    }).catch((err) => {
-        console.log(err);
-    })
+    });
     
 });
 
