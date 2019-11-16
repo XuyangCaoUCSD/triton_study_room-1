@@ -11,9 +11,9 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     console.log('req.params is');
     console.log(req.params);
 
-    if (req.params.namespace !== 'cse110') {
-        console.log('Error, Use cse110 for testing purposes!');
-    }
+    // if (req.params.namespace !== 'cse110') {
+    //     console.log('Error, Use cse110 for testing purposes!');
+    // }
 
     let userId = req.session.passport.user;
 
@@ -38,6 +38,14 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
             console.log('Error, namespace not found');
             res.send(data);
         } else {
+            // Serverside authorisation check (in case somehow user has access to link)
+            if (foundNamespace.people.indexOf(userId) === -1) {
+                console.log('Attempted unauthorized access');
+                res.statusMessage = "UNAUTHORISED CREDENTIALS!";
+                res.status(403);
+                res.send("ERROR, UNAUTHORIZED CREDENTIALS");
+                return;
+            }
             data.currNs = foundNamespace;
             let currRoom = foundNamespace.rooms[0]; // Use Default first room to join
             let chatHistoryId = currRoom.chatHistory; 

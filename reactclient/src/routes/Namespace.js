@@ -9,7 +9,7 @@ import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
 // import socket from '../utilities/socketConnection';
-import { Segment, Form, TextArea } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -18,17 +18,20 @@ class Namespace extends Component {
         super(props);
         this.state = {
             inputMessageValue: '',
-            socketConnected: false,
-            endpoint: this.props.match.params.name  // no preceding '/'
+            currRoomNumActive: 0,
+            socketConnected: false, // Not used atm
+            endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
+            namespaceNameParam: this.props.match.params.name
         };
-        
-        console.log('endpoint is ' + this.props.match.params.name);
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
 
         this.handleInputChange = this.handleInputChange.bind(this);
         this.componentCleanup = this.componentCleanup.bind(this);
+
+        // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
+        this.joinRoom = this.joinRoom.bind(this);
     }
 
     componentDidMount() {
@@ -47,6 +50,11 @@ class Namespace extends Component {
 
             let data = res.data;
             console.log(data);
+
+            if (!data.success) {
+                console.log('ERROR on server');
+                return;
+            }
             
             let chatGroups = data.nsData;
             let currRoom = data.currRoom;
@@ -79,6 +87,8 @@ class Namespace extends Component {
             // Only add listeners once
             this.socket.on('connect', this.onSocketConnectCB);
             this.socket.on('userMessage', this.onSocketMessageCB);
+            this.socket.on('changeRoom', this.onSocketChangeRoomCB);
+            this.socket.on('updateMembers', this.onSocketUpdateMembersCB);
 
             console.log(`client socket connecting to /namespace${this.state.endpoint}`);
 
@@ -97,10 +107,21 @@ class Namespace extends Component {
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
             // Either use toString or ==
-            if (err.response && err.response.status && err.response.status.toString() === "401") {
-                console.log("UNAUTHORIZED ERROR 401 received");
+            if (err.response && err.response.status) {
                 console.log('err.response is: \n');
                 console.log(err.response);
+
+                let statusCode = err.response.status.toString();
+                if (statusCode === "401") {
+                    console.log("ERROR code 401 received - UNAUTHENTICATED");
+                    this.props.history.push("/login/error");
+                } else if (statusCode === "403") { 
+                    console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+                    this.setState({
+                        unauthorised: true
+                    })
+                }
+                
             }
 
         });
@@ -143,6 +164,7 @@ class Namespace extends Component {
         }
     }
 
+    //------------------- Socket callbacks (can be externalised into another file eventually)----------
     onSocketConnectCB = () => {
         console.log('connected!');
         this.setState({
@@ -164,9 +186,30 @@ class Namespace extends Component {
         });
     }
 
+    onSocketChangeRoomCB = (newRoom) => {
+        this.setState({
+            currRoom: newRoom
+        });
+    }
+
+    onSocketUpdateMembersCB = (numMembers) => {
+        this.setState({
+            currRoomNumActive: numMembers
+        })
+    }
+    // ---------------- End of socket callbacks --------------------
+
+
+    // ----------- Handles change of namespace ----------
     iconsClickHandler = (data) => {
-        // console.log('data in icons click handler is');
-        // console.log(data);
+        console.log('data in icons click handler is');
+        console.log(data);
+
+        console.log(`pushing /namespace${data.endpoint} to history`);
+        // Temp, make it like dashboard where we use redirect
+        this.props.history.push(`/namespace${data.endpoint}`);
+        window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+
         // // Get request to get info for current namespace
         // API({
         //     method: 'get',
@@ -190,6 +233,24 @@ class Namespace extends Component {
         // });
     }
 
+    // // Handles change of param (as will reach the same Namespace class instance, need to force rerender)
+    // static getDerivedStateFromProps(nextProps, prevState) {
+    //     if (nextProps.match.params.name !== prevState.namespaceNameParam){
+    //         return {
+    //             inputMessageValue: '',
+    //             currRoomNumActive: 0,
+    //             socketConnected: false, // Not used atm
+    //             endpoint: nextProps.match.params.name,  // TODO, currently no preceding '/'
+    //             namespaceNameParam: nextProps.match.params.name
+     
+    //         }
+    //     }
+    //     return null;
+    // }
+
+
+    // -------------- End of namespace change functions-----------
+
     messageInputHandler = (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -209,8 +270,31 @@ class Namespace extends Component {
         } 
     }
 
+    // Handles click on other rooms
+    joinRoom = (e) => {
+        let roomName = e.target.innerText;
+        console.log('room to join is ' + roomName);
+        this.socket.emit('joinRoom', roomName); 
+    }
+
+    // Hanldes message input change
+    handleInputChange(e) {
+        this.setState({
+            inputMessageValue: e.target.value
+        })
+    }
+
     render() {
-        if (this.state.rooms != null) {
+        if (this.state.unauthorised) {
+            return (
+                <Message negative>
+                    <Message.Header>UNAUTHORISED ERROR</Message.Header>
+                    <p>{"You are not authorised to be here!"}</p>
+                </Message>
+            );
+
+        }
+        else if (this.state.rooms != null) {
             // TODO, make it so that room and namespaces in this part shouldn't have to reload every keystroke
 
             // These info should only be loaded once when component mounts.
@@ -223,7 +307,7 @@ class Namespace extends Component {
             // Object.entries returns an array of key value pairs
             Object.entries(roomsInfo).forEach(([key, value]) => {
                 // Push namespace group icon component onto array
-                rooms.push(<li key={key} data={value}>{value.roomName}</li>);
+                rooms.push(<li key={key} data={value} onClick={this.joinRoom} >{value.roomName}</li>);
             });
             
             let chatGroupIcons = [];
@@ -241,37 +325,30 @@ class Namespace extends Component {
             // chatHistory.push(buildMessage("Lorem Ipsum"));
             // chatHistory.push(buildMessage("Pig latin"));
             if (this.state.currRoom.chatHistory != null) {
+                let key = 0;
                 this.state.currRoom.chatHistory.messages.forEach((message) => {
-                    chatHistory.push(buildMessage(message));
+                    chatHistory.push(buildMessage(message, key));
+                    key += 1
                 })
             }
-            
 
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
-                <div className="ui container" style={{height: "100vh", width: "100vw",}}>
+                <div className="ui container" style={{height: "100vh", width: "100vw"}}>
                     <h2>{this.state.endpoint.toUpperCase()}</h2>
-                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.messageInputHandler)}
+                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.state.currRoom.roomName, this.state.currRoomNumActive)}
                 </div>
             );
            
         } else {
-            return (
-                <Loading type="spinningBubbles" color="#0B6623" />
-            )
+            return <Loading type="spinningBubbles" color="#0B6623" />;
         }
         
     }
 
-    handleInputChange(e) {
-        this.setState({
-            inputMessageValue: e.target.value
-        })
-    }
-
-    namespaceHTML(chatGroups, rooms, messages, messageInputHandler) {
+    namespaceHTML(chatGroups, rooms, messages, roomName, numActiveInRoom) {
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -284,8 +361,13 @@ class Namespace extends Component {
                     </ul>
                 </div>
                 <div className="eleven wide column" style={{height: "100%", width: '100%'}}>
-                    <div className="room-header row col-6">
-                        <div className="three wide column"><span className="curr-room-text">Current Room</span> <span className="curr-room-num-users">Users <i aria-hidden="true" className="users disabled large icon"></i></span></div>
+                    <div className="row">
+                        <div className="three wide column">
+                            <span className="curr-room-text">{roomName} </span> 
+                            <span className="curr-room-num-users">
+                                <i aria-hidden="true" className="users disabled large icon"></i>{numActiveInRoom} 
+                            </span>
+                        </div>
                         {/* <div className="three wide column ui search pull-right">
                             <input type="text" id="search-box" placeholder="Search" />
                         </div> */}
@@ -317,12 +399,12 @@ class Namespace extends Component {
     
 }
 
-function buildMessage(msg) {
+function buildMessage(msg, listKey) {
     const convertedDate = new Date(msg.time).toLocaleString();
     return (
-        <li>
+        <li key={listKey}>
             <div className="user-image">
-                <img src={msg.creatorAvatar} style={{maxHeight: '30px'}}/>
+                <img src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
             </div>
             <div className="user-message">
                 <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>

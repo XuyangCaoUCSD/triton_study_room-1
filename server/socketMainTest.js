@@ -9,7 +9,8 @@ mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedT
 function socketMainTest(io, workerId) {
     let existingNamespaces = [
         ['/namespace/cse110', 'cse110'],
-        ['/namespace/cse100', 'cse100']
+        ['/namespace/cse100', 'cse100'],
+        ['/namespace/cse101', 'cse101']
     ];
 
     // Loop through existing namespaces
@@ -41,11 +42,11 @@ function socketMainTest(io, workerId) {
                     // Find namespace and room to save in database
                     Namespace.findOne(
                         { groupName: namespaceName }, 
-                        'groupName rooms people'
+                        'groupName rooms people' // Only retrieve necessary information
     
                     ).then((foundNamespace) => {
-                        console.log('Namespace is');
-                        console.log(foundNamespace);
+                        // console.log('Namespace is');
+                        // console.log(foundNamespace);
     
                         //construct the message document
                         const createdMessage = new Message({
@@ -54,13 +55,15 @@ function socketMainTest(io, workerId) {
                             creatorAvatar: avatar,
                             creator: userId
                         });
+
+                        const currRoomName = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket has joined
     
                         let room = foundNamespace.rooms.find((room) => {
-                            return room.roomName === "General";  // TODO "general" hardcoded
+                            return room.roomName === currRoomName;  // TODO "general" hardcoded
                         })
     
-                        console.log('Room to update is:');
-                        console.log(room);
+                        // console.log('Room to update is:');
+                        // console.log(room);
     
                         ChatHistory.findByIdAndUpdate(
                             room.chatHistory, 
@@ -71,7 +74,7 @@ function socketMainTest(io, workerId) {
                             },
                             {safe: true, upsert: true, new : true},
                         ).then((updatedChatHistory) => {
-                            console.log(ChatHistory);
+                            // console.log(updatedChatHistory);
                             let lastMessage = updatedChatHistory.messages[updatedChatHistory.messages.length - 1];
     
                             let response = {
@@ -83,9 +86,8 @@ function socketMainTest(io, workerId) {
     
                             console.log('message response is :');
                             console.log(response);
-            
-                            // Hardcoded to cse 110 route right now
-                            io.of(namespaceRoute).to(roomName).emit('userMessage', response);  // Hardcoded roomName for now
+                            
+                            io.of(namespaceRoute).to(currRoomName).emit('userMessage', response);
     
                         }).catch((err) => {
                             console.log(err);
@@ -99,19 +101,80 @@ function socketMainTest(io, workerId) {
                 });
     
             });
-    
+            
+            // ------------ Below joins General room by default upon connection --------------
+
             // The user will be in the 2nd room in the object list 
             // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
             // Get the keys which will be the room name
             const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
             nsSocket.leave(roomToLeave);
-            console.log('Leaving room: ' + roomToLeave);
+            updateUsersInRoom(namespaceRoute, roomToLeave);
+            console.log('Outer Leaving room: ' + roomToLeave);
+            
+            // Default room name to join (eventually can be top room in namespace)
+            let defaultRoom = 'General';
+            nsSocket.join(defaultRoom);
+            updateUsersInRoom(namespaceRoute, defaultRoom);
+            console.log('Outer Joining room: ' + defaultRoom);
+
+            // ------------------ End of joining General room by default ----------------
+            
+
+            // Handles joining different room events
+            nsSocket.on('joinRoom', (roomToJoin) => {
+                // console.log(nsSocket.rooms);
+                
+                // Find namespace to find room to send response
+                Namespace.findOne(
+                    { groupName: namespaceName }, 
+                    'groupName rooms people' // Only retrieve necessary information
+
+                ).then((foundNamespace) => {
+
+                    // Find room object of room just joined to update chat history
+                    let room = foundNamespace.rooms.find((room) => {
+                        return room.roomName === roomToJoin; 
+                    });
+                    // console.log('Room to update is:');
+                    // console.log(room);
+                    
+                    // Find chat history object containing messages using id
+                    ChatHistory.findById(
+                        room.chatHistory,
+                    ).then((foundChatHistory) => {       
+                        // Leave old room
+                        // The user will be in the 2nd room in the object list 
+                        // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
+                        // Get the keys which will be the room name
+                        const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
+                        nsSocket.leave(roomToLeave);
+                        updateUsersInRoom(namespaceRoute, roomToLeave);
+                        
+                        console.log('Joining room ' + roomToJoin);
+                         
+                        // Server socket api to join room
+                        nsSocket.join(roomToJoin);
+
+                        room.chatHistory = foundChatHistory;
+
+                        console.log(room);
+
+                        nsSocket.emit('changeRoom', room); 
+            
+                        updateUsersInRoom(namespaceRoute, roomToJoin);
+
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                    
+                }).catch((err) => {
+                    console.log(err);
+                });
+                
     
-            let roomName = 'General';
-            nsSocket.join(roomName); // Hardcoded for now
-    
-            console.log('Joining room: ' + roomName);
-        
+            });
+
             nsSocket.on('disconnect', () => {
                 console.log('Socket Disconnected: ' + nsSocket.id);
                 // Update number of users in namespace
@@ -120,6 +183,20 @@ function socketMainTest(io, workerId) {
             });
         });
     });
+
+
+    // TODO update number of user in room 
+    function updateUsersInRoom(namespaceRoute, roomName) {
+        // Send back num of users in this room to all sockets connected to this room
+        io.of(namespaceRoute).in(roomName).clients((error, clients) => {
+            if (error) {
+                console.log(error);
+                return;
+            }
+            // console.log(`There are ${clients.length} users in this room`);
+            io.of(namespaceRoute).in(roomName).emit('updateMembers', clients.length);
+        });
+    }
 
 }
 

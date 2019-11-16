@@ -1,7 +1,7 @@
 import React, {Component } from 'react';
 import { Route, Redirect } from "react-router-dom";
 import {withRouter} from 'react-router'
-// import socket from './utilities/socketConnection';
+import { Segment, Form, TextArea, Message } from 'semantic-ui-react';
 import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -31,11 +31,18 @@ class Dashboard extends Component {
 
         }).catch((err) => {
             console.log("Error while getting dashboard route, logging error: \n" + err);
-            // Either use toString or ==
-            if (err.response.status.toString() === "401") {
-                console.log("UNAUTHORIZED ERROR 401 received");
-                console.log('err.response is: \n');
-                console.log(err.response);
+
+            let statusCode = err.response.status.toString();
+            if (statusCode === "401") {
+                console.log("ERROR code 401 received - UNAUTHENTICATED");
+                this.props.history.push("/login/error");
+            } else if (statusCode === "403") { 
+                console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+                if (this._isMounted) {
+                    this.setState({
+                        unauthorised: true
+                    })
+                }
             }
 
         });
@@ -74,10 +81,33 @@ class Dashboard extends Component {
         .catch((err) => {
             console.log(err);
             console.log(`Err in getting /api/namespace${data.endpoint} info`);
+
+            let statusCode = err.response.status.toString();
+            if (statusCode === "401") {
+                console.log("ERROR code 401 received - UNAUTHENTICATED");
+                this.props.history.push("/login/error");
+            } else if (statusCode === "403") { 
+                console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+                if (this._isMounted) {
+                    this.setState({
+                        unauthorised: true
+                    })
+                }
+            }
         });
     }
 
     render() {
+        if (this.state.unauthorised) {
+            return (
+                <Message negative>
+                    <Message.Header>UNAUTHORISED ERROR</Message.Header>
+                    <p>{"You are not authorised to be here!"}</p>
+                </Message>
+            );
+
+        }
+
         console.log(this.props);
         let chat_group_icons = [];
         const chat_groups_info = this.state.chat_groups;

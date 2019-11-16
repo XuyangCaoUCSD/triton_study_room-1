@@ -83,7 +83,7 @@ class Login extends Component {
                 <Message.Header>Login Error</Message.Header>
                 <p>{"Please use a valid UCSD email to log in!"}</p>
             </Message> : 
-            "";
+            null;
         
         return (
             <div>

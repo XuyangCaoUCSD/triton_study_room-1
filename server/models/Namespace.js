@@ -8,7 +8,7 @@ const NamespaceSchema = new mongoose.Schema({
     nsId: Number,
     endpoint: String,
     admins: [ObjectId],
-    people: [ObjectId],
+    people: [{type: ObjectId, ref: 'User'}],
     forClass: ObjectId,
     rooms: [
                 { 
