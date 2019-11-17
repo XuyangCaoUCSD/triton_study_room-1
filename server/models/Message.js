@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
-const ObjectId = mongoose.Schema.ObjectId;
+const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const MessageSchema = new mongoose.Schema({
     content: String,
     creatorName: String,
     creatorAvatar: String,
     time: { type : Date, default: Date.now },
-    creator: [ObjectId]
+    creator: {type: ObjectId, ref: 'User'}
 });
 
 

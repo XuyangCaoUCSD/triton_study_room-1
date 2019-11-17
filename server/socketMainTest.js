@@ -42,7 +42,7 @@ function socketMainTest(io, workerId) {
                     // Find namespace and room to save in database
                     Namespace.findOne(
                         { groupName: namespaceName }, 
-                        'groupName rooms people' // Only retrieve necessary information
+                        'rooms people' // Only retrieve necessary information
     
                     ).then((foundNamespace) => {
                         // console.log('Namespace is');
