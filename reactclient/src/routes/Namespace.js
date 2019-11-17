@@ -119,7 +119,7 @@ class Namespace extends Component {
                     console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
                     this.setState({
                         unauthorised: true
-                    })
+                    });
                 }
                 
             }
