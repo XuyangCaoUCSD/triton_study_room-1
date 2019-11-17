@@ -9,7 +9,7 @@ import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
 // import socket from '../utilities/socketConnection';
-import { Segment, Form, TextArea, Message } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -89,6 +89,7 @@ class Namespace extends Component {
             this.socket.on('userMessage', this.onSocketMessageCB);
             this.socket.on('changeRoom', this.onSocketChangeRoomCB);
             this.socket.on('updateMembers', this.onSocketUpdateMembersCB);
+            this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
 
             console.log(`client socket connecting to /namespace${this.state.endpoint}`);
 
@@ -195,7 +196,15 @@ class Namespace extends Component {
     onSocketUpdateMembersCB = (numMembers) => {
         this.setState({
             currRoomNumActive: numMembers
-        })
+        });
+    }
+
+    onSocketUpdateActiveUsersCB = (activeUsers) => {
+        this.setState({
+            activeUsers
+        });
+        console.log('Active Users are:');
+        console.log(activeUsers);
     }
     // ---------------- End of socket callbacks --------------------
 
@@ -324,7 +333,7 @@ class Namespace extends Component {
             // chatHistory.push(buildMessage("Hello There"));
             // chatHistory.push(buildMessage("Lorem Ipsum"));
             // chatHistory.push(buildMessage("Pig latin"));
-            if (this.state.currRoom.chatHistory != null) {
+            if (this.state.currRoom && this.state.currRoom.chatHistory != null) {
                 let key = 0;
                 this.state.currRoom.chatHistory.messages.forEach((message) => {
                     chatHistory.push(buildMessage(message, key));
@@ -332,13 +341,23 @@ class Namespace extends Component {
                 })
             }
 
+            let activeUsersList = [];
+            if (this.state.activeUsers) {
+                let activeUsersInfo = Object.values(this.state.activeUsers);
+                let key = 0;
+                activeUsersInfo.forEach((userInfo) => {
+                    activeUsersList.push(buildActiveUser(userInfo, key));
+                    key += 1
+                });
+            }
+
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "100vh", width: "100vw"}}>
-                    <h2>{this.state.endpoint.toUpperCase()}</h2>
-                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.state.currRoom.roomName, this.state.currRoomNumActive)}
+                    <h2>{this.state.namespaceNameParam.toUpperCase()}</h2>
+                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.state.currRoom.roomName, this.state.currRoomNumActive, activeUsersList)}
                 </div>
             );
            
@@ -348,7 +367,7 @@ class Namespace extends Component {
         
     }
 
-    namespaceHTML(chatGroups, rooms, messages, roomName, numActiveInRoom) {
+    namespaceHTML(chatGroups, rooms, messages, roomName, numActiveInRoom, activeUsersList) {
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -360,7 +379,7 @@ class Namespace extends Component {
                         {rooms}
                     </ul>
                 </div>
-                <div className="eleven wide column" style={{height: "100%", width: '100%'}}>
+                <div className="ten wide column" style={{height: "100%", width: '100%'}}>
                     <div className="row">
                         <div className="three wide column">
                             <span className="curr-room-text">{roomName} </span> 
@@ -393,6 +412,14 @@ class Namespace extends Component {
 
                     </div>
                 </div>
+                <div className="two wide column" style={{height: "100%", width: '100%'}}>
+                    <Header as='h4' textAlign='left'>
+                        <Header.Content><Icon name='users' circular />Active In {this.state.namespaceNameParam.toUpperCase()} </Header.Content>
+                    </Header>
+                    <List selection verticalAlign='middle'>
+                        {activeUsersList}
+                    </List>
+                </div>
             </div>
         )
     }
@@ -404,7 +431,7 @@ function buildMessage(msg, listKey) {
     return (
         <li key={listKey}>
             <div className="user-image">
-                <img src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
+                <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
             </div>
             <div className="user-message">
                 <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
@@ -413,6 +440,17 @@ function buildMessage(msg, listKey) {
         </li>
     )
         
+}
+
+function buildActiveUser(userInfo, listKey) {
+    return (
+        <List.Item key={listKey}>
+            <Image avatar src={userInfo.avatar} />
+            <List.Content>
+                <List.Header>{userInfo.givenName}</List.Header>
+            </List.Content>
+        </List.Item>
+    );
 }
 
 export default Namespace;
