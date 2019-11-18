@@ -8,7 +8,6 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-
 import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
@@ -20,7 +19,9 @@ class Namespace extends Component {
             inputMessageValue: '',
             currRoomNumActive: 0,
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
-            namespaceNameParam: this.props.match.params.name
+            namespaceNameParam: this.props.match.params.name,
+
+            scrollOnNextUpdate: 0
         };
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
@@ -98,16 +99,6 @@ class Namespace extends Component {
 
             this.scrollToBottom(true);
 
-            // setTimeout(() => { 
-            //     if (this.socket != null) {
-            //         this.socket.disconnect();
-            //         console.log(this.socket);
-            //         this.socket.removeAllListeners();
-            //         this.socket = null;
-            //     }
-                
-            // }, 5000);
-
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
             // Either use toString or ==
@@ -161,25 +152,60 @@ class Namespace extends Component {
     }
 
     // Scroll to last message
-    scrollToBottom = () => {
+    scrollToBottom = (forceScroll) => {
         // "Auto" to get there immediately. TODO when to use auto, when to use smooth, when to not scroll. 
-        if (this.messagesEnd) {
-            this.messagesEnd.scrollIntoView({ behavior: "smooth" });
+        setTimeout(() => {
+            if (this.messagesEnd && (forceScroll || this.state.userNearBottom)) {
+                this.messagesEnd.scrollIntoView({ behavior: "smooth" });
+            }
+        }, 50)        
+    }
+
+    handleMessageScroll = (e) => {
+        let threshold = 150;
+        const bottom = e.target.scrollHeight - e.target.scrollTop - threshold < e.target.clientHeight;
+        if (bottom) {
+            if (!this.state.userNearBottom) {
+                this.setState({
+                    userNearBottom: true
+                });
+            }
+        } else {
+            if (this.state.userNearBottom ) {
+                this.setState({
+                    userNearBottom: false
+                })
+            }
         }
     }
 
-    // handleScroll = (e) => {
-    //     const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-    //     if (bottom) { 
-    //         this.setState({
-    //             userAtBottom: true
-    //         })    
-    //     } else {
-    //         this.setState({
-    //             userAtBottom: false
-    //         })
-    //     }
-    // }
+    messageInputHandler = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const message = this.state.inputMessageValue; // Get value from state as input used is controlled component
+            this.setState({
+                inputMessageValue: '' // clear text area
+            });
+            console.log('message is ');
+            console.log(message);
+
+            this.scrollToBottom(true);
+            
+            // Do this.socket emit
+            if (this.socket != null) {
+                this.socket.emit('userMessage', message);
+            } else {
+                console.log('ERROR: No socket to emit message');
+            }
+        } 
+    }
+
+    // Hanldes message input change
+    handleInputChange(e) {
+        this.setState({
+            inputMessageValue: e.target.value
+        })
+    }
 
     //------------------- Socket callbacks (can be externalised into another file eventually)----------
     onSocketConnectCB = () => {
@@ -272,32 +298,6 @@ class Namespace extends Component {
 
     // -------------- End of namespace change functions-----------
 
-    messageInputHandler = (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            const message = this.state.inputMessageValue; // Get value from state as input used is controlled component
-            this.setState({
-                inputMessageValue: '' // clear text area
-            });
-            console.log('message is ');
-            console.log(message);
-
-            // Do this.socket emit
-            if (this.socket != null) {
-                this.socket.emit('userMessage', message);
-            } else {
-                console.log('No socket to emit message');
-            }
-        } 
-    }
-
-    // Hanldes message input change
-    handleInputChange(e) {
-        this.setState({
-            inputMessageValue: e.target.value
-        })
-    }
-
     // Handles click on other rooms
     joinRoom = (e) => {
         let roomName = e.target.innerText;
@@ -328,23 +328,13 @@ class Namespace extends Component {
 
             // These info should only be loaded once when component mounts.
             // Only messages will be updated after that
-            console.log(this.props);
-
-            // let rooms = [];
-            // const roomsInfo = this.state.rooms;
-            // // Object.entries returns an array of key value pairs
-            // Object.entries(roomsInfo).forEach(([key, value]) => {
-            //     // Push namespace group icon component onto array
-            //     rooms.push(<li key={key} data={value} onClick={this.joinRoom} >{value.roomName}</li>);
-            // });
 
             let rooms = [];
             const roomsInfo = this.state.rooms;
             // grab each group and its value which is endpoint
             // Object.entries returns an array of key value pairs
             Object.entries(roomsInfo).forEach(([key, roomInfo]) => {
-                // Push namespace group icon component onto array
-                
+                // Push rooms onto array
                 rooms.push(this.buildRoom(roomInfo, key));
             });
             
@@ -355,8 +345,7 @@ class Namespace extends Component {
             Object.entries(chatGroupsInfo).forEach(([key, value]) => {
                 // Push chat group icon component onto array
                 chatGroupIcons.push(<ChatGroupIcon key={key} data={value} onClickHandler={() => this.iconsClickHandler(value)} />);
-            });
-            
+            });  
             
             let chatHistory = [];
             // chatHistory.push(buildMessage("Hello There"));
@@ -423,12 +412,11 @@ class Namespace extends Component {
                             <input type="text" id="search-box" placeholder="Search" />
                         </div> */}
                     </div> 
-                    <Segment color="teal" style={{overflowY: 'scroll', height: '100%', width: '100%', wordWrap: 'break-word'}}>
+                    <Segment onScroll={this.handleMessageScroll} color="teal" style={{overflowY: 'scroll', height: '100%', width: '100%', wordWrap: 'break-word'}}>
                         <ul id="messages" className="twelve wide column" style={{listStyleType: "none", padding: 0}}>
                             {messages}
                             {/* Dummy div below to use to scroll to bottom */}
-                            <div style={{ float:"left", clear: "both" }}
-                                ref={(el) => { this.messagesEnd = el; }}>
+                            <div style={{ float:"left", clear: "both" }} ref={(el) => { this.messagesEnd = el; }}>
                             </div>
                         </ul>
                     </Segment>
