@@ -52,7 +52,10 @@ class Namespace extends Component {
             console.log(data);
 
             if (!data.success) {
-                console.log('ERROR on server');
+                console.log('ERROR on server, likely because namespace does not exist');
+                this.setState({
+                    nameSpaceNonExistent: true
+                })
                 return;
             }
             
@@ -93,7 +96,7 @@ class Namespace extends Component {
 
             console.log(`client socket connecting to /namespace${this.state.endpoint}`);
 
-            this.scrollToBottom();
+            this.scrollToBottom(true);
 
             // setTimeout(() => { 
             //     if (this.socket != null) {
@@ -159,11 +162,24 @@ class Namespace extends Component {
 
     // Scroll to last message
     scrollToBottom = () => {
-        // "Auto" to get there immediately. TODO when to use auto, when to use smooth, when to not scroll.
+        // "Auto" to get there immediately. TODO when to use auto, when to use smooth, when to not scroll. 
         if (this.messagesEnd) {
             this.messagesEnd.scrollIntoView({ behavior: "smooth" });
         }
     }
+
+    // handleScroll = (e) => {
+    //     const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+    //     if (bottom) { 
+    //         this.setState({
+    //             userAtBottom: true
+    //         })    
+    //     } else {
+    //         this.setState({
+    //             userAtBottom: false
+    //         })
+    //     }
+    // }
 
     //------------------- Socket callbacks (can be externalised into another file eventually)----------
     onSocketConnectCB = () => {
@@ -298,6 +314,14 @@ class Namespace extends Component {
                 </Message>
             );
 
+        } 
+        else if (this.state.nameSpaceNonExistent) {
+            return (
+                <Message negative>
+                    <Message.Header>INVALID GROUP {this.state.namespaceNameParam.toUpperCase()}</Message.Header>
+                    <p>{this.state.namespaceNameParam.toUpperCase()} does not exist!</p>
+                </Message>
+            );   
         }
         else if (this.state.rooms != null) {
             // TODO, make it so that room and namespaces in this part shouldn't have to reload every keystroke
@@ -463,6 +487,7 @@ function buildMessage(msg, listKey) {
         
 }
 
+// TODO build onClick for messaging
 function buildActiveUser(userInfo, listKey) {
     let additionalDetails = (
         <div>

@@ -37,7 +37,25 @@ function socketMainTest(io, workerId) {
             let userId = nsSocket.request.user;
             console.log("User id is", userId);
 
-        
+            // ------------ Below joins General room by default upon connection --------------
+
+            // The user will be in the 2nd room in the object list 
+            // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
+            // Get the keys which will be the room name
+            const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
+            nsSocket.leave(roomToLeave);
+            updateUsersInRoom(namespaceRoute, roomToLeave);
+            console.log('Outer Leaving room: ' + roomToLeave);
+            
+            // Default room name to join (eventually can be top room in namespace)
+            let defaultRoom = 'General';
+            nsSocket.join(defaultRoom);
+            updateUsersInRoom(namespaceRoute, defaultRoom);
+            console.log('Outer Joining room: ' + defaultRoom);
+
+            // ------------------ End of joining General room by default ----------------
+
+
             User.findById(userId).select("givenName name avatar email").exec(function (err, user) {
                 if (err) {
                     console.log(err);
@@ -60,32 +78,40 @@ function socketMainTest(io, workerId) {
                     email
                 }
 
-                redisClient.hset(`${namespaceRoute} Active Users`, nsSocket.id, JSON.stringify(userInfo), redis.print);
-                
-                updateActiveUsersInNamespace(namespaceRoute);
-
-                redisClient.hget(`${namespaceRoute} Active Users`, nsSocket.id, function(error, result) {
-                    if (error) {
+                // Cache info
+                redisClient.hset(`${namespaceRoute} Active Users`, userId, JSON.stringify(userInfo), function(err, result) {
+                    if (err) {
                         console.log(err);
-                        throw error;
+                        return;
+                    } 
+                    
+                    if (result === 1) {
+                        console.log('Entered new field');
+                    } else {
+                        console.log('Updated field');
                     }
-                    let data = JSON.parse(result);
-                    console.log('GET RESULT:');
-                    console.log(data);
+
+                    updateActiveUsersInNamespace(namespaceRoute);
                 });
 
-                nsSocket.on('userMessage', (msg) => {
-                    console.log('received message: ' + msg);
-        
-                    // Find namespace and room to save in database
-                    Namespace.findOne(
-                        { groupName: namespaceName }, 
-                        'rooms people' // Only retrieve necessary information
+                // Find namespace and room to save in database
+                Namespace.findOne(
+                    { groupName: namespaceName }, 
+                    'rooms people' // Only retrieve necessary information
+
+                ).then((foundNamespace) => {
+                    // console.log('Namespace is');
+                    // console.log(foundNamespace);
+
+                    nsSocket.on('userMessage', (msg) => {
+                        console.log('received message: ' + msg);
+                        
+                        const currRoomName = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket has joined
     
-                    ).then((foundNamespace) => {
-                        // console.log('Namespace is');
-                        // console.log(foundNamespace);
-    
+                        let room = foundNamespace.rooms.find((room) => {
+                            return room.roomName === currRoomName;  // TODO "general" hardcoded
+                        })
+
                         //construct the message document
                         const createdMessage = new Message({
                             content: msg,
@@ -93,12 +119,6 @@ function socketMainTest(io, workerId) {
                             creatorAvatar: avatar,
                             creator: userId
                         });
-
-                        const currRoomName = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket has joined
-    
-                        let room = foundNamespace.rooms.find((room) => {
-                            return room.roomName === currRoomName;  // TODO "general" hardcoded
-                        })
     
                         // console.log('Room to update is:');
                         // console.log(room);
@@ -129,35 +149,15 @@ function socketMainTest(io, workerId) {
     
                         }).catch((err) => {
                             console.log(err);
-                        });
-                        
-                    }).catch((err) => {
-                        console.log(err);
+                        }); 
+                    
                     });
-                    
-                    
+
+                }).catch((err) => {
+                    console.log(err);
                 });
     
-            });
-            
-            // ------------ Below joins General room by default upon connection --------------
-
-            // The user will be in the 2nd room in the object list 
-            // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
-            // Get the keys which will be the room name
-            const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
-            nsSocket.leave(roomToLeave);
-            updateUsersInRoom(namespaceRoute, roomToLeave);
-            console.log('Outer Leaving room: ' + roomToLeave);
-            
-            // Default room name to join (eventually can be top room in namespace)
-            let defaultRoom = 'General';
-            nsSocket.join(defaultRoom);
-            updateUsersInRoom(namespaceRoute, defaultRoom);
-            console.log('Outer Joining room: ' + defaultRoom);
-
-            // ------------------ End of joining General room by default ----------------
-            
+            });    
 
             // Handles joining different room events
             nsSocket.on('joinRoom', (roomToJoin) => {
@@ -219,14 +219,14 @@ function socketMainTest(io, workerId) {
                 // io.of(namespaceRoute).emit('numUsers', '1');
                 
                 // Remove from cache
-                redisClient.hdel(`${namespaceRoute} Active Users`, nsSocket.id, function(error, success) {
+                redisClient.hdel(`${namespaceRoute} Active Users`, userId, function(error, success) {
                     if (error) {
                         console.log(err);
                         throw error;
                     }
                     
                     if (success) {
-                        console.log('(REDIS) Successefully deleted ' + nsSocket.id + ' entry in ' + `"${namespaceRoute} Active Users"`);
+                        console.log('(REDIS) Successefully deleted ' + userId + ' entry in ' + `"${namespaceRoute} Active Users"`);
                     }
 
                     updateActiveUsersInNamespace(namespaceRoute);
@@ -256,6 +256,8 @@ function socketMainTest(io, workerId) {
             const userInfos = Object.values(result);
             for (let userInfo of userInfos) {
                 let parsedUserInfo = JSON.parse(userInfo); // Parse each userInfo object
+                delete parsedUserInfo.userId; // Don't reveal userID to users
+                delete parsedUserInfo.chatHistoryId; // Don't reveal chatHistoryId to users
                 activeUsers[parsedUserInfo.email] = parsedUserInfo;
             } 
 

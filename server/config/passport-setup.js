@@ -27,18 +27,18 @@ passport.use(
         callbackURL: '/api/auth/google/redirect' // Need to be an authorised route in google dev console
     }, (accessToken, refreshToken, profile, done) => {
         
-        // // Check if UCSD email
-        // let hostDomain = profile._json.hd;
-        // if (hostDomain !== "ucsd.edu") {
-        //     return done(null, false, { message: 'Need UCSD email.' });
-        // }
-
         User.findOne({googleId: profile.id}).then((currentUser) => {
             if (currentUser) {
-                // Already have user
+                // Already have user in DB
                 console.log('Existing user is:', currentUser);
                 done(null, currentUser);
-            } else {        
+            } else { 
+                 // Check if UCSD email
+                let hostDomain = profile._json.hd;
+                if (hostDomain !== "ucsd.edu") {
+                    return done(null, false, { message: 'Need UCSD email.' });
+                }
+
                 console.log('profile is');
                 console.log(profile);
                 // Create and save new user
