@@ -15,25 +15,46 @@ router.get("/", (req, res) => {
 });
 
 router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
+    console.log('req.params is');
+    console.log(req.params);
+
+    // if (req.params.namespace !== 'cse110') {
+    //     console.log('Error, Use cse110 for testing purposes!');
+    // }
+
+    let userId = req.session.passport.user;
+
     let data = {
         success: true,
-        nsData: null
+        nsData: null,
     }
 
-    // Need to get user's groups from database and send that over
-    // Temp
-    // Build an array to send back with the img and endpoint for each NS
-    let nsData = namespaces.map((ns) => {
-        return {
-            img: ns.img,
-            endpoint: ns.endpoint
+    // Populate user's nsData
+    User.findById(userId).populate('namespaces').exec((err, foundUser) => {
+        if (err || !foundUser) {
+            console.log(err);
+            console.log('User not found')
+            data.success = false;
+            res.send(data);
+        } else {
+
+            let nsData = foundUser.namespaces.map((ns) => {
+                return {
+                    img: ns.img,
+                    endpoint: ns.endpoint
+                }
+            });
+
+            // console.log('nsData is');
+            // console.log(nsData);
+            
+            data.nsData = nsData;
+
+            // Todo Put in last callback / promise resolution needed for information retrieval
+            // Send over namespace data 
+            res.send(data);        
         }
-    });
-
-    data.nsData = nsData;
-
-    // Send over namespace data along with field indicating success
-    res.send(data);
+    }); 
 });
 
 // // Show sign up form

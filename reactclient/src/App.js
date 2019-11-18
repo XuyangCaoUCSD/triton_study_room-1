@@ -100,17 +100,17 @@ class App extends Component {
                 <Router>
                     <div>
                         <ul>
-                            <li>
-                                <NavLink to="/" activeClassName="activeLink">Home</NavLink>
+                            <li style={{display: "inline-block"}}>
+                                <NavLink to="/" activeClassName="activeLink">Home&emsp;</NavLink>
                             </li>
-                            <li>
-                                <NavLink to="/login">Login</NavLink>
+                            <li style={{display: "inline-block"}}>
+                                <NavLink to="/login">Login&emsp;</NavLink>
                             </li>
-                            <li>
-                                <NavLink to="/logout">Logout</NavLink>
+                            <li style={{display: "inline-block"}}>
+                                <NavLink to="/logout">Logout&emsp;</NavLink>
                             </li>
-                            <li>
-                                <NavLink to="/dashboard">Dashboard</NavLink>
+                            <li style={{display: "inline-block"}}>
+                                <NavLink to="/dashboard">Dashboard&emsp;</NavLink>
                             </li>
                         </ul>
     

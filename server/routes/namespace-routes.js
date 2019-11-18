@@ -23,8 +23,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
         currNs: null,
         currRoom: null
     }
-
-    // Use cse 110 namespace by default for now, and use general (first) room by default
+    
     // Find if namespace name exists in db
     Namespace.findOne({
         groupName: req.params.namespace
@@ -50,10 +49,11 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
             let currRoom = foundNamespace.rooms[0]; // Use Default first room to join
             let chatHistoryId = currRoom.chatHistory; 
 
-            ChatHistory.findById(chatHistoryId)
-            .then((foundChatHistory) => {
-                console.log('foundChatHistory is:');
-                console.log(foundChatHistory);
+            ChatHistory.findById(
+                chatHistoryId
+            ).then((foundChatHistory) => {
+                // console.log('foundChatHistory is:');
+                // console.log(foundChatHistory);
                 currRoom.chatHistory = foundChatHistory;  // Replace id in currRoom var with actual messages
                 data.currRoom = currRoom;
                 
@@ -84,7 +84,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
 
             }).catch((err) => {
                 console.log(err);
-            })
+            });
 
         }
     });

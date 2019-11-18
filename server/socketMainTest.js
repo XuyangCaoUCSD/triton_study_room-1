@@ -4,7 +4,19 @@ const Namespace = require('./models/Namespace');
 const { ChatHistory } = require('./models/ChatHistory');
 const { Message } = require('./models/Message');
 const keys = require('./config/keys');
+
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
+
+
+const redis = require('redis');
+// Create and connect redis client to local instance.
+const redisClient = redis.createClient(6379)
+ 
+// Log redis errors to the console
+redisClient.on('error', (err) => {
+    console.log("Error " + err)
+});
+
 
 function socketMainTest(io, workerId) {
     let existingNamespaces = [
@@ -24,18 +36,44 @@ function socketMainTest(io, workerId) {
     
             let userId = nsSocket.request.user;
             console.log("User id is", userId);
+
         
-            User.findById(userId).select("givenName avatar").exec(function (err, user) {
+            User.findById(userId).select("givenName name avatar email").exec(function (err, user) {
                 if (err) {
                     console.log(err);
                     return;
                 }
                 
+                let name = user.name; // full name
                 let givenName = user.givenName;
                 let avatar = user.avatar;
+                let email = user.email;
                 console.log('user.givenName is ' + givenName);
                 console.log('user.avatar is ' + avatar);
-    
+                console.log('user.email is ' + email);
+
+                let userInfo = {
+                    userId,
+                    givenName,
+                    name,
+                    avatar,
+                    email
+                }
+
+                redisClient.hset(`${namespaceRoute} Active Users`, nsSocket.id, JSON.stringify(userInfo), redis.print);
+                
+                updateActiveUsersInNamespace(namespaceRoute);
+
+                redisClient.hget(`${namespaceRoute} Active Users`, nsSocket.id, function(error, result) {
+                    if (error) {
+                        console.log(err);
+                        throw error;
+                    }
+                    let data = JSON.parse(result);
+                    console.log('GET RESULT:');
+                    console.log(data);
+                });
+
                 nsSocket.on('userMessage', (msg) => {
                     console.log('received message: ' + msg);
         
@@ -158,9 +196,9 @@ function socketMainTest(io, workerId) {
 
                         room.chatHistory = foundChatHistory;
 
-                        console.log(room);
+                        // console.log(room);
 
-                        nsSocket.emit('changeRoom', room); 
+                        nsSocket.emit('changeRoom', room);
             
                         updateUsersInRoom(namespaceRoute, roomToJoin);
 
@@ -177,15 +215,59 @@ function socketMainTest(io, workerId) {
 
             nsSocket.on('disconnect', () => {
                 console.log('Socket Disconnected: ' + nsSocket.id);
-                // Update number of users in namespace
+                // TODO Update number of users in namespace
                 // io.of(namespaceRoute).emit('numUsers', '1');
-    
+                
+                // Remove from cache
+                redisClient.hdel(`${namespaceRoute} Active Users`, nsSocket.id, function(error, success) {
+                    if (error) {
+                        console.log(err);
+                        throw error;
+                    }
+                    
+                    if (success) {
+                        console.log('(REDIS) Successefully deleted ' + nsSocket.id + ' entry in ' + `"${namespaceRoute} Active Users"`);
+                    }
+
+                    updateActiveUsersInNamespace(namespaceRoute);
+                });
             });
         });
     });
 
 
-    // TODO update number of user in room 
+    function updateActiveUsersInNamespace(namespaceRoute) {
+        redisClient.hgetall(`${namespaceRoute} Active Users`, function (error, result) {
+            if (error) {
+                console.log(error);
+                throw error;
+            }
+
+            let activeUsers = {};
+            
+            // If empty, send empty
+            if (!result) {
+                console.log('Empty result');
+                // TODO send to all rooms
+                io.of(namespaceRoute).emit('updateActiveUsers', activeUsers);
+                return;
+            }
+
+            const userInfos = Object.values(result);
+            for (let userInfo of userInfos) {
+                let parsedUserInfo = JSON.parse(userInfo); // Parse each userInfo object
+                activeUsers[parsedUserInfo.email] = parsedUserInfo;
+            } 
+
+            console.log('ActiveUsers response:');
+            console.log(activeUsers);
+
+            // TODO send to all rooms
+            io.of(namespaceRoute).emit('updateActiveUsers', activeUsers);
+        });
+
+    }
+
     function updateUsersInRoom(namespaceRoute, roomName) {
         // Send back num of users in this room to all sockets connected to this room
         io.of(namespaceRoute).in(roomName).clients((error, clients) => {
@@ -193,6 +275,8 @@ function socketMainTest(io, workerId) {
                 console.log(error);
                 return;
             }
+            console.log('clients are');
+            console.log(clients);
             // console.log(`There are ${clients.length} users in this room`);
             io.of(namespaceRoute).in(roomName).emit('updateMembers', clients.length);
         });
@@ -201,73 +285,3 @@ function socketMainTest(io, workerId) {
 }
 
 module.exports = socketMainTest;
-
-
-
-// let namespaces = require('./data/namespaces');
-
-// // Loop through each namespace and listen for a connection
-// namespaces.forEach((namespace) => {
-//     io.of(namespace.endpoint).on('connection', (nsSocket) => {
-//         // Handshake only happens once upon first HTTP request, so socket.handshake still exists in any namespace
-//         const username = nsSocket.handshake.query.username;
-//         // console.log(`${nsSocket.id} has joined ${namespace.endpoint}`);
-//         // a socket has connected to one of our namespaces. 
-//         // send that ns group info (e.g. rooms belonging to namespace) back
-//         nsSocket.emit('nsRoomLoad', namespace.rooms);
-
-//         // numberofUsersCallback is the callback sent from client
-//         nsSocket.on('joinRoom', (roomToJoin, numberOfUsersCallback) => {
-//             console.log(nsSocket.rooms);
-
-//             // Leave old room
-
-//             // The user will be in the 2nd room in the object list 
-//             // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
-//             // Get the keys which will be the room name
-//             const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
-//             nsSocket.leave(roomToLeave);
-//             updateUsersInRoom(namespace, roomToLeave);
-            
-//             // Server socket api to join room
-//             nsSocket.join(roomToJoin);
-
-//             // Find room object of room just joined to update chat history
-//             const nsRoom = namespace.rooms.find((room) => {
-//                 return roomToJoin === room.roomTitle;
-//             });
-//             nsSocket.emit('historyCatchup', nsRoom.history); 
-
-//             updateUsersInRoom(namespace, roomToJoin);
-
-//         });
-
-//         nsSocket.on('newMessageToServer', (msg) => {
-//             const fullMsg = {
-//                 text: msg.text,
-//                 time: Date.now(),
-//                 username: username,
-//                 avatar: "https://via.placeholder.com/30"
-//             }
-//             // console.log(fullMsg);
-//             // Send message to all sockets in room this socket is in
-//             // console.log(nsSocket.rooms);
-
-//             // The user will be in the 2nd room in the object list 
-//             // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
-//             // Get the keys which will be the room name
-//             const roomTitle = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket has joined
-
-//             // Find room object for this room
-//             const nsRoom = namespace.rooms.find((room) => {
-//                 return room.roomTitle === roomTitle;
-//             });
-//             // console.log("The room object that matches this namespace room is");
-//             // console.log(nsRoom);
-
-//             nsRoom.addMessage(fullMsg);
-//             io.of(namespace.endpoint).to(roomTitle).emit('messageToClients', fullMsg);
-
-//         });
-//     });
-// });

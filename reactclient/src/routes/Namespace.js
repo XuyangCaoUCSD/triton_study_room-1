@@ -8,8 +8,8 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-// import socket from '../utilities/socketConnection';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon } from 'semantic-ui-react';
+
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -19,7 +19,6 @@ class Namespace extends Component {
         this.state = {
             inputMessageValue: '',
             currRoomNumActive: 0,
-            socketConnected: false, // Not used atm
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
             namespaceNameParam: this.props.match.params.name
         };
@@ -32,6 +31,7 @@ class Namespace extends Component {
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
         this.joinRoom = this.joinRoom.bind(this);
+        this.buildRoom = this.buildRoom.bind(this);
     }
 
     componentDidMount() {
@@ -167,10 +167,7 @@ class Namespace extends Component {
 
     //------------------- Socket callbacks (can be externalised into another file eventually)----------
     onSocketConnectCB = () => {
-        console.log('connected!');
-        this.setState({
-            socketConnected: true
-        });
+        console.log('Socket connected!');
     }
 
     onSocketMessageCB = (msg) => {
@@ -257,7 +254,6 @@ class Namespace extends Component {
     //     return null;
     // }
 
-
     // -------------- End of namespace change functions-----------
 
     messageInputHandler = (e) => {
@@ -279,18 +275,18 @@ class Namespace extends Component {
         } 
     }
 
-    // Handles click on other rooms
-    joinRoom = (e) => {
-        let roomName = e.target.innerText;
-        console.log('room to join is ' + roomName);
-        this.socket.emit('joinRoom', roomName); 
-    }
-
     // Hanldes message input change
     handleInputChange(e) {
         this.setState({
             inputMessageValue: e.target.value
         })
+    }
+
+    // Handles click on other rooms
+    joinRoom = (e) => {
+        let roomName = e.target.innerText;
+        console.log('room to join is ' + roomName);
+        this.socket.emit('joinRoom', roomName); 
     }
 
     render() {
@@ -310,13 +306,22 @@ class Namespace extends Component {
             // Only messages will be updated after that
             console.log(this.props);
 
+            // let rooms = [];
+            // const roomsInfo = this.state.rooms;
+            // // Object.entries returns an array of key value pairs
+            // Object.entries(roomsInfo).forEach(([key, value]) => {
+            //     // Push namespace group icon component onto array
+            //     rooms.push(<li key={key} data={value} onClick={this.joinRoom} >{value.roomName}</li>);
+            // });
+
             let rooms = [];
             const roomsInfo = this.state.rooms;
             // grab each group and its value which is endpoint
             // Object.entries returns an array of key value pairs
-            Object.entries(roomsInfo).forEach(([key, value]) => {
+            Object.entries(roomsInfo).forEach(([key, roomInfo]) => {
                 // Push namespace group icon component onto array
-                rooms.push(<li key={key} data={value} onClick={this.joinRoom} >{value.roomName}</li>);
+                
+                rooms.push(this.buildRoom(roomInfo, key));
             });
             
             let chatGroupIcons = [];
@@ -355,9 +360,9 @@ class Namespace extends Component {
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
-                <div className="ui container" style={{height: "100vh", width: "100vw"}}>
+                <div className="ui container" style={{height: "75vh", width: "100vw"}}>
                     <h2>{this.state.namespaceNameParam.toUpperCase()}</h2>
-                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, this.state.currRoom.roomName, this.state.currRoomNumActive, activeUsersList)}
+                    {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
            
@@ -367,7 +372,7 @@ class Namespace extends Component {
         
     }
 
-    namespaceHTML(chatGroups, rooms, messages, roomName, numActiveInRoom, activeUsersList) {
+    namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -375,16 +380,19 @@ class Namespace extends Component {
                 </div>
                 <div className="two wide column rooms">
                     <h3>Rooms <i aria-hidden="true" className="lock open small icon"></i></h3>
-                    <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
+                    <List link>
                         {rooms}
-                    </ul>
+                    </List>
+                    {/* <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
+                        {rooms}
+                    </ul> */}
                 </div>
                 <div className="ten wide column" style={{height: "100%", width: '100%'}}>
                     <div className="row">
                         <div className="three wide column">
-                            <span className="curr-room-text">{roomName} </span> 
+                            <span className="curr-room-text">{this.state.currRoom.roomName} </span> 
                             <span className="curr-room-num-users">
-                                <i aria-hidden="true" className="users disabled large icon"></i>{numActiveInRoom} 
+                                <i aria-hidden="true" className="users disabled large icon"></i>Users In Room: {this.state.currRoomNumActive} 
                             </span>
                         </div>
                         {/* <div className="three wide column ui search pull-right">
@@ -414,7 +422,8 @@ class Namespace extends Component {
                 </div>
                 <div className="two wide column" style={{height: "100%", width: '100%'}}>
                     <Header as='h4' textAlign='left'>
-                        <Header.Content><Icon name='users' circular />Active In {this.state.namespaceNameParam.toUpperCase()} </Header.Content>
+                        <Icon name='users' circular />
+                        <Header.Content>Online In {this.state.namespaceNameParam.toUpperCase()}: {activeUsersList.length}</Header.Content>
                     </Header>
                     <List selection verticalAlign='middle'>
                         {activeUsersList}
@@ -424,6 +433,18 @@ class Namespace extends Component {
         )
     }
     
+    buildRoom(room, key) {
+        // If user in this room
+        if (room.roomName === this.state.currRoom.roomName) {
+            return (    
+                <List.Item key={key} onClick={this.joinRoom} active>{room.roomName}</List.Item>
+            );
+        } else {
+            return (
+                <List.Item key={key} onClick={this.joinRoom} as='a'>{room.roomName}</List.Item>
+            );
+        }
+    } 
 }
 
 function buildMessage(msg, listKey) {
@@ -443,14 +464,35 @@ function buildMessage(msg, listKey) {
 }
 
 function buildActiveUser(userInfo, listKey) {
+    let additionalDetails = (
+        <div>
+            Name: {userInfo.name}<br />
+            Email: {userInfo.email}<br />
+            <Button size="mini" color='green' content='Message' />
+        </div>
+    )
     return (
-        <List.Item key={listKey}>
-            <Image avatar src={userInfo.avatar} />
-            <List.Content>
-                <List.Header>{userInfo.givenName}</List.Header>
-            </List.Content>
-        </List.Item>
+        <Popup 
+            key={listKey}
+            trigger={
+                <List.Item key={listKey}>     
+                    <Image avatar src={userInfo.avatar} />
+                    <List.Content>
+                        <List.Header>{userInfo.givenName}</List.Header>
+                    </List.Content>
+                </List.Item>
+            
+            }
+            content={additionalDetails}
+            on='click'
+            position='top right'
+        />
     );
+
+    
 }
+
+
+
 
 export default Namespace;

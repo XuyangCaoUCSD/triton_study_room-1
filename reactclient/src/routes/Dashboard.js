@@ -25,8 +25,15 @@ class Dashboard extends Component {
             console.log(res);
 
             let data = res.data;
+            if (!data.success) {
+                console.log('Failed API call');
+                return;
+            }
+            
             if (this._isMounted) {
-                this.setState({chat_groups: data.nsData});
+                this.setState({
+                    chat_groups: data.nsData}
+                );
             }
 
         }).catch((err) => {

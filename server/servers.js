@@ -22,6 +22,7 @@ const indexRoutes     = require("./routes/index"),
 	  authRoutes      = require('./routes/auth-routes'),
 	  namespaceRoutes = require('./routes/namespace-routes');
 
+const redis = require('redis');
 const cluster = require('cluster');
 const net = require('net');
 const socketio = require('socket.io');
@@ -37,6 +38,8 @@ const num_processes = require('os').cpus().length;
 // check to see if it's running -- redis-cli monitor
 const io_redis = require('socket.io-redis');
 const farmhash = require('farmhash');
+
+require('./clearRedisCache'); // Clear cache for every server restart (EVENTUALLY DO ONCE, NO NEED FOR EVERY THREAD)
 
 if (cluster.isMaster) {
 	// This stores our workers. We need to keep them to be able to reference
@@ -163,7 +166,6 @@ if (cluster.isMaster) {
 		next();
 	});
 
-
 	// // Adds middleware to all routes to make io server available
 	// app.use((req,res,next) => {
 	// 	req.io = io;
@@ -247,7 +249,7 @@ if (cluster.isMaster) {
 		// socketMain(io, socket);
 	});
 	
-	// Listen to other namespaces
+	// Listen to named namespaces
 	socketMainTest(io, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
