@@ -22,14 +22,13 @@ const indexRoutes     = require("./routes/index"),
 	  authRoutes      = require('./routes/auth-routes'),
 	  namespaceRoutes = require('./routes/namespace-routes');
 
-const redis = require('redis');
 const cluster = require('cluster');
 const net = require('net');
 const socketio = require('socket.io');
 const helmet = require('helmet')
-const socketMain = require('./socketMain');
 // const expressMain = require('./expressMain');
 const socketMainTest = require('./socketMainTest');
+const redisClient = require('./redisClient');
 
 const port = 8181;
 const num_processes = require('os').cpus().length;
@@ -212,14 +211,6 @@ if (cluster.isMaster) {
 		}),        
 	}));
 
-	// Create and connect redis client to local instance.
-	const redisClient = redis.createClient(6379);
-
-	// Log redis errors to the console
-	redisClient.on('error', (err) => {
-		console.log("Error " + err)
-	});
-
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
 		
@@ -262,8 +253,6 @@ if (cluster.isMaster) {
 				}
 			});
 		});
-		
-		// socketMain(io, socket);
 	});
 	
 	// Listen to named namespaces

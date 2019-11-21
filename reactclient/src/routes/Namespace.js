@@ -19,7 +19,7 @@ class Namespace extends Component {
             inputMessageValue: '',
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
             namespaceNameParam: this.props.match.params.name,
-            currRoomNotifications: {}
+            roomNotifications: {}
         };
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
@@ -68,11 +68,13 @@ class Namespace extends Component {
             let currRoom = data.currRoom;
 
             let currNs = data.currNs;
+            let roomNotifications = data.roomNotifications;
             
             this.setState({
                 rooms: currNs.rooms,
                 currRoom: currRoom,  // Joins first room by default
-                nsTitle: currNs.nsTitle,
+                groupName: currNs.groupName,
+                roomNotifications,
                 chatGroups
             });
 
@@ -309,18 +311,19 @@ class Namespace extends Component {
         this.socket.emit('joinRoom', roomName);
 
         // Remove notifications if there was one for the room just joined
-        this.updateRoomNotifications(roomName, false)
+        this.updateRoomNotifications(roomName, false);
     }
 
     updateRoomNotifications = (roomName, hasNotification) => {
-        // If user already in room, no need to show notification
+        // If user already in room, always turn off notification
         if (this.state.currRoom.roomName === roomName) {
-            return;
+            hasNotification = false;
         }
-        let currRoomNotifications = {...this.currRoomNotifications};
-        currRoomNotifications[roomName] = hasNotification;
+
+        let roomNotifications = {...this.state.roomNotifications};
+        roomNotifications[roomName] = hasNotification;
         this.setState({
-            currRoomNotifications
+            roomNotifications
         });
     }
 
@@ -393,7 +396,7 @@ class Namespace extends Component {
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2>{this.state.namespaceNameParam.toUpperCase()}</h2>
+                    <h2>{this.state.groupName}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -411,7 +414,7 @@ class Namespace extends Component {
                     {chatGroups}
                 </div>
                 <div className="two wide column rooms">
-                    <h3>Rooms <i aria-hidden="true" className="lock open small icon"></i></h3>
+                    <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>
                     <List link>
                         {rooms}
                     </List>
@@ -476,14 +479,14 @@ class Namespace extends Component {
 
         let notificationDisplay = null;
 
-        if (this.state.currRoomNotifications[room.roomName]) {
+        if (this.state.roomNotifications[room.roomName]) {
             notificationDisplay = 
                 <Label size='mini' color='red' style={{textAlign: 'center', height: '11px', width: '15px', float: 'right'}} >
                 </Label>;
         }
         if (!notificationDisplay) {
             return (
-                <List.Item key={key} onClick={this.joinRoom} as='a'>{room.roomName} {notificationDisplay}</List.Item>
+                <List.Item key={key} onClick={this.joinRoom} as='a'>{room.roomName}</List.Item>
             );
         } else {
             return (

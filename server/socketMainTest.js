@@ -36,12 +36,16 @@ function socketMainTest(io, workerId, redisClient) {
             // Get the keys which will be the room name
             const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
             nsSocket.leave(roomToLeave);
+            if (roomToLeave != null) { 
+                setRoomUnreads(namespaceEndpoint, roomToLeave, userId, false);
+            }
             // updateUsersInRoom(namespaceRoute, roomToLeave);
             console.log('Outer Leaving room: ' + roomToLeave);
             
             // Default room name to join (eventually can be top room in namespace)
             let defaultRoom = 'General';
             nsSocket.join(defaultRoom);
+            setRoomUnreads(namespaceEndpoint, roomToLeave, userId, false);
             // updateUsersInRoom(namespaceRoute, defaultRoom);
             console.log('Outer Joining room: ' + defaultRoom);
 
@@ -71,7 +75,7 @@ function socketMainTest(io, workerId, redisClient) {
                 }
 
                 // Cache info
-                redisClient.hset(`${namespaceRoute} Active Users`, userId, JSON.stringify(userInfo), function(err, result) {
+                redisClient.hset(`${namespaceEndpoint} Active Users`, userId, JSON.stringify(userInfo), function(err, result) {
                     if (err) {
                         console.log(err);
                         return;
@@ -83,7 +87,7 @@ function socketMainTest(io, workerId, redisClient) {
                         console.log('Updated field');
                     }
 
-                    updateActiveUsersInNamespace(namespaceRoute);
+                    updateActiveUsersInNamespace(namespaceRoute, namespaceEndpoint);
                 });
 
                 // Find namespace and room to save in database
@@ -100,7 +104,8 @@ function socketMainTest(io, workerId, redisClient) {
                         console.log('received message: ' + msg);
                         
                         const currRoomName = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket has joined
-    
+                        
+                        // Find the correct room using name
                         let room = foundNamespace.rooms.find((room) => {
                             return room.roomName === currRoomName;  // TODO "general" hardcoded
                         })
@@ -138,13 +143,14 @@ function socketMainTest(io, workerId, redisClient) {
                             console.log('message response is :');
                             console.log(response);
                             
+                            // Send message to users in room
                             io.of(namespaceRoute).to(currRoomName).emit('userMessage', response);
 
-                            // Emit notification event to all users connected to namespace
+                            // Emit notification event to all users connected to namespace for real time change
                             io.of(namespaceRoute).emit('roomNotification', currRoomName);
 
-                            // TODO determine non-online users for notifications in the future
-                            redisClient.hkeys(`${namespaceRoute} Active Users`, function (error, result) {
+                            // Below is to handle cases for non-online or online but not in namespace
+                            redisClient.hkeys(`${namespaceEndpoint} Active Users`, function (error, result) {
                                 if (error) {
                                     console.log(error);
                                     // throw error;
@@ -157,18 +163,26 @@ function socketMainTest(io, workerId, redisClient) {
                                     return;
                                 }
                     
-                                let onlineUserIds = {};
+                                let onlineInNamespaceUserIds = {};
                                 // Convert to hash map for faster lookup
-                                result.forEach((userId) => {
-                                    onlineUserIds[userId] = "online";  // use truthy value
+                                result.forEach((onlineInNSUserId) => {
+                                    onlineInNamespaceUserIds[onlineInNSUserId] = "onlineInNS";  // use truthy value
                                 });
-                                
-                                foundNamespace.people.forEach((userId) => {
-                                    // If user is not online
-                                    if (!onlineUserIds[userId]) {
-                                        console.log('User ' + userId + ' is not online in namespace');
-                                        // Retrieve active socketIds to send real time notifications
-                                        redisClient.hget(`All Active Users`, userId, function (error, result) {
+
+                                // Mark unreads for all users and also sending realtime information to online but not in namespace users
+                                foundNamespace.people.forEach((memberUserId) => {
+                                    // Mark unreads for all users (even in current room, let front-end handle
+                                    // not displaying, and always clear unreads of room at user disconnect or leave room)
+                                    // Save in cache (for simplicity + efficiency not storing 
+                                    // notifs in DB => persistence tradeoff)
+                                    setRoomUnreads(namespaceEndpoint, currRoomName, memberUserId, true);
+
+                                    // If user not online in namespace
+                                    if (!onlineInNamespaceUserIds[memberUserId]) {
+                                        console.log('User ' + memberUserId + ' is not online in namespace');
+                                        // Send real time notifications to users online BUT NOT online in namespace
+                                        // front-end TODO new socket connection to general namespace
+                                        redisClient.hget(`All Active Users`, memberUserId.toString(), function (error, result) {
                                             if (error) {
                                                 console.log(error);
                                                 // throw error;
@@ -180,15 +194,13 @@ function socketMainTest(io, workerId, redisClient) {
                                                 return;
                                             }
 
-                                            // Send real time notification
-                                            console.log('Emitting messageNotification to ' + socketId);
+                                            // Send real time notification (TODO frontend)
                                             let socketId = result;
-                                            io.sockets.socket(socketId).emit('messageNotification', namespaceEndpoint);
+                                            console.log('Emitting messageNotification to ' + socketId);
+                                            io.to(`${socketId}`).emit('messageNotification', namespaceEndpoint);
                                         });
-
-                                        // Mark in database the notifications
-
                                     }
+                                    
                                 });
                             });
 
@@ -231,12 +243,13 @@ function socketMainTest(io, workerId, redisClient) {
                         // Get the keys which will be the room name
                         const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
                         nsSocket.leave(roomToLeave);
-                        // updateUsersInRoom(namespaceRoute, roomToLeave);
+                        setRoomUnreads(namespaceEndpoint, roomToLeave, userId, false);
                         
                         console.log('Joining room ' + roomToJoin);
                          
                         // Server socket api to join room
                         nsSocket.join(roomToJoin);
+
 
                         room.chatHistory = foundChatHistory;
 
@@ -244,7 +257,8 @@ function socketMainTest(io, workerId, redisClient) {
 
                         nsSocket.emit('changeRoom', room);
             
-                        // updateUsersInRoom(namespaceRoute, roomToJoin);
+                        // Mark any unread notifications as read in cache
+                        setRoomUnreads(namespaceEndpoint, roomToJoin, userId, false);
 
                     }).catch((err) => {
                         console.log(err);
@@ -257,10 +271,18 @@ function socketMainTest(io, workerId, redisClient) {
     
             });
 
+            // Do stuff that needs access to socket rooms during disconnecting as won't have access in disconnected
+            nsSocket.on('disconnecting', () => {   
+                console.log('Socket DisconnectING: ' + nsSocket.id);    
+                let roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
+                setRoomUnreads(namespaceEndpoint, roomToLeave, userId, false);
+            });
+
             nsSocket.on('disconnect', () => {
                 console.log('Socket Disconnected: ' + nsSocket.id);
+
                 // Remove from cache
-                redisClient.hdel(`${namespaceRoute} Active Users`, userId, function(error, success) {
+                redisClient.hdel(`${namespaceEndpoint} Active Users`, userId, function(error, success) {
                     if (error) {
                         console.log(err);
                         // throw error;
@@ -268,18 +290,19 @@ function socketMainTest(io, workerId, redisClient) {
                     }
                     
                     if (success) {
-                        console.log('(REDIS CB) Successefully deleted ' + userId + ' entry in ' + `"${namespaceRoute} Active Users"`);
+                        console.log('(REDIS CB) Successfully deleted ' + userId + ' entry in ' + `"${namespaceEndpoint} Active Users"`);
                     }
 
-                    updateActiveUsersInNamespace(namespaceRoute);
+                    updateActiveUsersInNamespace(namespaceRoute, namespaceEndpoint);
                 });
+         
             });
         });
     });
 
 
-    function updateActiveUsersInNamespace(namespaceRoute) {
-        redisClient.hgetall(`${namespaceRoute} Active Users`, function (error, result) {
+    function updateActiveUsersInNamespace(namespaceRoute, namespaceEndpoint) {
+        redisClient.hgetall(`${namespaceEndpoint} Active Users`, function (error, result) {
             if (error) {
                 console.log(error);
                 // throw error;
@@ -313,7 +336,7 @@ function socketMainTest(io, workerId, redisClient) {
 
     }
 
-    // Not much point in keep track of number in each room (instead of namespace)s
+    // Not much point in keep track of number in each room (instead of namespace)
     // function updateUsersInRoom(namespaceRoute, roomName) {
     //     // Send back num of users in this room to all sockets connected to this room
     //     io.of(namespaceRoute).in(roomName).clients((error, clients) => {
@@ -328,6 +351,23 @@ function socketMainTest(io, workerId, redisClient) {
     //     });
     // }
 
+    // Set unread to true or false in cache for user for some namespace room
+    function setRoomUnreads(namespaceEndpoint, roomName, userId, unread) {
+        // Track notifications in cache (for simplicity + efficienc not storing notifS in DB => persistence tradeoff)
+        redisClient.hset(`${namespaceEndpoint} ${roomName} Unreads`, userId.toString(), unread, function (err, result) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+
+            if (result === 1) {
+                console.log('Entered new notifications field');
+            } else {
+                console.log('Updated notifications field of user ' + userId.toString() + ' in ' 
+                            + `${namespaceEndpoint} ${roomName} Unreads` + ' to ' + unread);
+            }
+        });
+    }
 }
 
 module.exports = socketMainTest;

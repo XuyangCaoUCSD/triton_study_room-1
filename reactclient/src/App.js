@@ -26,7 +26,7 @@ class App extends Component {
         super();
         this.state = {
             isLoggedIn: null,
-            sidebarOpen: true
+            sidebarOpen: false
         }
 
         this._isMounted = false;
