@@ -19,14 +19,14 @@ import Namespace from './routes/Namespace';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
-import { Menu, Icon, Sidebar } from 'semantic-ui-react';
+import { Menu, Icon, Sidebar, Button } from 'semantic-ui-react';
 
 class App extends Component {
     constructor() {
         super();
         this.state = {
             isLoggedIn: null,
-            sidebarOpen: false
+            sidebarOpen: true
         }
 
         this._isMounted = false;
@@ -106,31 +106,50 @@ class App extends Component {
         if (!this.state.waitingForAPI) {
             return (
                 <Router>
-                    {/* <Sidebar
+                    <Sidebar
                         as={Menu}
                         animation='overlay'
                         icon='labeled'
                         inverted
                         vertical
-                        visible={true}
+                        visible={this.state.sidebarOpen}
                         width='thin'
                     >   
-                        <NavLink as='a' to="/">
+                        <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                            <Icon name='bars' />
+                        </Button>
+                        <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
                             <Menu.Item link>
                                 <Icon name='home' />      
                                 Home
                             </Menu.Item>
                         </NavLink>
-                        <NavLink as='a' to="/">
+                        <NavLink to="/login" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
                             <Menu.Item link>
-                                <Icon name='home' />      
-                                Dashboard
+                                <Icon name='sign-in' />      
+                                Log In
                             </Menu.Item>
                         </NavLink>
-                    </Sidebar> */}
+                        <NavLink as='a' to="/logout" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                            <Menu.Item link>
+                                <Icon name='sign-out' />      
+                                Logout
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                            <Menu.Item link>
+                                <Icon name='calendar alternate outline' />      
+                                Dashboard
+                            </Menu.Item>
+                        </NavLink>  
+                    </Sidebar>
+
+                    <Button basic color='blue' icon onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <Icon name='bars' />
+                    </Button>
 
                     <div>
-                        <ul>
+                        {/* <ul>
                             <li style={{display: "inline-block"}}>
                                 <NavLink to="/">Home&emsp;</NavLink>
                             </li>
@@ -143,7 +162,7 @@ class App extends Component {
                             <li style={{display: "inline-block"}}>
                                 <NavLink to="/dashboard">Dashboard&emsp;</NavLink>
                             </li>
-                        </ul>
+                        </ul> */}
     
                         <hr />
     
@@ -154,6 +173,7 @@ class App extends Component {
                         you have multiple routes, but you want only one
                         of them to render at a time
                         */}
+                
                         <Switch>
                             <Route exact path="/" component={Home} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />

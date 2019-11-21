@@ -15,13 +15,6 @@ router.get("/", (req, res) => {
 });
 
 router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
-    console.log('req.params is');
-    console.log(req.params);
-
-    // if (req.params.namespace !== 'cse110') {
-    //     console.log('Error, Use cse110 for testing purposes!');
-    // }
-
     let userId = req.session.passport.user;
 
     let data = {
