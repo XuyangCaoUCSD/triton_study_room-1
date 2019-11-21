@@ -19,18 +19,22 @@ import Namespace from './routes/Namespace';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
+import { Menu, Icon, Sidebar } from 'semantic-ui-react';
 
 class App extends Component {
     constructor() {
         super();
         this.state = {
-            isLoggedIn: null
+            isLoggedIn: null,
+            sidebarOpen: false
         }
 
         this._isMounted = false;
         
         this.authMemoHandler = this.authMemoHandler.bind(this);
         this.isAuthenticated = this.isAuthenticated.bind(this);
+
+        this.onSetSidebarOpen = this.onSetSidebarOpen.bind(this);
     }
 
     componentDidMount() {
@@ -69,6 +73,10 @@ class App extends Component {
         this.isAuthenticated();
     }
 
+    onSetSidebarOpen(open) {
+        this.setState({ sidebarOpen: open });
+    }
+
     isAuthenticated = async () => {
         console.log('Checking auth');
         let result = await auth.isAuthenticated();
@@ -98,10 +106,33 @@ class App extends Component {
         if (!this.state.waitingForAPI) {
             return (
                 <Router>
+                    {/* <Sidebar
+                        as={Menu}
+                        animation='overlay'
+                        icon='labeled'
+                        inverted
+                        vertical
+                        visible={true}
+                        width='thin'
+                    >   
+                        <NavLink as='a' to="/">
+                            <Menu.Item link>
+                                <Icon name='home' />      
+                                Home
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/">
+                            <Menu.Item link>
+                                <Icon name='home' />      
+                                Dashboard
+                            </Menu.Item>
+                        </NavLink>
+                    </Sidebar> */}
+
                     <div>
                         <ul>
                             <li style={{display: "inline-block"}}>
-                                <NavLink to="/" activeClassName="activeLink">Home&emsp;</NavLink>
+                                <NavLink to="/">Home&emsp;</NavLink>
                             </li>
                             <li style={{display: "inline-block"}}>
                                 <NavLink to="/login">Login&emsp;</NavLink>

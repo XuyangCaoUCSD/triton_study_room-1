@@ -196,28 +196,6 @@ if (cluster.isMaster) {
 
 	// Here you might use Socket.IO middleware for authorization etc.
 	// on connection, send the socket over to our module with socket stuff
-	
-	// io.use((socket, next) => {
-	// 	var handshakeData = socket.request;
-	// 	// Possibly check passport session here (req.session.passport)
-	// 	if (handshakeData.isAuthenticated()) {
-	// 		console.log(req.user);
-	// 		next();
-	// 	} else {
-	// 		console.log('Error');
-	// 	}
-
-	// 	// console.log('socket middleware excuting');
-	// 	// sessionMiddleware(handshakeData, {}, next);
-
-	// 	// make sure the handshake data looks good
-	// 	// if error
-	// 	  // next(new Error('not authorized'));
-	// 	// else call next
-	// 	// next();
-
-	// });
-
 
 	// Alternative to passportSocketIo (will put information in socket.handshake.session.passport though)
 	// // "session" parameter is express session
@@ -234,6 +212,13 @@ if (cluster.isMaster) {
 		}),        
 	}));
 
+	// Create and connect redis client to local instance.
+	const redisClient = redis.createClient(6379);
+
+	// Log redis errors to the console
+	redisClient.on('error', (err) => {
+		console.log("Error " + err)
+	});
 
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
@@ -244,13 +229,45 @@ if (cluster.isMaster) {
 
 		console.log(`connected to worker: ${cluster.worker.id}`);
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
+		
+		let userId = socket.request.user;
+		// Cache active user
+		redisClient.hset(`All Active Users`, userId, socket.id, function (error, result) {
+			if (error) {
+				console.log(error);
+				// throw error;
+				return;
+			}
 
+			if (result === 1) {
+				console.log('Entered new field');
+			} else {
+				console.log('Updated field');
+			}
+		});
+
+		// Remove socket from all active user cache when disconnected
+		socket.on('disconnect', () => {
+			console.log('Socket Disconnected: ' + socket.id);
+			// Remove from cache
+			redisClient.hdel(`All Active Users`, userId, function(error, success) {
+				if (error) {
+					console.log(err);
+					// throw error;
+					return;
+				}
+				
+				if (success) {
+					console.log('(REDIS CB) Successefully deleted ' + userId + ' entry in ' + `"Active Users"`);
+				}
+			});
+		});
 		
 		// socketMain(io, socket);
 	});
 	
 	// Listen to named namespaces
-	socketMainTest(io, cluster.worker.id);
+	socketMainTest(io, cluster.worker.id, redisClient);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {

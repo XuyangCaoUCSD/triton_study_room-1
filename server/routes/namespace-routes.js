@@ -23,10 +23,10 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
         currNs: null,
         currRoom: null
     }
-    
+    let endpoint = "/" + req.params.namespace;
     // Find if namespace name exists in db
     Namespace.findOne({
-        groupName: req.params.namespace
+        endpoint: endpoint
     }) //.populate({ path: 'rooms', populate: { path: 'chatHistory', model: 'ChatHistory' }})
     .exec((err, foundNamespace) => {
         if (err || !foundNamespace) {
@@ -67,7 +67,8 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         let nsData = foundUser.namespaces.map((ns) => {
                             return {
                                 img: ns.img,
-                                endpoint: ns.endpoint
+                                endpoint: ns.endpoint,
+                                groupName: ns.groupName
                             }
                         });
 

@@ -41,7 +41,8 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             let nsData = foundUser.namespaces.map((ns) => {
                 return {
                     img: ns.img,
-                    endpoint: ns.endpoint
+                    endpoint: ns.endpoint,
+                    groupName: ns.groupName
                 }
             });
 

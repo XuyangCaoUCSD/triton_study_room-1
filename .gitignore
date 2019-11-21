@@ -3,7 +3,7 @@
 
 # Don't commit this for now
 nodeClient/
-
+server/redisTest.js
 
 
 # Below are from template

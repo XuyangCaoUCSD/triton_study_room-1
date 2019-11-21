@@ -4,31 +4,23 @@ const Namespace = require('./models/Namespace');
 const { ChatHistory } = require('./models/ChatHistory');
 const { Message } = require('./models/Message');
 const keys = require('./config/keys');
+const redis = require('redis');
 
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
 
-const redis = require('redis');
-// Create and connect redis client to local instance.
-const redisClient = redis.createClient(6379)
- 
-// Log redis errors to the console
-redisClient.on('error', (err) => {
-    console.log("Error " + err)
-});
-
-
-function socketMainTest(io, workerId) {
+function socketMainTest(io, workerId, redisClient) {
     let existingNamespaces = [
-        ['/namespace/cse110', 'cse110'],
-        ['/namespace/cse100', 'cse100'],
-        ['/namespace/cse101', 'cse101']
+        ['/namespace/cse110', '/cse110', 'CSE 110'],
+        ['/namespace/cse100', '/cse100', 'CSE 100'],
+        ['/namespace/cse101', '/cse101', 'CSE 101']
     ];
 
     // Loop through existing namespaces
     existingNamespaces.forEach((item) => {
         let namespaceRoute = item[0];
-        let namespaceName = item[1];
+        let namespaceEndpoint = item[1] 
+        let namespaceName = item[2];
 
         io.of(namespaceRoute).on('connection', (nsSocket) => {
             console.log('nsSocket id is ' + nsSocket.id);
@@ -44,13 +36,13 @@ function socketMainTest(io, workerId) {
             // Get the keys which will be the room name
             const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
             nsSocket.leave(roomToLeave);
-            updateUsersInRoom(namespaceRoute, roomToLeave);
+            // updateUsersInRoom(namespaceRoute, roomToLeave);
             console.log('Outer Leaving room: ' + roomToLeave);
             
             // Default room name to join (eventually can be top room in namespace)
             let defaultRoom = 'General';
             nsSocket.join(defaultRoom);
-            updateUsersInRoom(namespaceRoute, defaultRoom);
+            // updateUsersInRoom(namespaceRoute, defaultRoom);
             console.log('Outer Joining room: ' + defaultRoom);
 
             // ------------------ End of joining General room by default ----------------
@@ -95,8 +87,9 @@ function socketMainTest(io, workerId) {
                 });
 
                 // Find namespace and room to save in database
+                console.log('Endpoint is ' + namespaceEndpoint);
                 Namespace.findOne(
-                    { groupName: namespaceName }, 
+                    { endpoint: namespaceEndpoint }, 
                     'rooms people' // Only retrieve necessary information
 
                 ).then((foundNamespace) => {
@@ -130,7 +123,7 @@ function socketMainTest(io, workerId) {
                                     "messages": createdMessage
                                 }
                             },
-                            {safe: true, upsert: true, new : true},
+                            {safe: true, upsert: true, new: true},
                         ).then((updatedChatHistory) => {
                             // console.log(updatedChatHistory);
                             let lastMessage = updatedChatHistory.messages[updatedChatHistory.messages.length - 1];
@@ -146,6 +139,59 @@ function socketMainTest(io, workerId) {
                             console.log(response);
                             
                             io.of(namespaceRoute).to(currRoomName).emit('userMessage', response);
+
+                            // Emit notification event to all users connected to namespace
+                            io.of(namespaceRoute).emit('roomNotification', currRoomName);
+
+                            // TODO determine non-online users for notifications in the future
+                            redisClient.hkeys(`${namespaceRoute} Active Users`, function (error, result) {
+                                if (error) {
+                                    console.log(error);
+                                    // throw error;
+                                    return;
+                                }
+                            
+                                // Shouldn't be emtpy, but return if it is for some reason
+                                if (!result) {
+                                    console.log('Unexpected empty result!');
+                                    return;
+                                }
+                    
+                                let onlineUserIds = {};
+                                // Convert to hash map for faster lookup
+                                result.forEach((userId) => {
+                                    onlineUserIds[userId] = "online";  // use truthy value
+                                });
+                                
+                                foundNamespace.people.forEach((userId) => {
+                                    // If user is not online
+                                    if (!onlineUserIds[userId]) {
+                                        console.log('User ' + userId + ' is not online in namespace');
+                                        // Retrieve active socketIds to send real time notifications
+                                        redisClient.hget(`All Active Users`, userId, function (error, result) {
+                                            if (error) {
+                                                console.log(error);
+                                                // throw error;
+                                                return;
+                                            }
+
+                                            // Only send real time notifications if user is online but not in namespace
+                                            if (!result) {
+                                                return;
+                                            }
+
+                                            // Send real time notification
+                                            console.log('Emitting messageNotification to ' + socketId);
+                                            let socketId = result;
+                                            io.sockets.socket(socketId).emit('messageNotification', namespaceEndpoint);
+                                        });
+
+                                        // Mark in database the notifications
+
+                                    }
+                                });
+                            });
+
     
                         }).catch((err) => {
                             console.log(err);
@@ -161,12 +207,10 @@ function socketMainTest(io, workerId) {
 
             // Handles joining different room events
             nsSocket.on('joinRoom', (roomToJoin) => {
-                // console.log(nsSocket.rooms);
-                
                 // Find namespace to find room to send response
                 Namespace.findOne(
-                    { groupName: namespaceName }, 
-                    'groupName rooms people' // Only retrieve necessary information
+                    { endpoint: namespaceEndpoint }, 
+                    'rooms people' // Only retrieve necessary information
 
                 ).then((foundNamespace) => {
 
@@ -187,7 +231,7 @@ function socketMainTest(io, workerId) {
                         // Get the keys which will be the room name
                         const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
                         nsSocket.leave(roomToLeave);
-                        updateUsersInRoom(namespaceRoute, roomToLeave);
+                        // updateUsersInRoom(namespaceRoute, roomToLeave);
                         
                         console.log('Joining room ' + roomToJoin);
                          
@@ -200,7 +244,7 @@ function socketMainTest(io, workerId) {
 
                         nsSocket.emit('changeRoom', room);
             
-                        updateUsersInRoom(namespaceRoute, roomToJoin);
+                        // updateUsersInRoom(namespaceRoute, roomToJoin);
 
                     }).catch((err) => {
                         console.log(err);
@@ -215,18 +259,16 @@ function socketMainTest(io, workerId) {
 
             nsSocket.on('disconnect', () => {
                 console.log('Socket Disconnected: ' + nsSocket.id);
-                // TODO Update number of users in namespace
-                // io.of(namespaceRoute).emit('numUsers', '1');
-                
                 // Remove from cache
                 redisClient.hdel(`${namespaceRoute} Active Users`, userId, function(error, success) {
                     if (error) {
                         console.log(err);
-                        throw error;
+                        // throw error;
+                        return;
                     }
                     
                     if (success) {
-                        console.log('(REDIS) Successefully deleted ' + userId + ' entry in ' + `"${namespaceRoute} Active Users"`);
+                        console.log('(REDIS CB) Successefully deleted ' + userId + ' entry in ' + `"${namespaceRoute} Active Users"`);
                     }
 
                     updateActiveUsersInNamespace(namespaceRoute);
@@ -240,7 +282,8 @@ function socketMainTest(io, workerId) {
         redisClient.hgetall(`${namespaceRoute} Active Users`, function (error, result) {
             if (error) {
                 console.log(error);
-                throw error;
+                // throw error;
+                return;
             }
 
             let activeUsers = {};
@@ -264,25 +307,26 @@ function socketMainTest(io, workerId) {
             console.log('ActiveUsers response:');
             console.log(activeUsers);
 
-            // TODO send to all rooms
+            // Send to all rooms
             io.of(namespaceRoute).emit('updateActiveUsers', activeUsers);
         });
 
     }
 
-    function updateUsersInRoom(namespaceRoute, roomName) {
-        // Send back num of users in this room to all sockets connected to this room
-        io.of(namespaceRoute).in(roomName).clients((error, clients) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-            console.log('clients are');
-            console.log(clients);
-            // console.log(`There are ${clients.length} users in this room`);
-            io.of(namespaceRoute).in(roomName).emit('updateMembers', clients.length);
-        });
-    }
+    // Not much point in keep track of number in each room (instead of namespace)s
+    // function updateUsersInRoom(namespaceRoute, roomName) {
+    //     // Send back num of users in this room to all sockets connected to this room
+    //     io.of(namespaceRoute).in(roomName).clients((error, clients) => {
+    //         if (error) {
+    //             console.log(error);
+    //             return;
+    //         }
+    //         console.log('clients are');
+    //         console.log(clients);
+    //         // console.log(`There are ${clients.length} users in this room`);
+    //         io.of(namespaceRoute).in(roomName).emit('updateMembers', clients.length);
+    //     });
+    // }
 
 }
 

@@ -8,7 +8,7 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -17,11 +17,9 @@ class Namespace extends Component {
         super(props);
         this.state = {
             inputMessageValue: '',
-            currRoomNumActive: 0,
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
             namespaceNameParam: this.props.match.params.name,
-
-            scrollOnNextUpdate: 0
+            currRoomNotifications: {}
         };
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
@@ -36,6 +34,7 @@ class Namespace extends Component {
     }
 
     componentDidMount() {
+        this._isMounted = true;
         // For cleaning up when refreshing
         window.addEventListener('beforeunload', this.componentCleanup);
 
@@ -51,6 +50,11 @@ class Namespace extends Component {
 
             let data = res.data;
             console.log(data);
+
+            // Avoid memory leak
+            if (!this._isMounted) {
+                return;
+            }
 
             if (!data.success) {
                 console.log('ERROR on server, likely because namespace does not exist');
@@ -92,10 +96,10 @@ class Namespace extends Component {
             this.socket.on('connect', this.onSocketConnectCB);
             this.socket.on('userMessage', this.onSocketMessageCB);
             this.socket.on('changeRoom', this.onSocketChangeRoomCB);
-            this.socket.on('updateMembers', this.onSocketUpdateMembersCB);
             this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
+            this.socket.on('roomNotification', this.onSocketRoomNotificationCB)
 
-            console.log(`client socket connecting to /namespace${this.state.endpoint}`);
+            console.log(`client socket connecting to /namespace/${this.state.endpoint}`);
 
             this.scrollToBottom(true);
 
@@ -145,6 +149,7 @@ class Namespace extends Component {
         console.log('Calling will unmount');
         this.componentCleanup();
         window.removeEventListener('beforeunload', this.componentCleanup);
+        this._isMounted = false;
     }
     
     componentDidUpdate() {
@@ -232,18 +237,17 @@ class Namespace extends Component {
         });
     }
 
-    onSocketUpdateMembersCB = (numMembers) => {
-        this.setState({
-            currRoomNumActive: numMembers
-        });
-    }
-
     onSocketUpdateActiveUsersCB = (activeUsers) => {
         this.setState({
             activeUsers
         });
         console.log('Active Users are:');
         console.log(activeUsers);
+    }
+
+    onSocketRoomNotificationCB = (roomName) => {
+        console.log('Received roomNotification for room ' + roomName);
+        this.updateRoomNotifications(roomName, true);
     }
     // ---------------- End of socket callbacks --------------------
 
@@ -302,7 +306,22 @@ class Namespace extends Component {
     joinRoom = (e) => {
         let roomName = e.target.innerText;
         console.log('room to join is ' + roomName);
-        this.socket.emit('joinRoom', roomName); 
+        this.socket.emit('joinRoom', roomName);
+
+        // Remove notifications if there was one for the room just joined
+        this.updateRoomNotifications(roomName, false)
+    }
+
+    updateRoomNotifications = (roomName, hasNotification) => {
+        // If user already in room, no need to show notification
+        if (this.state.currRoom.roomName === roomName) {
+            return;
+        }
+        let currRoomNotifications = {...this.currRoomNotifications};
+        currRoomNotifications[roomName] = hasNotification;
+        this.setState({
+            currRoomNotifications
+        });
     }
 
     render() {
@@ -405,7 +424,7 @@ class Namespace extends Component {
                         <div className="three wide column">
                             <span className="curr-room-text">{this.state.currRoom.roomName} </span> 
                             <span className="curr-room-num-users">
-                                <i aria-hidden="true" className="users disabled large icon"></i>Users In Room: {this.state.currRoomNumActive} 
+                                <i aria-hidden="true" className="users disabled large icon"></i>
                             </span>
                         </div>
                         {/* <div className="three wide column ui search pull-right">
@@ -437,7 +456,7 @@ class Namespace extends Component {
                         <Icon name='users' circular />
                         <Header.Content>Online In {this.state.namespaceNameParam.toUpperCase()}: {activeUsersList.length}</Header.Content>
                     </Header>
-                    <List selection verticalAlign='middle'>
+                    <List selection animated verticalAlign='middle'>
                         {activeUsersList}
                     </List>
                 </div>
@@ -451,11 +470,27 @@ class Namespace extends Component {
             return (    
                 <List.Item key={key} onClick={this.joinRoom} active>{room.roomName}</List.Item>
             );
+        } 
+        
+        // For other rooms
+
+        let notificationDisplay = null;
+
+        if (this.state.currRoomNotifications[room.roomName]) {
+            notificationDisplay = 
+                <Label size='mini' color='red' style={{textAlign: 'center', height: '11px', width: '15px', float: 'right'}} >
+                </Label>;
+        }
+        if (!notificationDisplay) {
+            return (
+                <List.Item key={key} onClick={this.joinRoom} as='a'>{room.roomName} {notificationDisplay}</List.Item>
+            );
         } else {
             return (
-                <List.Item key={key} onClick={this.joinRoom} as='a'>{room.roomName}</List.Item>
+                <List.Item key={key} onClick={this.joinRoom} style={{fontWeight: 'bold'}} as='a'>{room.roomName} {notificationDisplay}</List.Item>
             );
         }
+        
     } 
 }
 

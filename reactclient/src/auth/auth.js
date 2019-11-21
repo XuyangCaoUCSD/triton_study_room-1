@@ -2,28 +2,25 @@
 import API from "../utilities/API";
 
 class Auth {
-    constructor() {
-    }
-
-    // Local Strategy
-    // Pass in login data and callback
-    login(data, successCallback, errorCallback) {
-        return API({
-            method: 'post',
-            url: `/api/login`,
-            data,
-            withCredentials: true
-        })
-        .then((res) => {
-            console.log(res);
-            successCallback(res);
-        })
-        .catch((err) => {
-            console.log("Error logging in");
-            console.log(err);
-            errorCallback(err);
-        });
-    }
+    // // Local Strategy
+    // // Pass in login data and callback
+    // login(data, successCallback, errorCallback) {
+    //     return API({
+    //         method: 'post',
+    //         url: `/api/login`,
+    //         data,
+    //         withCredentials: true
+    //     })
+    //     .then((res) => {
+    //         console.log(res);
+    //         successCallback(res);
+    //     })
+    //     .catch((err) => {
+    //         console.log("Error logging in");
+    //         console.log(err);
+    //         errorCallback(err);
+    //     });
+    // }
 
     googleLogin(successCallback, errorCallback) {
         const auth_route_link = 'http://localhost:8181/api/auth/google';
