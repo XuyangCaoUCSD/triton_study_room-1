@@ -8,7 +8,7 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -19,7 +19,7 @@ class Namespace extends Component {
             inputMessageValue: '',
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
             namespaceNameParam: this.props.match.params.name,
-            roomNotifications: {}
+            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {}
         };
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
@@ -38,7 +38,6 @@ class Namespace extends Component {
         // For cleaning up when refreshing
         window.addEventListener('beforeunload', this.componentCleanup);
 
-        // TODO add is mounted checks to prevent setting state when unmounted
         // Retrieve particular namespace information
         API({
             method: 'get',
@@ -75,7 +74,7 @@ class Namespace extends Component {
                 currRoom: currRoom,  // Joins first room by default
                 groupName: currNs.groupName,
                 roomNotifications,
-                chatGroups
+                chatGroups,
             });
 
 
@@ -169,6 +168,7 @@ class Namespace extends Component {
     }
 
     handleMessageScroll = (e) => {
+        // Determine if user is near bottom of messages box
         let threshold = 150;
         const bottom = e.target.scrollHeight - e.target.scrollTop - threshold < e.target.clientHeight;
         if (bottom) {
@@ -306,12 +306,16 @@ class Namespace extends Component {
 
     // Handles click on other rooms
     joinRoom = (e) => {
+        // Remove room notifications for room just left just in case somehow still there
+        this.updateRoomNotifications(this.state.currRoom.roomName, false);
+
         let roomName = e.target.innerText;
         console.log('room to join is ' + roomName);
-        this.socket.emit('joinRoom', roomName);
-
         // Remove notifications if there was one for the room just joined
         this.updateRoomNotifications(roomName, false);
+
+        this.socket.emit('joinRoom', roomName);
+        
     }
 
     updateRoomNotifications = (roomName, hasNotification) => {
@@ -411,7 +415,9 @@ class Namespace extends Component {
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
-                    {chatGroups}
+                    <Menu compact icon='labeled' vertical>
+                        {chatGroups}
+                    </Menu>
                 </div>
                 <div className="two wide column rooms">
                     <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>

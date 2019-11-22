@@ -23,7 +23,7 @@ export const ProtectedRoute = ({ component: Comp, isLoggedIn, path, authMemoHand
                 {...rest}
                 render={(props) => {
                     return isLoggedIn ? (
-                        <Comp {...props} />
+                        <Comp {...props} {...rest}/>
                     ) : (
                         <Redirect
                             to={{

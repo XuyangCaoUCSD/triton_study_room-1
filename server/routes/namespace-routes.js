@@ -5,6 +5,7 @@ const  express       = require('express'),
 
 const { ChatHistory } = require('../models/ChatHistory');
 const redisClient = require('../redisClient');
+const { setNamespaceUnreads, setRoomUnreads } = require('../socketMainTest');
 
 const router = express.Router();
 
@@ -47,9 +48,15 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                 res.send("ERROR, UNAUTHORIZED CREDENTIALS");
                 return;
             }
+
+            // Once user click in namespace, no longer mark as read
+            setNamespaceUnreads(endpoint, userId, false);
+
             data.currNs = foundNamespace;
             let currRoom = foundNamespace.rooms[0]; // Use Default first room to join
             let chatHistoryId = currRoom.chatHistory; 
+
+            setRoomUnreads(endpoint, currRoom.roomName, userId, false);
 
             ChatHistory.findById(
                 chatHistoryId
@@ -97,7 +104,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
-// Recursive call function to ensure callback chaining
+// Recursive call function over rooms to ensure callback chaining for redis calls for room unreads
 function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, data) {
     // Check in cache if there is unread messages for this user in this room
     let room = rooms[i];
@@ -108,7 +115,7 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
             return;
         }
 
-        console.log(`${endpoint} ${room.roomName} Unreads is `);
+        console.log(`${endpoint} ${room.roomName} Unreads for ${userId} is `);
         console.log(result);
 
         // Care as result is of type string so not boolean

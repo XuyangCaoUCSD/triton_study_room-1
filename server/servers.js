@@ -27,7 +27,7 @@ const net = require('net');
 const socketio = require('socket.io');
 const helmet = require('helmet')
 // const expressMain = require('./expressMain');
-const socketMainTest = require('./socketMainTest');
+const { socketMainTest } = require('./socketMainTest');
 const redisClient = require('./redisClient');
 
 const port = 8181;
@@ -222,26 +222,31 @@ if (cluster.isMaster) {
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 		
 		let userId = socket.request.user;
-		// Cache active user
-		redisClient.hset(`All Active Users`, userId, socket.id, function (error, result) {
-			if (error) {
-				console.log(error);
-				// throw error;
-				return;
-			}
 
-			if (result === 1) {
-				console.log('Entered new field');
-			} else {
-				console.log('Updated field');
-			}
+		// Cache OUTSIDE active users (sockets in general namespace)
+		socket.on('cacheOutsideUser', (msg) => {
+			redisClient.hset(`All Outside Active Sockets`, userId, socket.id, function (error, result) {
+				if (error) {
+					console.log(error);
+					// throw error;
+					return;
+				}
+				
+				console.log('Caching ' + userId + ' with socketId:'  + socket.id);
+				if (result === 1) {
+					console.log('Entered new field');
+				} else {
+					console.log('Updated field');
+				}
+			});
+
 		});
 
 		// Remove socket from all active user cache when disconnected
 		socket.on('disconnect', () => {
 			console.log('Socket Disconnected: ' + socket.id);
 			// Remove from cache
-			redisClient.hdel(`All Active Users`, userId, function(error, success) {
+			redisClient.hdel(`All Outside Active Users`, userId, function(error, success) {
 				if (error) {
 					console.log(err);
 					// throw error;
@@ -256,7 +261,7 @@ if (cluster.isMaster) {
 	});
 	
 	// Listen to named namespaces
-	socketMainTest(io, cluster.worker.id, redisClient);
+	socketMainTest(io, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {

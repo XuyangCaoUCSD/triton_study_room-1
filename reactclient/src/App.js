@@ -19,21 +19,24 @@ import Namespace from './routes/Namespace';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
-import { Menu, Icon, Sidebar, Button } from 'semantic-ui-react';
+import { Menu, Icon, Sidebar, Button, Label } from 'semantic-ui-react';
+import io from 'socket.io-client';
 
 class App extends Component {
     constructor() {
         super();
         this.state = {
             isLoggedIn: null,
-            sidebarOpen: false
+            sidebarOpen: false,
+            hasMessages: false
         }
 
         this._isMounted = false;
+        this.socket = null;
         
         this.authMemoHandler = this.authMemoHandler.bind(this);
         this.isAuthenticated = this.isAuthenticated.bind(this);
-
+        this.removeNavBarNotifications = this.removeNavBarNotifications.bind(this);
         this.onSetSidebarOpen = this.onSetSidebarOpen.bind(this);
     }
 
@@ -77,6 +80,13 @@ class App extends Component {
         this.setState({ sidebarOpen: open });
     }
 
+    onMessagesClick() {
+        this.setState({
+            hasMessages: false
+        })
+        this.onSetSidebarOpen(false);
+    }
+
     isAuthenticated = async () => {
         console.log('Checking auth');
         let result = await auth.isAuthenticated();
@@ -90,20 +100,70 @@ class App extends Component {
                     waitingForAPI: false
                 });
 
+                console.log('This.socket is :');
+                console.log(this.socket);
+                
+                if (!this.socket || this.socket.disconnected) {
+                    console.log('Connecting to main namespace');
+                    this.socket = io.connect('http://localhost:8181'); // Connect to general (root) namespace once logged in
+                    this.socket.on('connect', this.onSocketConnectCB);
+                    this.socket.on('messageNotification', this.onSocketMessageNotificationCB);
+                    console.log('this.socket is now: ');
+                    console.log(this.socket);
+                }
+                
+
             } else {
                 console.log('Setting login state to false');
                 this.setState({
                     isLoggedIn: false,
                     waitingForAPI: false
                 });
+
+                if (this.socket != null && this.socket.connected) {
+                    console.log('Manually disocnnecting socket');
+                    this.socket.disconnect();
+                }
             }
         } 
     }
+
+    removeNavBarNotifications() {
+        this.setState({
+            hasMessages: false
+        });
+    }
+
+    //-------------Socket CBs-----------------------
+    onSocketConnectCB = () => {
+        console.log('Socket connected to main namespace');
+        console.log(this.socket);
+        
+        this.socket.emit('cacheOutsideUser', "");
+
+        this.forceUpdate(); // Force to pass in socket
+    }
+
+    // Real-time notifications for online users but not in namespace
+    onSocketMessageNotificationCB = (namespaceEndpoint) => {
+        console.log('Setting hasMessages to true in App.js');
+        this.setState({
+            hasMessages: true,
+        });
+    }
+
+
+    //-------------End of socket CBs----------------
 
     render() {
         console.log('Is logged in is');
         console.log(this.state.isLoggedIn);
         if (!this.state.waitingForAPI) {
+            // Notification for messages
+            let messageNotification = null;
+            if (this.state.hasMessages) {
+                messageNotification = <Label circular color='red' empty></Label>;
+            }
             return (
                 <Router>
                     <Sidebar
@@ -115,36 +175,44 @@ class App extends Component {
                         visible={this.state.sidebarOpen}
                         width='thin'
                     >   
-                        <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
                         </Button>
-                        <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='home' />      
                                 Home
                             </Menu.Item>
                         </NavLink>
-                        <NavLink to="/login" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <NavLink to="/login" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='sign-in' />      
                                 Log In
                             </Menu.Item>
                         </NavLink>
-                        <NavLink as='a' to="/logout" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <NavLink as='a' to="/logout" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='sign-out' />      
                                 Logout
                             </Menu.Item>
                         </NavLink>
-                        <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                        <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />      
                                 Dashboard
                             </Menu.Item>
-                        </NavLink>  
+                        </NavLink>
+                        {/* TODO CHANGE DASHBOARD ROUTE AND IMPLEMENT GROUPS ROUTE */}
+                        <NavLink as='a' to="/dashboard" onClick={() => {this.onMessagesClick()}}>
+                            <Menu.Item link>
+                                <Icon name='comments' /> 
+                                {messageNotification}  
+                                Groups/Messages
+                            </Menu.Item>
+                        </NavLink>   
                     </Sidebar>
 
-                    <Button basic color='blue' icon onClick={() => {this.onSetSidebarOpen(!this.state.sidebarOpen)}}>
+                    <Button basic color='blue' icon onClick={() => {this.onSetSidebarOpen(true)}}>
                         <Icon name='bars' />
                     </Button>
 
@@ -178,7 +246,7 @@ class App extends Component {
                             <Route exact path="/" component={Home} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <Route exact path="/login/:error?" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/dashboard" component={Dashboard} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.socket} exact path="/dashboard" component={Dashboard} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/namespace/:name" component={Namespace} />
                             
                             <Route path="*" component={() => "404 NOT FOUND"} />

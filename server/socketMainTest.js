@@ -5,11 +5,11 @@ const { ChatHistory } = require('./models/ChatHistory');
 const { Message } = require('./models/Message');
 const keys = require('./config/keys');
 const redis = require('redis');
+const redisClient = require('./redisClient');
 
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
-
-function socketMainTest(io, workerId, redisClient) {
+function socketMainTest(io, workerId) {
     let existingNamespaces = [
         ['/namespace/cse110', '/cse110', 'CSE 110'],
         ['/namespace/cse100', '/cse100', 'CSE 100'],
@@ -182,7 +182,7 @@ function socketMainTest(io, workerId, redisClient) {
                                         console.log('User ' + memberUserId + ' is not online in namespace');
                                         // Send real time notifications to users online BUT NOT online in namespace
                                         // front-end TODO new socket connection to general namespace
-                                        redisClient.hget(`All Active Users`, memberUserId.toString(), function (error, result) {
+                                        redisClient.hget(`All Outside Active Sockets`, memberUserId.toString(), function (error, result) {
                                             if (error) {
                                                 console.log(error);
                                                 // throw error;
@@ -191,6 +191,7 @@ function socketMainTest(io, workerId, redisClient) {
 
                                             // Only send real time notifications if user is online but not in namespace
                                             if (!result) {
+                                                console.log('User ' + memberUserId.toString() + ' not online at all');
                                                 return;
                                             }
 
@@ -199,6 +200,8 @@ function socketMainTest(io, workerId, redisClient) {
                                             console.log('Emitting messageNotification to ' + socketId);
                                             io.to(`${socketId}`).emit('messageNotification', namespaceEndpoint);
                                         });
+
+                                        setNamespaceUnreads(namespaceEndpoint, memberUserId, true);
                                     }
                                     
                                 });
@@ -351,23 +354,46 @@ function socketMainTest(io, workerId, redisClient) {
     //     });
     // }
 
-    // Set unread to true or false in cache for user for some namespace room
-    function setRoomUnreads(namespaceEndpoint, roomName, userId, unread) {
-        // Track notifications in cache (for simplicity + efficienc not storing notifS in DB => persistence tradeoff)
-        redisClient.hset(`${namespaceEndpoint} ${roomName} Unreads`, userId.toString(), unread, function (err, result) {
-            if (err) {
-                console.log(err);
-                return;
-            }
-
-            if (result === 1) {
-                console.log('Entered new notifications field');
-            } else {
-                console.log('Updated notifications field of user ' + userId.toString() + ' in ' 
-                            + `${namespaceEndpoint} ${roomName} Unreads` + ' to ' + unread);
-            }
-        });
-    }
+    
 }
 
-module.exports = socketMainTest;
+// Set unread to true or false in cache for user for some namespace room
+function setRoomUnreads(namespaceEndpoint, roomName, userId, unread) {
+    // Track notifications in cache (for simplicity + efficienc not storing notifS in DB => persistence tradeoff)
+    redisClient.hset(`${namespaceEndpoint} ${roomName} Unreads`, userId.toString(), unread, function (err, result) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+
+        if (result === 1) {
+            console.log('Entered new notifications field for room ' + `${namespaceEndpoint} ${roomName} Unreads`);
+        } else {
+            console.log('Updated notifications field of user ' + userId.toString() + ' in ' 
+                        + `${namespaceEndpoint} ${roomName} Unreads` + ' to ' + unread);
+        }
+    });
+}
+
+// Set unread to true or false in cache for user for some namespace
+function setNamespaceUnreads(namespaceEndpoint, userId, unread) {
+    redisClient.hset(`${namespaceEndpoint} Unreads`, userId.toString(), unread, function (err, result) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+
+        if (result === 1) {
+            console.log('Setting notifications field for namespace ' + namespaceEndpoint + ' for ' + userId + ' to ' + unread);
+        } else {
+            console.log('Updated notifications field of user ' + userId.toString() + ' in ' 
+                        + `${namespaceEndpoint} Unreads` + ' to ' + unread);
+        }
+    });
+}
+
+module.exports = {
+    socketMainTest,
+    setNamespaceUnreads,
+    setRoomUnreads
+}

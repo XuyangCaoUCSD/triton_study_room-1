@@ -1,8 +1,10 @@
 const  express       = require('express'),
        passport      = require('passport'),
-       passportSetup = require('../config/passport-setup'), // Need to require to run file so google auth is initialised
+       passportSetup = require('../config/passport-setup'), // IMPORTANT: Need to require somewhere to run file so google auth is initialised
        User          = require('../models/User'),
        middleware    = require('../middleware/index');
+
+const redisClient = require('../redisClient');
 
 var router = express.Router();
 let namespaces = require('../data/namespaces');  // Temp
@@ -31,22 +33,27 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             res.send(data);
         } else {
 
-            let nsData = foundUser.namespaces.map((ns) => {
-                return {
-                    img: ns.img,
-                    endpoint: ns.endpoint,
-                    groupName: ns.groupName
-                }
-            });
-
-            // console.log('nsData is');
-            // console.log(nsData);
+            const namespaces = foundUser.namespaces;
+            const namespaceNotifications = {}
             
-            data.nsData = nsData;
+            getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);
 
-            // Todo Put in last callback / promise resolution needed for information retrieval
-            // Send over namespace data 
-            res.send(data);        
+            // let nsData = foundUser.namespaces.map((ns) => {
+            //     return {
+            //         img: ns.img,
+            //         endpoint: ns.endpoint,
+            //         groupName: ns.groupName
+            //     }
+            // });
+
+            // // console.log('nsData is');
+            // // console.log(nsData);
+            
+            // data.nsData = nsData;
+
+            // // Todo Put in last callback / promise resolution needed for information retrieval
+            // // Send over namespace data 
+            // res.send(data);        
         }
     }); 
 });
@@ -126,5 +133,50 @@ router.get("/logout", (req, res) => {
     // res.redirect("/home");
     res.send("LOGGED OUT SUCCESS");
 });
+
+// Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads
+function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotifications, data) {
+    // Check in cache if there is unread messages for this user in this room
+    let namespace = namespaces[i];
+    redisClient.hget(`${namespace.endpoint} Unreads`, userId, function (error, result) {
+        if (error) {
+            console.log(error);
+            // throw error;
+            return;
+        }
+
+        console.log(`${namespace.endpoint} Unreads for ${userId} is `);
+        console.log(result);
+
+        // Care as result is of type string so not boolean
+        // If there are unread messages, set to true, else false
+        namespaceNotifications[namespace.endpoint] = result == 'true' ? true : false;
+
+        // Send response on last namespace
+        if (i === namespaces.length - 1) {
+            let nsData = namespaces.map((ns) => {
+                return {
+                    img: ns.img,
+                    endpoint: ns.endpoint,
+                    groupName: ns.groupName,
+                }
+            });
+
+            // console.log('nsData is');
+            // console.log(nsData);
+            
+            data.nsData = nsData;
+            data.namespaceNotifications = namespaceNotifications;
+
+            // Todo Put in last callback / promise resolution needed for information retrieval
+            // Send over namespace data 
+            res.send(data); 
+            console.log('Sending: ');
+            console.log(data);
+        } else {
+            getUserNamespaceUnreads(userId, i + 1, namespaces, res, namespaceNotifications, data);
+        }
+    });
+}
 
 module.exports = router;

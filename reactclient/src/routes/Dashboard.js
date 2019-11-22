@@ -1,7 +1,7 @@
 import React, {Component } from 'react';
 import { Route, Redirect } from "react-router-dom";
 import {withRouter} from 'react-router'
-import { Segment, Form, TextArea, Message } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, Menu } from 'semantic-ui-react';
 import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -9,12 +9,22 @@ class Dashboard extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            chat_groups: {}
+            chat_groups: {},
+            namespaceNotifications: {} // Map namespace to whether it has notifications
         }
+
+        this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
+        console.log('Dashboard props are');
+        console.log(this.props);
     }
 
     componentDidMount() {
         this._isMounted = true;
+        if (this.props.socket) {
+            this.props.socket.on('messageNotification', this.onSocketMessageNotificationCB);
+        }
+        
+
         // Retrieve namespace information
         API({
             method: 'get',
@@ -29,11 +39,12 @@ class Dashboard extends Component {
                 console.log('Failed API call');
                 return;
             }
-            
+
             if (this._isMounted) {
                 this.setState({
-                    chat_groups: data.nsData}
-                );
+                    chat_groups: data.nsData,
+                    namespaceNotifications: data.namespaceNotifications
+                });
             }
 
         }).catch((err) => {
@@ -57,51 +68,76 @@ class Dashboard extends Component {
 
     componentWillUnmount() {
         this._isMounted = false;
+        if (this.props.socket) {
+            console.log(this.props.socket);
+            this.props.socket.removeListener('messageNotification', this.onSocketMessageNotificationCB);
+        }
+        
     }
+
+    //------------------Socket CBs (socket passed from App.js)----------------
+     // Real-time notifications for online users but not in namespace
+     onSocketMessageNotificationCB = (namespaceEndpoint) => {
+        let namespaceNotifications = {...this.state.namespaceNotifications};
+        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+        namespaceNotifications[namespaceEndpoint] = true;
+        this.setState({
+            namespaceNotifications,
+        });
+
+        this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
+    }
+    //-----------------End of socket CBs--------------
 
     iconsClickHandler = (data) => {
         console.log('data in icons click handler is');
         console.log(data);
-        // Get request to get info for current namespace
-        API({
-            method: 'get',
-            url: `/api/namespace${data.endpoint}`,
-            withCredentials: true
+        // Remove notification (passed in by App.js) (not necessary really to set to false)
+        console.log('Props are');
+        console.log(this.props);
+        // this.props.handleNamespaceNotifications(data.endpoint, false);
+        this.props.history.push(`/namespace${data.endpoint}`);
+        
+        // // Get request to get info for current namespace
+        // API({
+        //     method: 'get',
+        //     url: `/api/namespace${data.endpoint}`,
+        //     withCredentials: true
       
-        })
-        .then((res) => {
-            console.log(`/api/namespace${data.endpoint} API responded with`);
-            console.log(res);
-            // if (this._isMounted) {
-            //     this.setState({
-            //         redirectTo: `/namespace${data.endpoint}`
-            //     });
+        // })
+        // .then((res) => {
+        //     console.log(`/api/namespace${data.endpoint} API responded with`);
+        //     console.log(res);
+        //     // if (this._isMounted) {
+        //     //     this.setState({
+        //     //         redirectTo: `/namespace${data.endpoint}`
+        //     //     });
 
-            //     // this.props.history.push(`/namespace${data.endpoint}`);
+        //     //     // this.props.history.push(`/namespace${data.endpoint}`);
                 
-            // }
-            console.log('dashboard props are');
-            console.log(this.props);
-            this.props.history.push(`/namespace${data.endpoint}`);
+        //     // }
+        //     console.log('dashboard props are');
+        //     console.log(this.props);
+        //     this.props.history.push(`/namespace${data.endpoint}`);
             
-        })
-        .catch((err) => {
-            console.log(err);
-            console.log(`Err in getting /api/namespace${data.endpoint} info`);
+        // })
+        // .catch((err) => {
+        //     console.log(err);
+        //     console.log(`Err in getting /api/namespace${data.endpoint} info`);
 
-            let statusCode = err.response.status.toString();
-            if (statusCode === "401") {
-                console.log("ERROR code 401 received - UNAUTHENTICATED");
-                this.props.history.push("/login/error");
-            } else if (statusCode === "403") { 
-                console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
-                if (this._isMounted) {
-                    this.setState({
-                        unauthorised: true
-                    })
-                }
-            }
-        });
+        //     let statusCode = err.response.status.toString();
+        //     if (statusCode === "401") {
+        //         console.log("ERROR code 401 received - UNAUTHENTICATED");
+        //         this.props.history.push("/login/error");
+        //     } else if (statusCode === "403") { 
+        //         console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+        //         if (this._isMounted) {
+        //             this.setState({
+        //                 unauthorised: true
+        //             })
+        //         }
+        //     }
+        // });
     }
 
     render() {
@@ -120,15 +156,25 @@ class Dashboard extends Component {
         const chat_groups_info = this.state.chat_groups;
         // grab each group and its value which is endpoint
         // Object.entries returns an array of key value pairs
-        Object.entries(chat_groups_info).forEach(([key, value]) => {
+        Object.entries(chat_groups_info).forEach(([key, nsInfo]) => {
             // Push chat group icon component onto array
-            chat_group_icons.push(<ChatGroupIcon key={key} data={value} onClickHandler={() => this.iconsClickHandler(value)} />);
+            chat_group_icons.push(
+                <ChatGroupIcon 
+                    key={key} data={nsInfo} 
+                    hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} 
+                    onClickHandler={() => this.iconsClickHandler(nsInfo)} 
+                />
+            );
         });
 
         return (
             <div>
                 <h2>Dashboard</h2>
-                {chat_group_icons}
+                <div style={{maxWidth: "170px"}}>
+                    <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
+                        {chat_group_icons}
+                    </Menu>
+                </div>  
             </div>
         );  
     }
