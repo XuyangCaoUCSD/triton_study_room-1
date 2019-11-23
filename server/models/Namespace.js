@@ -7,17 +7,23 @@ const NamespaceSchema = new mongoose.Schema({
     img: String,
     nsId: Number,
     endpoint: String,
-    admins: [{type: ObjectId, ref: 'User'}],
-    people: [{type: ObjectId, ref: 'User'}],
+    admins: [ { type: ObjectId, ref: 'User' } ],
+    people: [ { type: ObjectId, ref: 'User' } ],
     forClass: ObjectId,
+    privateChat: { type: Boolean, default: false },
     rooms: [
                 { 
                     roomId: Number,
                     roomName: String,
-                    chatHistory: {type: ObjectId, ref: 'ChatHistory'}
+                    chatHistory: { type: ObjectId, ref: 'ChatHistory' }
                 }
     ],
-    studySessionsHistory: [{type: ObjectId, ref: 'StudySessionHistory'}]
+    peopleDetails: [{ 
+        email: String,
+        givenName: String,
+        name: String
+    }],
+    studySessionsHistory: [ { type: ObjectId, ref: 'StudySessionHistory' } ]
 }, {
     timestamps: true
 });

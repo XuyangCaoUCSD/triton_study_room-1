@@ -36,24 +36,18 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             const namespaces = foundUser.namespaces;
             const namespaceNotifications = {}
             
-            getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);
+            let nsData = namespaces.map((ns) => {
+                return {
+                    img: ns.img,
+                    endpoint: ns.endpoint,
+                    groupName: ns.groupName,
+                }
+            });
 
-            // let nsData = foundUser.namespaces.map((ns) => {
-            //     return {
-            //         img: ns.img,
-            //         endpoint: ns.endpoint,
-            //         groupName: ns.groupName
-            //     }
-            // });
+            data.nsData = nsData;
+            data.userEmail = foundUser.email;
 
-            // // console.log('nsData is');
-            // // console.log(nsData);
-            
-            // data.nsData = nsData;
-
-            // // Todo Put in last callback / promise resolution needed for information retrieval
-            // // Send over namespace data 
-            // res.send(data);        
+            getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);       
         }
     }); 
 });
@@ -154,18 +148,10 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
 
         // Send response on last namespace
         if (i === namespaces.length - 1) {
-            let nsData = namespaces.map((ns) => {
-                return {
-                    img: ns.img,
-                    endpoint: ns.endpoint,
-                    groupName: ns.groupName,
-                }
-            });
 
             // console.log('nsData is');
             // console.log(nsData);
             
-            data.nsData = nsData;
             data.namespaceNotifications = namespaceNotifications;
 
             // Todo Put in last callback / promise resolution needed for information retrieval
