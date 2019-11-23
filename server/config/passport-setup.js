@@ -50,7 +50,7 @@ passport.use(
                     email: profile._json.email,
                     googleId: profile.id,
                     
-                    // Temp give default namesapces
+                    // Temp give default namespaces
                     namespaces: [
                         "5dce55fddbcc431250507b82",
                         "5dce55fddbcc431250507b86",

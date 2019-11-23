@@ -222,6 +222,21 @@ if (cluster.isMaster) {
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 		
 		let userId = socket.request.user;
+		// // Cache ALL active users
+		// redisClient.hset(`All Active Sockets`, userId, socket.id, function (error, result) {
+		// 	if (error) {
+		// 		console.log(error);
+		// 		// throw error;
+		// 		return;
+		// 	}
+			
+		// 	console.log('Caching ' + userId + ' with socketId:'  + socket.id);
+		// 	if (result === 1) {
+		// 		console.log('Entered new field');
+		// 	} else {
+		// 		console.log('Updated field');
+		// 	}
+		// });
 
 		// Cache OUTSIDE active users (sockets in general namespace)
 		socket.on('cacheOutsideUser', (msg) => {

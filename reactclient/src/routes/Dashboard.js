@@ -20,6 +20,9 @@ class Dashboard extends Component {
 
     componentDidMount() {
         this._isMounted = true;
+
+        window.addEventListener('beforeunload', this.componentCleanup);
+
         if (this.props.socket) {
             this.props.socket.on('messageNotification', this.onSocketMessageNotificationCB);
         }
@@ -66,18 +69,24 @@ class Dashboard extends Component {
         });
     }
 
-    componentWillUnmount() {
-        this._isMounted = false;
+    componentCleanup() {
+        console.log('Cleanup called');
         if (this.props.socket) {
-            console.log(this.props.socket);
             this.props.socket.removeListener('messageNotification', this.onSocketMessageNotificationCB);
         }
         
     }
 
+    componentWillUnmount() {
+        this._isMounted = false;
+    
+        this.componentCleanup();
+        window.removeEventListener('beforeunload', this.componentCleanup);
+    }
+
     //------------------Socket CBs (socket passed from App.js)----------------
-     // Real-time notifications for online users but not in namespace
-     onSocketMessageNotificationCB = (namespaceEndpoint) => {
+    // Real-time notifications for online users but not in namespace
+    onSocketMessageNotificationCB = (namespaceEndpoint) => {
         let namespaceNotifications = {...this.state.namespaceNotifications};
         console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
         namespaceNotifications[namespaceEndpoint] = true;

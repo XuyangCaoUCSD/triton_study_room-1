@@ -8,7 +8,7 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label, Menu } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label, Menu, Reveal } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -19,8 +19,12 @@ class Namespace extends Component {
             inputMessageValue: '',
             endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
             namespaceNameParam: this.props.match.params.name,
-            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {}
+            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {},
+            activeUsers: {},
+            namespaceNotifications: {}
         };
+
+        this.parentSocket = this.props.socket;
 
         this.namespaceHTML = this.namespaceHTML.bind(this);
 
@@ -31,12 +35,19 @@ class Namespace extends Component {
         this.messageInputHandler = this.messageInputHandler.bind(this);
         this.joinRoom = this.joinRoom.bind(this);
         this.buildRoom = this.buildRoom.bind(this);
+
     }
 
     componentDidMount() {
         this._isMounted = true;
         // For cleaning up when refreshing
         window.addEventListener('beforeunload', this.componentCleanup);
+
+        if (this.parentSocket) {
+            console.log('ADDING MESSAGE NOTIFICATION CB');
+            // Add listener for ns events
+            this.parentSocket.on('messageNotification', this.onParentSocketMessageNotificationCB);
+        }
 
         // Retrieve particular namespace information
         API({
@@ -98,7 +109,7 @@ class Namespace extends Component {
             this.socket.on('userMessage', this.onSocketMessageCB);
             this.socket.on('changeRoom', this.onSocketChangeRoomCB);
             this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
-            this.socket.on('roomNotification', this.onSocketRoomNotificationCB)
+            this.socket.on('roomNotification', this.onSocketRoomNotificationCB);
 
             console.log(`client socket connecting to /namespace/${this.state.endpoint}`);
 
@@ -125,6 +136,46 @@ class Namespace extends Component {
             }
 
         });
+
+        // Retrieve user namespaces information
+        API({
+            method: 'get',
+            url: "/api/dashboard",
+            withCredentials: true
+        }).then((res) => {
+            console.log('Get on dashboard route, Server responded with:');
+            console.log(res);
+
+            let data = res.data;
+            if (!data.success) {
+                console.log('Failed API call');
+                return;
+            }
+
+            if (this._isMounted) {
+                this.setState({
+                    chat_groups: data.nsData,
+                    namespaceNotifications: data.namespaceNotifications
+                });
+            }
+
+        }).catch((err) => {
+            console.log("Error while getting dashboard route, logging error: \n" + err);
+
+            let statusCode = err.response.status.toString();
+            if (statusCode === "401") {
+                console.log("ERROR code 401 received - UNAUTHENTICATED");
+                this.props.history.push("/login/error");
+            } else if (statusCode === "403") { 
+                console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+                if (this._isMounted) {
+                    this.setState({
+                        unauthorised: true
+                    })
+                }
+            }
+
+        });
     }
     
     componentCleanup() {
@@ -144,11 +195,18 @@ class Namespace extends Component {
 
             this.socket = null;
         }
+
+        if (this.parentSocket) {
+            console.log(this.parentSocket);
+            this.parentSocket.removeListener('messageNotification', this.onParentSocketMessageNotificationCB);
+        }
+        
     }
 
     componentWillUnmount() {
         console.log('Calling will unmount');
         this.componentCleanup();
+        
         window.removeEventListener('beforeunload', this.componentCleanup);
         this._isMounted = false;
     }
@@ -239,9 +297,26 @@ class Namespace extends Component {
         });
     }
 
-    onSocketUpdateActiveUsersCB = (activeUsers) => {
+    onSocketUpdateActiveUsersCB = (newActiveUsers) => {
+        // NOTE NOT DOING this.setsate({activeUsers: newActiveUsers}) as people joining will change order of existing list
+        let activeUsers = {...this.state.activeUsers};
+
+        // Remove non-active users
+        Object.keys(activeUsers).forEach((email) => {
+            if (!newActiveUsers[email]) {
+                delete activeUsers[email];
+            }
+        });
+
+        // Loop through new active emails, and add to new activeUsers object if not exist
+        Object.keys(newActiveUsers).forEach((email) => {
+            if (!this.state.activeUsers[email]) {
+                activeUsers[email] = newActiveUsers[email];
+            }
+        });
+
         this.setState({
-            activeUsers
+            activeUsers: activeUsers
         });
         console.log('Active Users are:');
         console.log(activeUsers);
@@ -252,6 +327,21 @@ class Namespace extends Component {
         this.updateRoomNotifications(roomName, true);
     }
     // ---------------- End of socket callbacks --------------------
+
+    //----------------------- Parent socket CBs ------------
+    // Real-time notifications for online users but not in namespace
+    onParentSocketMessageNotificationCB = (namespaceEndpoint) => {
+        let namespaceNotifications = {...this.state.namespaceNotifications};
+        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+        namespaceNotifications[namespaceEndpoint] = true;
+        this.setState({
+            namespaceNotifications,
+        });
+
+        this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
+    }
+
+    //----------------------- End of parent socket CBs-------
 
 
     // ----------- Handles change of namespace ----------
@@ -368,9 +458,9 @@ class Namespace extends Component {
             const chatGroupsInfo = this.state.chatGroups;
             // grab each group and its value which is endpoint
             // Object.entries returns an array of key value pairs
-            Object.entries(chatGroupsInfo).forEach(([key, value]) => {
+            Object.entries(chatGroupsInfo).forEach(([key, nsInfo]) => {
                 // Push chat group icon component onto array
-                chatGroupIcons.push(<ChatGroupIcon key={key} data={value} onClickHandler={() => this.iconsClickHandler(value)} />);
+                chatGroupIcons.push(<ChatGroupIcon key={key} data={nsInfo} hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} onClickHandler={() => this.iconsClickHandler(nsInfo)} />);
             });  
             
             let chatHistory = [];
@@ -525,25 +615,25 @@ function buildActiveUser(userInfo, listKey) {
         <div>
             Name: {userInfo.name}<br />
             Email: {userInfo.email}<br />
-            <Button size="mini" color='green' content='Message' />
+            {/* <Button size="mini" color='green' content='Message' /> */}
         </div>
     )
     return (
         <Popup 
             key={listKey}
             trigger={
-                <List.Item key={listKey}>     
-                    <Image avatar src={userInfo.avatar} />
-                    <List.Content>
-                        <List.Header>{userInfo.givenName}</List.Header>
-                    </List.Content>
-                </List.Item>
-            
+                    <List.Item key={listKey}>     
+                        <Image avatar src={userInfo.avatar} />
+                        <List.Content>
+                            <List.Header>{userInfo.givenName}</List.Header>
+                        </List.Content>
+                    </List.Item>
             }
             content={additionalDetails}
-            on='click'
             position='top right'
+            on='hover'
         />
+        
     );
 
     

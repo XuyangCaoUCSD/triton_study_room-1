@@ -28,11 +28,12 @@ class App extends Component {
         this.state = {
             isLoggedIn: null,
             sidebarOpen: false,
-            hasMessages: false
+            hasMessages: false,
+            socket: null
         }
 
         this._isMounted = false;
-        this.socket = null;
+        // this.state.socket = null;
         
         this.authMemoHandler = this.authMemoHandler.bind(this);
         this.isAuthenticated = this.isAuthenticated.bind(this);
@@ -100,16 +101,24 @@ class App extends Component {
                     waitingForAPI: false
                 });
 
-                console.log('This.socket is :');
-                console.log(this.socket);
+                console.log('This.state.socket is :');
+                console.log(this.state.socket);
                 
-                if (!this.socket || this.socket.disconnected) {
+                if (!this.state.socket || this.state.socket.disconnected) {
                     console.log('Connecting to main namespace');
-                    this.socket = io.connect('http://localhost:8181'); // Connect to general (root) namespace once logged in
-                    this.socket.on('connect', this.onSocketConnectCB);
-                    this.socket.on('messageNotification', this.onSocketMessageNotificationCB);
-                    console.log('this.socket is now: ');
-                    console.log(this.socket);
+                    this.state.socket = io.connect('http://localhost:8181'); // Connect to general (root) namespace once logged in
+                    this.state.socket.on('connect', this.onSocketConnectCB);
+                    this.state.socket.on('reconnect', this.onSocketReconnectCB);
+                    this.state.socket.on('messageNotification', this.onSocketMessageNotificationCB);
+                    console.log('this.state.socket is now: ');
+                    console.log(this.state.socket);
+                    
+                    // Don't render components till socket connected
+                    this.setState({
+                        waitingForAPI: true
+                    })
+
+                    
                 }
                 
 
@@ -120,9 +129,9 @@ class App extends Component {
                     waitingForAPI: false
                 });
 
-                if (this.socket != null && this.socket.connected) {
+                if (this.state.socket != null && this.state.socket.connected) {
                     console.log('Manually disocnnecting socket');
-                    this.socket.disconnect();
+                    this.state.socket.disconnect();
                 }
             }
         } 
@@ -137,11 +146,22 @@ class App extends Component {
     //-------------Socket CBs-----------------------
     onSocketConnectCB = () => {
         console.log('Socket connected to main namespace');
-        console.log(this.socket);
+        console.log(this.state.socket);
         
-        this.socket.emit('cacheOutsideUser', "");
+        this.state.socket.emit('cacheOutsideUser', "");
 
-        this.forceUpdate(); // Force to pass in socket
+        this.setState({
+            waitingForAPI: false
+        })
+        
+        this.forceUpdate(); // Force update to pass in socket to routes
+    }
+
+    onSocketReconnectCB = (attemptNumber) => {
+        console.log('Socket REconnecting to main namespace');
+        console.log(this.state.socket);
+
+        this.forceUpdate(); // Force update to pass in socket to routes
     }
 
     // Real-time notifications for online users but not in namespace
@@ -246,8 +266,8 @@ class App extends Component {
                             <Route exact path="/" component={Home} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <Route exact path="/login/:error?" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.socket} exact path="/dashboard" component={Dashboard} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/namespace/:name" component={Namespace} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/dashboard" component={Dashboard} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>
