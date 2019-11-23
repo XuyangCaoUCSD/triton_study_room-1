@@ -36,7 +36,7 @@ passport.use(
             } else { 
                 
                 // Check if UCSD email
-                if (!ucsdEmailCheck(profile._json.email)) {
+                if (!ucsdEmailCheck.checkMail(profile._json.email)) {
                     return done(null, false, { message: 'Need UCSD email.' });
                 }
 
