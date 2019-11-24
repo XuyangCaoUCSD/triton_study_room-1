@@ -128,6 +128,54 @@ router.get("/logout", (req, res) => {
     res.send("LOGGED OUT SUCCESS");
 });
 
+router.get("/search/data", middleware.isLoggedIn, function(req, res) {
+    console.log('SEARCH DATA ROUTE REACHED');
+	let userId = req.session.passport.user;
+	User.findById(userId).then(function(foundUser) {
+		let friendList = foundUser.friends;
+        //then get all users
+        console.log(foundUser);
+        console.log('FRIENDS LIST: ');
+        console.log(friendList);
+
+	    User.find({}).then(function(data) {
+			let to_be_sent = [];
+
+			for(var i = 0; i < data.length; i++) {
+
+				let user = {
+					title: (data[i].name),
+					about_me: data[i].about_me,
+					avatar: data[i].avatar,
+					email: data[i].email,
+					is_friend: "",
+					db_id: data[i]._id
+				};
+                
+                
+				if (friendList.indexOf(data[i]._id) != -1) {
+					user.is_friend = "You are friends!";
+				} else {
+					user.is_friend = "Click to add friend";
+				}
+
+				to_be_sent.push(user);
+
+			}
+
+			console.log(to_be_sent);
+			res.send(to_be_sent);
+		}).catch(function(err) {
+			console.log(err);
+		});
+
+
+	}).catch(function(err) {
+		console.log(err);
+	});
+
+});
+
 // Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads
 function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotifications, data) {
     // Check in cache if there is unread messages for this user in this room
@@ -166,3 +214,29 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
 }
 
 module.exports = router;
+
+
+function get_user_data(person_id) {
+    return User.findById(person_id).then(function(data) {
+        if(!data) {
+            console.log("no user data found given the id!");
+            return -1;
+        }
+        return data;
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
+function get_all_user_data() {
+    return User.find({}).then(function(data) {
+        if(data.length === 0) {
+            console.log("no user data found!");
+            return -1;
+        }
+        return data;
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+  

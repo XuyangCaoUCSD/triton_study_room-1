@@ -177,7 +177,7 @@ function createNewGroup(res, firstUserId, secondUserEmail, privateChat = null, p
                 if (!foundUser1) {
                     console.log('ERROR User2 not found');
                     data.success = false;
-                    res.send(data)
+                    res.send(data);
                     return;
                 }
 

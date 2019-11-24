@@ -16,6 +16,7 @@ import Login from './routes/Login';
 import Logout from './routes/Logout';
 import Register from './routes/Register';
 import Namespace from './routes/Namespace';
+import UserSearch from './routes/UserSearch';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
@@ -268,7 +269,8 @@ class App extends Component {
                             <Route exact path="/login/:error?" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/dashboard" component={Dashboard} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
-                            
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
+
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>
                     </div>
