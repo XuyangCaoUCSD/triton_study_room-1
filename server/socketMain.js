@@ -1,84 +1,117 @@
-// const mongoose = require('mongoose');
-// mongoose.connect('mongodb://127.0.0.1/testPerfData', {useNewUrlParser: true, useUnifiedTopology: true });
-// const Machine = require('./models/Machine');
+const mongoose = require('mongoose');
+const User = require('./models/User');
+const Namespace = require('./models/Namespace');
+const { ChatHistory } = require('./models/ChatHistory');
+const { Message } = require('./models/Message');
+const keys = require('./config/keys');
+mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
-// function socketMain(io, socket) {
-//     // console.log("A socket connected!", socket.id);
+function socketMain(io, socket) {
+    console.log("A socket connected!", socket.id);
+
+    let cse110Name = '/namespace/cse110';
+    // Hardcoded 1 namespace for now
+    io.of(cse110Name).once('connection', (nsSocket) => {
+        console.log('nsSocket id is ' + nsSocket.id);
+
+        let userId = nsSocket.request.user;
+        console.log("User id is", userId);
     
-//     socket.on('clientAuth', (key) => {
-//         if (key === '5jaldfa8923jnlk9fvqpnc902fs') {
-//             // valid nodeClient
-//             socket.join('clients');
-//         } else if (key === 'uixa02mdcdvw') {
-//             // valid ui client has joined
-//             socket.join('ui');
-//             console.log('A react client has joined!');
-//             Machine.find({}, (err, docs) => {
-//                 docs.forEach((aMachine) => {
-//                     // On load, assume that all machines are offline
-//                     aMachine.isActive = false;
-//                     io.to('ui').emit('data', aMachine);
-//                 });
-//             });
-//         } else {
-//             // an invalid client has joined. Goodbye
-//             socket.disconnect(true);
-//         }
-//     });
+        User.findById(userId).select("givenName avatar").exec(function (err, user) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            
+            let givenName = user.givenName;
+            let avatar = user.avatar;
+            console.log('user.givenName is ' + givenName);
 
-//     socket.on('disconnect', () => {
-//         // macA variable made available to function few lines below in initPerfData event
-//         Machine.findOne({macA: macA}, (err, machine) => {
-//             if (machine != {}) {
-//                 // send one last emit to React
-//                 machine.isActive = false;
-//                 io.to('ui').emit('data', machine);
-//             }
-//         })
-//     })
-
-//     // a machine has connected, check to see if it's new
-//     // if it is, add it!
-//     socket.on('initPerfData', async (data) => {
-//         // update our socket function scoped variable
-//         macA = data.macA;
-
-//         // now go check mongo
-//         const mongooseResponse = await checkAndAdd(data);
-//         console.log(mongooseResponse);
-//     });
+            nsSocket.on('userMessage', (msg) => {
+                console.log('received message: ' + msg);
     
-//     socket.on('perfData', (data) => {
-//         console.log("Tick...");
-//         io.to('ui').emit('data', data);
-//     });
-// }
+                // Find namespace and room to save in database
+                // Todo cse110 hardcoded
+                Namespace.findOne(
+                    { groupName: "cse110" }, 
+                    'groupName rooms people'
 
-// function checkAndAdd(data) {
-//     // because we are doing db stuff, JS won't wait for db
-//     // so we need to make this a promise
-//     return new Promise((resolve, reject) => {
-//         Machine.findOne(
-//             {macA: data.macA},
-//             (err, foundMachine) => {
-//                 if (err) {
-//                     throw err;
-//                     reject(err);
-//                 } else if (foundMachine === null) {
-//                     // if record not in db add it
-//                     let newMachine = new Machine(data);
-//                     newMachine.save(); // save to db
-//                     resolve('added');
-//                 } else {
-//                     // it is in db, just resolve
-//                     resolve('found');
-//                 }
-//             }
-//         )
-//     });
-// }
+                ).then((foundNamespace) => {
+                    console.log('Namespace is');
+                    console.log(foundNamespace);
 
-// module.exports = socketMain;
+                    //construct the message document
+                    const createdMessage = new Message({
+                        content: msg,
+                        creatorName: givenName,
+                        creatorAvatar: avatar,
+                        creator: userId
+                    });
+
+                    let room = foundNamespace.rooms.find((room) => {
+                        return room.roomName === "General";  // TODO "general" hardcoded
+                    })
+
+                    ChatHistory.findByIdAndUpdate(
+                        room._id, 
+                        {$push: 
+                            {
+                                "messages": createdMessage
+                            }
+                        },
+                        {safe: true, upsert: true, new : true},
+                    ).then((updatedChatHistory) => {
+                        console.log(ChatHistory);
+                        let lastMessage = updatedChatHistory.messages[updatedChatHistory.messages.length - 1];
+
+                        let response = {
+                            content: msg,
+                            sender: givenName,
+                            avatar: lastMessage.creatorAvatar,
+                            time: lastMessage.time
+                        }
+
+                        console.log('message response is :');
+                        console.log(response);
+        
+                        // Hardcoded to cse 110 route right now
+                        io.of(cse110Name).to(roomName).emit('userMessage', response);  // Hardcoded roomName for now
+
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                    
+                }).catch((err) => {
+                    console.log(err);
+                });
+                
+                
+            });
+
+        });
+
+        // The user will be in the 2nd room in the object list 
+        // This is because the socket ALWAYS joins its own room (which is not the room we want to send to) on connection
+        // Get the keys which will be the room name
+        const roomToLeave = Object.keys(nsSocket.rooms)[1]; // Get 2nd key (i.e. at idx 1) which is room socket is joined
+        nsSocket.leave(roomToLeave);
+        console.log('Leaving room: ' + roomToLeave);
+
+        let roomName = 'General';
+        nsSocket.join(roomName); // Hardcoded for now
+
+        console.log('Joining room: ' + roomName);
+    
+        nsSocket.on('disconnect', () => {
+            console.log('Socket Disconnected: ' + nsSocket.id);
+            // Update number of users in namespace
+            // io.of(cse110Name).emit('numUsers', '1');
+
+        });
+    });
+}
+
+module.exports = socketMain;
 
 
 
@@ -149,11 +182,3 @@
 //         });
 //     });
 // });
-
-// function updateUsersInRoom(namespace, roomToJoin) {      
-//     // Send back num of users in this room to all sockets connected to this room
-//     io.of(namespace.endpoint).in(roomToJoin).clients((error, clients) => {
-//         // console.log(`There are ${clients.length} users in this room`);
-//         io.of(namespace.endpoint).in(roomToJoin).emit('updateMembers', clients.length);
-//     });
-// }
