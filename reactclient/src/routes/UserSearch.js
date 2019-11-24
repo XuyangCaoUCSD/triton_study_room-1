@@ -70,7 +70,7 @@ export default class SearchExampleStandard extends Component {
     // put the updated value (with user id) into the request body in the form of json
     API({
         method: 'post',
-        url: "/api/userSearch",
+        url: "/api/userAdd",
         withCredentials: true,
         data: {
             send_to_id: result.db_id,
