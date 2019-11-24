@@ -15,10 +15,13 @@ const existingNamespaces = [
     ['/namespace/cse101', '/cse101', 'CSE 101']
 ];
 
-function socketMainTest(io, workerId) {
+function socketMainTest(io, pNamespaces, workerId = "None, not calling from servers.js") {
+    if (pNamespaces == null) {
+        pNamespaces = existingNamespaces;
+    }
 
     // Loop through existing namespaces
-    existingNamespaces.forEach((item) => {
+    pNamespaces.forEach((item) => {
         let namespaceRoute = item[0];
         let namespaceEndpoint = item[1] 
         let namespaceName = item[2];

@@ -279,7 +279,7 @@ if (cluster.isMaster) {
 	});
 	
 	// Listen to named namespaces
-	socketMainTest(io, cluster.worker.id);
+	socketMainTest(io, null, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {
