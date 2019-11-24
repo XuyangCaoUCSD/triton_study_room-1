@@ -128,11 +128,7 @@ router.get("/logout", (req, res) => {
     res.send("LOGGED OUT SUCCESS");
 });
 
-<<<<<<< HEAD
 router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
-=======
-router.get("/search/data", middleware.isLoggedIn, function(req, res) {
->>>>>>> 5c0e725bedbc10a8adc23a977512a1eb893dd67e
     console.log('SEARCH DATA ROUTE REACHED');
 	let userId = req.session.passport.user;
 	User.findById(userId).then(function(foundUser) {
