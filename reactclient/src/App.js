@@ -31,7 +31,6 @@ class App extends Component {
             sidebarOpen: false,
             hasMessages: false,
             socket: null,
-            sidebarHidden: true // Note: different from open as this is when completely closed (not while closing)
         }
 
         this._isMounted = false;
@@ -84,10 +83,10 @@ class App extends Component {
     }
 
     onMessagesClick() {
+        this.onSetSidebarOpen(false);
         this.setState({
             hasMessages: false
-        })
-        this.onSetSidebarOpen(false);
+        });
     }
 
     isAuthenticated = async () => {
@@ -194,11 +193,10 @@ class App extends Component {
                         icon='labeled'
                         inverted
                         vertical
+                        style={{zIndex: 500}} // Make zIndex higher than button to open sideBar
                         visible={this.state.sidebarOpen}
                         width='thin'
-                        onHidden={() => this.setState({sidebarHidden: true})}
-                        onShow={() => this.setState({sidebarHidden: false})}
-                        onVisible={() => this.setState({sidebarHidden: false})}
+                        onHide={() => this.setState({sidebarOpen: false})}
                     >   
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
@@ -237,15 +235,15 @@ class App extends Component {
                         </NavLink>   
                     </Sidebar>
 
+                    {/* Button to open sidebar */}
                     {
-                        this.state.sidebarHidden &&
+                        !this.state.sidebarOpen &&
                         <Sticky>              
-                            <Button color='blue' style={{top: 0, zIndex: 10, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
+                            <Button color='blue' style={{top: 0, zIndex: 499, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
                                 <Icon name='bars' />
                             </Button>
                         </Sticky>   
-                    }
-                    
+                    } 
                     
 
                     <div>
