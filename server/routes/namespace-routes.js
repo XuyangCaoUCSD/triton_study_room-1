@@ -5,7 +5,7 @@ const  express       = require('express'),
 
 const { ChatHistory } = require('../models/ChatHistory');
 const redisClient = require('../redisClient');
-const { setNamespaceUnreads, setRoomUnreads } = require('../socketMainTest');
+const { setNamespaceUnreads, setRoomUnreads } = require('../socketMain');
 
 const router = express.Router();
 

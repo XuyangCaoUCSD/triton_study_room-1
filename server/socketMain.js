@@ -15,7 +15,7 @@ const existingNamespaces = [
     ['/namespace/cse101', '/cse101', 'CSE 101']
 ];
 
-function socketMainTest(io, pNamespaces, workerId = "None, not calling from servers.js") {
+function socketMain(io, pNamespaces, workerId = "None, not calling from servers.js") {
     if (pNamespaces == null) {
         pNamespaces = existingNamespaces;
     }
@@ -397,7 +397,7 @@ function setNamespaceUnreads(namespaceEndpoint, userId, unread) {
 }
 
 module.exports = {
-    socketMainTest,
+    socketMain,
     setNamespaceUnreads,
     setRoomUnreads
 }

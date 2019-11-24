@@ -27,7 +27,7 @@ const net = require('net');
 const socketio = require('socket.io');
 const helmet = require('helmet')
 // const expressMain = require('./expressMain');
-const { socketMainTest } = require('./socketMainTest');
+const { socketMain } = require('./socketMain');
 const redisClient = require('./redisClient');
 
 const port = 8181;
@@ -279,7 +279,7 @@ if (cluster.isMaster) {
 	});
 	
 	// Listen to named namespaces
-	socketMainTest(io, null, cluster.worker.id);
+	socketMain(io, null, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {
