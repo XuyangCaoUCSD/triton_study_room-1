@@ -17,9 +17,9 @@ class Namespace extends Component {
         super(props);
         this.state = {
             inputMessageValue: '',
-            endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
+            endpoint: "/" + this.props.match.params.name,
             namespaceNameParam: this.props.match.params.name,
-            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {},
+            roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {}
         };
@@ -33,6 +33,8 @@ class Namespace extends Component {
         this.buildRoom = this.buildRoom.bind(this);
         this.activeUserClickHandler = this.activeUserClickHandler.bind(this);
         this.buildActiveUser = this.buildActiveUser.bind(this);
+        this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
+        this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -51,9 +53,18 @@ class Namespace extends Component {
         }
 
         // Retrieve particular namespace information
+        this.getNamespaceDetailsAPICall(this.state.endpoint);
+
+        // Retrieve user namespaces information
+        this.getGroupsAPICall();
+    }
+    
+    // IMPORTANT: Need to accept endpoint parameter instead of using this.state.endpoint as 
+    // when route param changes this.setState does not get executed immediately (refer to componentDidUpdate)
+    getNamespaceDetailsAPICall(endpoint) {
         API({
             method: 'get',
-            url: `/api/namespace/${this.state.endpoint}`,
+            url: `/api/namespace${endpoint}`,
             withCredentials: true
         }).then((res) => {
             console.log('Get on Namespace route, Server responded with:');
@@ -100,9 +111,9 @@ class Namespace extends Component {
                 this.socket.disconnect();
             }
             
-            // this.socket = io.connect(`http://localhost:8181/namespace${this.state.endpoint}`); 
+            // this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`); 
             // Need full path for now to avoid warning
-            this.socket = io.connect(`http://localhost:8181/namespace/${this.state.endpoint}`);
+            this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`);
 
             console.log('just called connect');
             console.log(this.socket);
@@ -114,7 +125,7 @@ class Namespace extends Component {
             this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
             this.socket.on('roomNotification', this.onSocketRoomNotificationCB);
 
-            console.log(`client socket connecting to /namespace/${this.state.endpoint}`);
+            console.log(`client socket connecting to /namespace${endpoint}`);
 
             this.scrollToBottom(true);
 
@@ -139,8 +150,9 @@ class Namespace extends Component {
             }
 
         });
+    }
 
-        // Retrieve user namespaces information
+    getGroupsAPICall() {
         API({
             method: 'get',
             url: "/api/dashboard",
@@ -180,7 +192,8 @@ class Namespace extends Component {
 
         });
     }
-    
+
+
     componentCleanup() {
         console.log('Cleanup called');
         if (this.socket != null) {
@@ -214,8 +227,38 @@ class Namespace extends Component {
         this._isMounted = false;
     }
     
-    componentDidUpdate() {
-        this.scrollToBottom();
+    componentDidUpdate(prevProps) {
+        
+        // Only reset route stuff if endpoint ("/" + name parameter) is not same as previous
+        if (prevProps == undefined || prevProps.match.params.name === this.props.match.params.name) {
+            this.scrollToBottom();
+        } else {
+            console.log('Changing namespace to ' + this.props.match.params.name + " (prev was " + prevProps.match.params.name);
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
+            // IMPORTANT DO EXACTLY AS HOWEVER STATE WAS INITIALISED IN CONSTRUCTOR 
+            this.setState({
+                inputMessageValue: '',
+                endpoint: "/" + this.props.match.params.name,
+                namespaceNameParam: this.props.match.params.name,
+                roomNotifications: {},
+                activeUsers: {},
+                namespaceNotifications: {},
+                // rooms: null
+            });
+
+            let endpoint = "/" + this.props.match.params.name;
+            
+            // Retrieve particular namespace information, passing in new endpoint as should not rely on this.state in call
+            this.getNamespaceDetailsAPICall(endpoint);
+
+            // Retrieve user namespaces information
+            this.getGroupsAPICall();
+            
+        }
     }
 
     // Scroll to last message
@@ -355,7 +398,7 @@ class Namespace extends Component {
         console.log(`pushing /namespace${data.endpoint} to history`);
         // Temp, make it like dashboard where we use redirect
         this.props.history.push(`/namespace${data.endpoint}`);
-        window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+        // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
 
         // // Get request to get info for current namespace
         // API({
@@ -630,7 +673,7 @@ class Namespace extends Component {
             }
 
             this.props.history.push(`/namespace${data.group.endpoint}`);
-            window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+            // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
 
             
         }).catch((err) => {

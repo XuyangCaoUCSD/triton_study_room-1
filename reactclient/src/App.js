@@ -198,6 +198,7 @@ class App extends Component {
                         width='thin'
                         onHidden={() => this.setState({sidebarHidden: true})}
                         onShow={() => this.setState({sidebarHidden: false})}
+                        onVisible={() => this.setState({sidebarHidden: false})}
                     >   
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />

@@ -171,15 +171,6 @@ if (cluster.isMaster) {
 	// 	next();
 	// });
 
-	// // Let express serve static assets only in production
-	// if (process.env.NODE_ENV === "production") {
-	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
-	// }
-
-	app.use("/api", indexRoutes);
-	app.use("/api/auth", authRoutes);
-	app.use("/api/namespace", namespaceRoutes);
-
 	// Don't expose our internal server to the outside world. Hence port 0.
 	// Remember master listensFor outside world
 	const server = app.listen(0, 'localhost');
@@ -210,6 +201,18 @@ if (cluster.isMaster) {
 			url: keys.mongoDB.connectionURI
 		}),        
 	}));
+
+	// Make io available
+	app.set('socketio', io);
+
+	// // Let express serve static assets only in production
+	// if (process.env.NODE_ENV === "production") {
+	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
+	// }
+
+	app.use("/api", indexRoutes);
+	app.use("/api/auth", authRoutes);
+	app.use("/api/namespace", namespaceRoutes);
 
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {

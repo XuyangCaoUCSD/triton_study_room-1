@@ -25,12 +25,9 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     console.log('peopleList is');
     console.log(peopleList);
 
-    // let data = {
-    //     success: true
-    // }
-    // res.send(data);
+    const io = req.app.get('socketio');
 
-    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleList);
+    findOrCreateNewGroup(res, io, userId, secondUserEmail, privateChat, peopleList);
     
 });
 
@@ -167,7 +164,7 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
     });
 }
 
-function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
+function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
     // Response data
     let data = {
         success: true
@@ -210,12 +207,12 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                 }
 
                 // ".." character is valid in url and invalid in emails => unique endpoint
-                let chatEndpoint = "/" + firstPart + ".." + secondPart;
-                console.log('New chatEndpoint will be ' + chatEndpoint);
+                let groupEndpoint = "/" + firstPart + ".." + secondPart;
+                console.log('Group endpoint (is/will be) ' + groupEndpoint);
 
                 // Check if exist, if not create new
                 Namespace.findOne({
-                    endpoint: chatEndpoint
+                    endpoint: groupEndpoint
                 }).then((foundNamespace) => {
                     // If already exist, just return it
                     if (foundNamespace) {
@@ -239,7 +236,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                             nsId: -1,
                             groupName: 'Direct Message',
                             img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
-                            endpoint: chatEndpoint,
+                            endpoint: groupEndpoint,
                             privateChat: true,
                             rooms: [
                                 {roomId: 0, roomName: 'General', chatHistory: createdChatHistory.id},
