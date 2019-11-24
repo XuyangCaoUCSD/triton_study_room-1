@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 // var passportLocalMongoose = require("passport-local-mongoose");
 
+//import the calendar schema
+const { CalendarSchema } = require("./Calendar");
+const { NotificationSchema } = require("./Notification");
+
 const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const UserSchema = new mongoose.Schema({
@@ -11,7 +15,14 @@ const UserSchema = new mongoose.Schema({
 	googleId: String,
 	email: String,
 	friends: [ { type: ObjectId, ref: 'User' } ],
-	namespaces: [ { type: ObjectId, ref: 'Namespace' } ]
+	namespaces: [ { type: ObjectId, ref: 'Namespace' } ],
+	//the followings are added fields
+	major: String,
+	aboutMe: String,
+	phone: String,
+	classes: [ { type: ObjectId, ref: 'Class' } ],
+	request_notification: [NotificationSchema],
+	myCalendar: CalendarSchema
 });
 
 // // Add methods for passport to User when creating model
