@@ -18,7 +18,19 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     let secondUserEmail = req.body.secondUserEmail;
     let peopleList = req.body.peopleList;
 
-    createNewGroup(res, userId, privateChat, secondUserEmail, peopleList);
+    console.log('privateChat is')
+    console.log(privateChat);
+    console.log('secondUserEmail is');
+    console.log(secondUserEmail);
+    console.log('peopleList is');
+    console.log(peopleList);
+
+    // let data = {
+    //     success: true
+    // }
+    // res.send(data);
+
+    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleList);
     
 });
 
@@ -49,13 +61,14 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                 console.log(err);
             }
             
-            console.log('Group does not yet exist, creating new');
-            let privateChat = req.body.privateChat;
-            let secondUserEmail = req.body.secondUserEmail;
-            let peopleList = req.body.peopleList;
-
-            createNewGroup(res, userId, privateChat, secondUserEmail, peopleList);              
-
+            // console.log('Group does not yet exist, creating new');
+            // let privateChat = req.body.privateChat;
+            // let secondUserEmail = req.body.secondUserEmail;
+            // let peopleList = req.body.peopleList;
+            console.log('CANNOT FIND NAMESPACE');
+            data.success = false;
+            res.send(data);
+            return;
         } else {
             // Serverside authorisation check (if user has permission for group) (in case somehow user has access to link)
             if (foundNamespace.people.indexOf(userId) === -1) {
@@ -154,7 +167,7 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
     });
 }
 
-function createNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
+function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
     // Response data
     let data = {
         success: true
@@ -174,8 +187,8 @@ function createNewGroup(res, firstUserId, secondUserEmail, privateChat = null, p
             User.findOne({
                 email: secondUserEmail
             }).then((foundUser2) => {
-                if (!foundUser1) {
-                    console.log('ERROR User2 not found');
+                if (!foundUser2) {
+                    console.log('ERROR User' + secondUserEmail + 'not found');
                     data.success = false;
                     res.send(data);
                     return;
@@ -184,7 +197,7 @@ function createNewGroup(res, firstUserId, secondUserEmail, privateChat = null, p
                 let firstUserEmail = foundUser1.email;
 
                 let firstUserEmailLocal = firstUserEmail.split("@", 1)[0];
-                let secondUserEmailLocal = secondUserEmail.split("@", 1)[0]; 
+                let secondUserEmailLocal = secondUserEmail.toString().split("@", 1)[0]; 
 
                 let firstPart, secondPart;
                 // IF LOCAL PART SAME WON'T BE CONSISTENT/DETERMINISTIC BUT SHOULD NOT BE IF ALL UCSD EMAILS
@@ -200,79 +213,99 @@ function createNewGroup(res, firstUserId, secondUserEmail, privateChat = null, p
                 let chatEndpoint = "/" + firstPart + ".." + secondPart;
                 console.log('New chatEndpoint will be ' + chatEndpoint);
 
-                ChatHistory.create({
-                    messages: []
-                }).then((createdChatHistory) => {
-                    console.log('created new chat history');
+                // Check if exist, if not create new
+                Namespace.findOne({
+                    endpoint: chatEndpoint
+                }).then((foundNamespace) => {
+                    // If already exist, just return it
+                    if (foundNamespace) {
+                        console.log('Existing direct message group');
+                        data.group = foundNamespace;
+                        res.send(data);
+                        return;
+                    }
 
-                    Namespace.create({
-                        nsId: -1,
-                        groupName: 'Private',
-                        img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
-                        endpoint: chatEndpoint,
-                        privateChat: true,
-                        rooms: [
-                            {roomId: 0, roomName: 'General', chatHistory: createdChatHistory._id},
-                        ],
-                        people: [
-                            firstUserId, foundUser2._id
-                        ],
-                        peopleDetails: [
-                            { 
-                                email: firstUserEmail,
-                                givenName: foundUser1.givenName,
-                                name: foundUser1.name
-                            },
-                            { 
-                                email: secondUserEmail,
-                                givenName: foundUser2.givenName,
-                                name: foundUser2.name
-                            }
-                        ]
-                    }).then((createdNamespace) => {
-                        console.log('created new private messaging p2p group');
-                        console.log(createdNamespace);
+                    // If not exist, create new
 
-                        data.newGroup = createdNamespace;
+                    console.log('CREATING NEW DIRECT MESSAGING GROUP');
+                    
+                    ChatHistory.create({
+                        messages: []
+                    }).then((createdChatHistory) => {
+                        console.log('created new chat history');
+                        console.log(createdChatHistory);
 
-                        // Add new namespace to user namespaces array
-                        User.findByIdAndUpdate(
-                            firstUserId, 
-                            {$push: 
-                                {
-                                    "namespaces": createdNamespace._id
+                        Namespace.create({
+                            nsId: -1,
+                            groupName: 'Direct Message',
+                            img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
+                            endpoint: chatEndpoint,
+                            privateChat: true,
+                            rooms: [
+                                {roomId: 0, roomName: 'General', chatHistory: createdChatHistory.id},
+                            ],
+                            people: [
+                                firstUserId, foundUser2.id
+                            ],
+                            peopleDetails: [
+                                { 
+                                    email: firstUserEmail,
+                                    givenName: foundUser1.givenName,
+                                    name: foundUser1.name
+                                },
+                                { 
+                                    email: secondUserEmail,
+                                    givenName: foundUser2.givenName,
+                                    name: foundUser2.name
                                 }
-                            },
-                            {safe: true, upsert: true, new: true},
-                        ).then((updatedUser) => {
-
-                            // Send response
-                            res.send(data);
+                            ]
+                        }).then((createdNamespace) => {
+                            console.log('created new direct messaging group');
+                            console.log(createdNamespace);
+    
+                            data.group = createdNamespace;
+    
+                            // Add new namespace to user namespaces array
+                            User.findByIdAndUpdate(
+                                firstUserId, 
+                                {$push: 
+                                    {
+                                        "namespaces": createdNamespace.id
+                                    }
+                                },
+                                {safe: true, upsert: true, new: true},
+                            ).then((updatedUser) => {
+    
+                                // Send response
+                                res.send(data);
+                            }).catch((err) => {
+                                console.log(err);
+                            })         
+    
+                            User.findByIdAndUpdate(
+                                foundUser2.id, 
+                                {$push: 
+                                    {
+                                        "namespaces": createdNamespace.id
+                                    }
+                                },
+                                {safe: true, upsert: true, new: true},
+                            ).then((updatedUser) => {
+                               
+                            }).catch((err) => {
+                                console.log(err);
+                            })
+    
                         }).catch((err) => {
                             console.log(err);
-                        })         
-
-                        User.findByIdAndUpdate(
-                            foundUser2._id, 
-                            {$push: 
-                                {
-                                    "namespaces": createdNamespace._id
-                                }
-                            },
-                            {safe: true, upsert: true, new: true},
-                        ).then((updatedUser) => {
-                           
-                        }).catch((err) => {
-                            console.log(err);
-                        })
-
+                        });
+    
                     }).catch((err) => {
                         console.log(err);
                     });
 
-                }).catch((err) => {
-                    console.log(err);
                 });
+                
 
             }).catch((err) => {
                 console.log(err);

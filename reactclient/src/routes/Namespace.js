@@ -30,12 +30,13 @@ class Namespace extends Component {
 
         this.handleInputChange = this.handleInputChange.bind(this);
         this.componentCleanup = this.componentCleanup.bind(this);
+        this.buildRoom = this.buildRoom.bind(this);
+        this.activeUserClickHandler = this.activeUserClickHandler.bind(this);
+        this.buildActiveUser = this.buildActiveUser.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
         this.joinRoom = this.joinRoom.bind(this);
-        this.buildRoom = this.buildRoom.bind(this);
-
     }
 
     componentDidMount() {
@@ -79,6 +80,7 @@ class Namespace extends Component {
 
             let currNs = data.currNs;
             let roomNotifications = data.roomNotifications;
+            let userEmail = data.userEmail;
             
             this.setState({
                 rooms: currNs.rooms,
@@ -86,6 +88,7 @@ class Namespace extends Component {
                 groupName: currNs.groupName,
                 roomNotifications,
                 chatGroups,
+                userEmail
             });
 
 
@@ -480,7 +483,7 @@ class Namespace extends Component {
                 let activeUsersInfo = Object.values(this.state.activeUsers);
                 let key = 0;
                 activeUsersInfo.forEach((userInfo) => {
-                    activeUsersList.push(buildActiveUser(userInfo, key));
+                    activeUsersList.push(this.buildActiveUser(userInfo, key));
                     key += 1
                 });
             }
@@ -490,7 +493,7 @@ class Namespace extends Component {
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2>{this.state.groupName}</h2>
+                    <h2 style={{textAlign: 'center'}}>{this.state.groupName}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -553,7 +556,7 @@ class Namespace extends Component {
                 <div className="two wide column" style={{height: "100%", width: '100%'}}>
                     <Header as='h4' textAlign='left'>
                         <Icon name='users' circular />
-                        <Header.Content>Online In {this.state.namespaceNameParam.toUpperCase()}: {activeUsersList.length}</Header.Content>
+                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
                     </Header>
                     <List selection animated verticalAlign='middle'>
                         {activeUsersList}
@@ -590,7 +593,80 @@ class Namespace extends Component {
             );
         }
         
-    } 
+    }
+
+    
+    // Should take them to direct message page
+    activeUserClickHandler(e) {
+        let selectedEmail = e.currentTarget.getAttribute('email'); // Note: currentTarget not target to ensure outermost div
+        console.log(selectedEmail);
+        
+        // If emails are same do nothing (don't redirect) (don't allow self-messaging for now)
+        if (this.state.userEmail === selectedEmail) {
+            console.log('Self user clicked, doing nothing');
+            return;
+        }
+
+        let data = {
+            privateChat: true,
+            secondUserEmail: selectedEmail
+        }
+
+        API({
+            method: 'post',
+            url: "/api/namespace",
+            withCredentials: true,
+            data
+        }).then((res) => {
+            console.log('Post request to namespace for private message response is:');
+
+            let data = res.data;
+            console.log('data is');
+            console.log(data);
+
+            if (!data.success) {
+                console.log('Error/failure encountered');
+                return;
+            }
+
+            this.props.history.push(`/namespace${data.group.endpoint}`);
+            window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+
+            
+        }).catch((err) => {
+            console.log(err);
+        });
+
+    }
+
+    // TODO build onClick for messaging
+    buildActiveUser(userInfo, listKey) {
+        let additionalDetails = (
+            <div>
+                Name: {userInfo.name}<br />
+                Email: {userInfo.email}<br />
+                {/* <Button size="mini" color='green' content='Message' /> */}
+            </div>
+        )
+        return (
+            <Popup
+                key={listKey}
+                trigger={
+                        <List.Item email={userInfo.email} user-name={userInfo.name} onClick={this.activeUserClickHandler} key={listKey}>     
+                            <Image avatar src={userInfo.avatar} />
+                            <List.Content>
+                                <List.Header>{userInfo.givenName}</List.Header>
+                            </List.Content>
+                        </List.Item>
+                }
+                content={additionalDetails}
+                position='top right'
+                on='hover'
+            />
+            
+        );
+        
+    }
 }
 
 function buildMessage(msg, listKey) {
@@ -609,35 +685,6 @@ function buildMessage(msg, listKey) {
         
 }
 
-// TODO build onClick for messaging
-function buildActiveUser(userInfo, listKey) {
-    let additionalDetails = (
-        <div>
-            Name: {userInfo.name}<br />
-            Email: {userInfo.email}<br />
-            {/* <Button size="mini" color='green' content='Message' /> */}
-        </div>
-    )
-    return (
-        <Popup 
-            key={listKey}
-            trigger={
-                    <List.Item key={listKey}>     
-                        <Image avatar src={userInfo.avatar} />
-                        <List.Content>
-                            <List.Header>{userInfo.givenName}</List.Header>
-                        </List.Content>
-                    </List.Item>
-            }
-            content={additionalDetails}
-            position='top right'
-            on='hover'
-        />
-        
-    );
-
-    
-}
 
 
 

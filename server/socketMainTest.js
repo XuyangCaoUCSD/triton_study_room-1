@@ -9,12 +9,13 @@ const redisClient = require('./redisClient');
 
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
+const existingNamespaces = [
+    ['/namespace/cse110', '/cse110', 'CSE 110'],
+    ['/namespace/cse100', '/cse100', 'CSE 100'],
+    ['/namespace/cse101', '/cse101', 'CSE 101']
+];
+
 function socketMainTest(io, workerId) {
-    let existingNamespaces = [
-        ['/namespace/cse110', '/cse110', 'CSE 110'],
-        ['/namespace/cse100', '/cse100', 'CSE 100'],
-        ['/namespace/cse101', '/cse101', 'CSE 101']
-    ];
 
     // Loop through existing namespaces
     existingNamespaces.forEach((item) => {

@@ -20,7 +20,7 @@ import UserSearch from './routes/UserSearch';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
-import { Menu, Icon, Sidebar, Button, Label } from 'semantic-ui-react';
+import { Menu, Icon, Sidebar, Button, Label, Sticky } from 'semantic-ui-react';
 import io from 'socket.io-client';
 
 class App extends Component {
@@ -30,7 +30,8 @@ class App extends Component {
             isLoggedIn: null,
             sidebarOpen: false,
             hasMessages: false,
-            socket: null
+            socket: null,
+            sidebarHidden: true // Note: different from open as this is when completely closed (not while closing)
         }
 
         this._isMounted = false;
@@ -195,6 +196,8 @@ class App extends Component {
                         vertical
                         visible={this.state.sidebarOpen}
                         width='thin'
+                        onHidden={() => this.setState({sidebarHidden: true})}
+                        onShow={() => this.setState({sidebarHidden: false})}
                     >   
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
@@ -233,9 +236,16 @@ class App extends Component {
                         </NavLink>   
                     </Sidebar>
 
-                    <Button basic color='blue' icon onClick={() => {this.onSetSidebarOpen(true)}}>
-                        <Icon name='bars' />
-                    </Button>
+                    {
+                        this.state.sidebarHidden &&
+                        <Sticky>              
+                            <Button color='blue' style={{top: 0, zIndex: 10, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
+                                <Icon name='bars' />
+                            </Button>
+                        </Sticky>   
+                    }
+                    
+                    
 
                     <div>
                         {/* <ul>
@@ -251,9 +261,12 @@ class App extends Component {
                             <li style={{display: "inline-block"}}>
                                 <NavLink to="/dashboard">Dashboard&emsp;</NavLink>
                             </li>
-                        </ul> */}
-    
-                        <hr />
+                        </ul>
+                        
+                        <hr /> */}
+
+                        <br />
+                        <br />
     
                         {/*
                         A <Switch> looks through all its children <Route>

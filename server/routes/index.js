@@ -7,7 +7,6 @@ const  express       = require('express'),
 const redisClient = require('../redisClient');
 
 var router = express.Router();
-let namespaces = require('../data/namespaces');  // Temp
 
 // Root route
 router.get("/", (req, res) => {
