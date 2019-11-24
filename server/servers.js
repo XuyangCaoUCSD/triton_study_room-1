@@ -3,9 +3,6 @@
 
 //See https://github.com/elad/node-cluster-socket.io
 
-// const express = require('express');
-
-
 // Express requires
 const  express     = require('express'),
 	   bodyParser  = require('body-parser'),
@@ -13,22 +10,25 @@ const  express     = require('express'),
 	   flash       = require('connect-flash'),
 	   cors        = require('cors'),
 	   passport    = require('passport'),
+	   passportSocketIo =  require('passport.socketio'),
 	//    LocalStrategy = require('passport-local'),
+	   sharedSession = require("express-socket.io-session"),
 	   methodOverride = require('method-override'),
 	   keys        = require('./config/keys'),
 	   User        = require('./models/User');
-// seedDB      = require('./seeds');
 
 // Requiring routes
-const indexRoutes = require("./routes/index"),
-      authRoutes  = require('./routes/auth-routes');
+const indexRoutes     = require("./routes/index"),
+	  authRoutes      = require('./routes/auth-routes'),
+	  namespaceRoutes = require('./routes/namespace-routes');
 
 const cluster = require('cluster');
 const net = require('net');
 const socketio = require('socket.io');
 const helmet = require('helmet')
-const socketMain = require('./socketMain');
 // const expressMain = require('./expressMain');
+const { socketMainTest } = require('./socketMainTest');
+const redisClient = require('./redisClient');
 
 const port = 8181;
 const num_processes = require('os').cpus().length;
@@ -37,6 +37,8 @@ const num_processes = require('os').cpus().length;
 // check to see if it's running -- redis-cli monitor
 const io_redis = require('socket.io-redis');
 const farmhash = require('farmhash');
+
+require('./clearRedisCache'); // Clear cache for every server restart (EVENTUALLY DO ONCE, NO NEED FOR EVERY THREAD)
 
 if (cluster.isMaster) {
 	// This stores our workers. We need to keep them to be able to reference
@@ -72,7 +74,6 @@ if (cluster.isMaster) {
 		return farmhash.fingerprint32(ip) % len; // Farmhash is the fastest and works with IPv6, too
 	};
 
-
     // in this case, we are going to start up a tcp connection via the net
     // module INSTEAD OF the http module. Express will use http, but we need
     // an independent tcp port open for cluster to work. This is the port that 
@@ -82,6 +83,7 @@ if (cluster.isMaster) {
 		// worker. Get the worker for this connection's source IP and pass
 		// it the connection.
 		let worker = workers[worker_index(connection.remoteAddress, num_processes)];
+		
 		worker.send('sticky-session:connection', connection);  // Make sure get to the right worker
     });
     server.listen(port);
@@ -102,10 +104,10 @@ if (cluster.isMaster) {
 
 
 	// PASSPORT/SESSION CONFIGURATION
-	const session = require('express-session');
-	const MongoStore = require('connect-mongo')(session);
-	
-	app.use(session({
+	const expressSession = require('express-session');
+	const MongoStore = require('connect-mongo')(expressSession);
+
+	session = expressSession({
 		store: new MongoStore({
 			url: keys.mongoDB.connectionURI
 		}),
@@ -116,7 +118,8 @@ if (cluster.isMaster) {
 			maxAge: 24 * 60 * 60 * 1000 // in ms => 1 day
 			// maxAge: 10000 // in ms => 10 secs for testing
 		} 
-	}));
+	});
+	app.use(session);
 
 	// PASSPORT CONFIG
 	app.use(passport.initialize());
@@ -162,12 +165,11 @@ if (cluster.isMaster) {
 		next();
 	});
 
-
-	// Adds middleware to all routes to make io server available
-	app.use((req,res,next) => {
-		req.io = io;
-		next();
-	});
+	// // Adds middleware to all routes to make io server available
+	// app.use((req,res,next) => {
+	// 	req.io = io;
+	// 	next();
+	// });
 
 	// // Let express serve static assets only in production
 	// if (process.env.NODE_ENV === "production") {
@@ -175,7 +177,8 @@ if (cluster.isMaster) {
 	// }
 
 	app.use("/api", indexRoutes);
-	app.use("/api/auth", authRoutes)
+	app.use("/api/auth", authRoutes);
+	app.use("/api/namespace", namespaceRoutes);
 
 	// Don't expose our internal server to the outside world. Hence port 0.
 	// Remember master listensFor outside world
@@ -190,13 +193,90 @@ if (cluster.isMaster) {
 	// redis-cli monitor
 	io.adapter(io_redis({ host: 'localhost', port: 6379 }));
 
-    // Here you might use Socket.IO middleware for authorization etc.
+	// Here you might use Socket.IO middleware for authorization etc.
 	// on connection, send the socket over to our module with socket stuff
+
+	// Alternative to passportSocketIo (will put information in socket.handshake.session.passport though)
+	// // "session" parameter is express session
+	// io.use(sharedSession(session, {
+	// 	autoSave: true
+	// }));
+
+	// Passport socketio, populates socket.request.user
+	io.use(passportSocketIo.authorize({
+		key: 'connect.sid',  // same as express session settings ('key' property is 'connect.sid' by default in express session)
+		secret: keys.session.secret,  // same as express session settings
+		store: new MongoStore({  // same as express esssion settings
+			url: keys.mongoDB.connectionURI
+		}),        
+	}));
+
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
-		// socketMain(io,socket);
+		
+		// Shared session info if used (can use either this or passportSocketIO middleware)
+		// console.log('socket.handshake.session.passport.user is')
+		// console.log(socket.handshake.session.passport.user);
+
 		console.log(`connected to worker: ${cluster.worker.id}`);
-    });
+		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
+		
+		let userId = socket.request.user;
+		// // Cache ALL active users
+		// redisClient.hset(`All Active Sockets`, userId, socket.id, function (error, result) {
+		// 	if (error) {
+		// 		console.log(error);
+		// 		// throw error;
+		// 		return;
+		// 	}
+			
+		// 	console.log('Caching ' + userId + ' with socketId:'  + socket.id);
+		// 	if (result === 1) {
+		// 		console.log('Entered new field');
+		// 	} else {
+		// 		console.log('Updated field');
+		// 	}
+		// });
+
+		// Cache OUTSIDE active users (sockets in general namespace)
+		socket.on('cacheOutsideUser', (msg) => {
+			redisClient.hset(`All Outside Active Sockets`, userId, socket.id, function (error, result) {
+				if (error) {
+					console.log(error);
+					// throw error;
+					return;
+				}
+				
+				console.log('Caching ' + userId + ' with socketId:'  + socket.id);
+				if (result === 1) {
+					console.log('Entered new field');
+				} else {
+					console.log('Updated field');
+				}
+			});
+
+		});
+
+		// Remove socket from all active user cache when disconnected
+		socket.on('disconnect', () => {
+			console.log('Socket Disconnected: ' + socket.id);
+			// Remove from cache
+			redisClient.hdel(`All Outside Active Users`, userId, function(error, success) {
+				if (error) {
+					console.log(err);
+					// throw error;
+					return;
+				}
+				
+				if (success) {
+					console.log('(REDIS CB) Successefully deleted ' + userId + ' entry in ' + `"Active Users"`);
+				}
+			});
+		});
+	});
+	
+	// Listen to named namespaces
+	socketMainTest(io, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {
