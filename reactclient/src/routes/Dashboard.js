@@ -73,7 +73,8 @@ class Dashboard extends Component {
                 this.setState({
                     chatGroups: chatGroups,
                     namespaceNotifications: data.namespaceNotifications,
-                    namespaceEndpointsMap
+                    namespaceEndpointsMap,
+                    userEmail: data.userEmail
                 });
             }
 
@@ -190,6 +191,7 @@ class Dashboard extends Component {
                     key={key} data={nsInfo} 
                     hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} 
                     onClickHandler={() => this.iconsClickHandler(nsInfo)} 
+                    currUserEmail={this.state.userEmail}
                 />
             );
         });
