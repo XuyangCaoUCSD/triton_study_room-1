@@ -88,10 +88,15 @@ class Namespace extends Component {
             
             let chatGroups = data.nsData;
             let currRoom = data.currRoom;
-
             let currNs = data.currNs;
             let roomNotifications = data.roomNotifications;
             let userEmail = data.userEmail;
+
+            let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
+
+            chatGroups.forEach((namespaceInfo) => {
+                namespaceEndpointsMap[namespaceInfo.endpoint] = true;
+            })
             
             this.setState({
                 rooms: currNs.rooms,
@@ -99,7 +104,8 @@ class Namespace extends Component {
                 groupName: currNs.groupName,
                 roomNotifications,
                 chatGroups,
-                userEmail
+                userEmail,
+                namespaceEndpointsMap
             });
 
 
@@ -168,8 +174,9 @@ class Namespace extends Component {
             }
 
             if (this._isMounted) {
+                console.log('Setting new chat groups and notificaitons');
                 this.setState({
-                    chat_groups: data.nsData,
+                    chatGroups: data.nsData,
                     namespaceNotifications: data.namespaceNotifications
                 });
             }
@@ -377,12 +384,19 @@ class Namespace extends Component {
     //----------------------- Parent socket CBs ------------
     // Real-time notifications for online users but not in namespace
     onParentSocketMessageNotificationCB = (namespaceEndpoint) => {
-        let namespaceNotifications = {...this.state.namespaceNotifications};
-        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
-        namespaceNotifications[namespaceEndpoint] = true;
-        this.setState({
-            namespaceNotifications,
-        });
+        // If message from new person, get user namespaces info again to get new chat group
+        if (this.state.namespaceEndpointsMap && !this.state.namespaceEndpointsMap[namespaceEndpoint]) {
+            console.log('Message from new user, getting groups again!');
+            this.getGroupsAPICall();
+
+        } else {
+            let namespaceNotifications = {...this.state.namespaceNotifications};
+            console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+            namespaceNotifications[namespaceEndpoint] = true;
+            this.setState({
+                namespaceNotifications,
+            });
+        } 
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
     }

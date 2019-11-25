@@ -104,6 +104,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         let nsData = foundUser.namespaces.map((ns) => {
                             return {
                                 img: ns.img,
+                                privateChat: ns.privateChat,
                                 endpoint: ns.endpoint,
                                 groupName: ns.groupName
                             }
@@ -113,7 +114,6 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         // console.log(nsData);
                         
                         data.nsData = nsData;           
-
 
                         const roomNotifications = {};
 
@@ -224,17 +224,17 @@ function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, priv
 
                     // If not exist, create new
 
-                    console.log('CREATING NEW DIRECT MESSAGING GROUP');
+                    console.log('\n\nCREATING NEW DIRECT MESSAGING GROUP\n\n');
                     
                     ChatHistory.create({
                         messages: []
                     }).then((createdChatHistory) => {
                         console.log('created new chat history');
                         console.log(createdChatHistory);
-
+                        let groupName = 'Direct Message';
                         Namespace.create({
                             nsId: -1,
-                            groupName: 'Direct Message',
+                            groupName: groupName,
                             img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
                             endpoint: groupEndpoint,
                             privateChat: true,
@@ -272,7 +272,16 @@ function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, priv
                                 },
                                 {safe: true, upsert: true, new: true},
                             ).then((updatedUser) => {
-    
+                                
+                                // Send Message to master to add listeners to all threads for new (dynamic) namespace
+                                console.log('Sending newNamespace message to master');
+                                let messageToMaster = {
+                                    newNamespaceRoute: `/namespace${groupEndpoint}`,
+                                    newNamespaceEndpoint: groupEndpoint,
+                                    newNamespaceName: groupName
+                                }
+                                process.send(messageToMaster);
+
                                 // Send response
                                 res.send(data);
                             }).catch((err) => {

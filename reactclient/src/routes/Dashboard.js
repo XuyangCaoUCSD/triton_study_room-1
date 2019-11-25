@@ -9,13 +9,15 @@ class Dashboard extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            chat_groups: {},
+            chatGroups: {},
             namespaceNotifications: {} // Map namespace to whether it has notifications
         }
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
         console.log('Dashboard props are');
         console.log(this.props);
+
+        this.getDashboardGroupsAPICall = this.getDashboardGroupsAPICall.bind(this);
     }
 
     componentDidMount() {
@@ -27,8 +29,25 @@ class Dashboard extends Component {
             this.props.socket.on('messageNotification', this.onSocketMessageNotificationCB);
         }
         
+        // Retrieve user namespaces
+        this.getDashboardGroupsAPICall();
+    }
 
-        // Retrieve namespace information
+    componentCleanup() {
+        console.log('Cleanup called');
+        if (this.props.socket) {
+            this.props.socket.removeListener('messageNotification', this.onSocketMessageNotificationCB);
+        }
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
+    
+        this.componentCleanup();
+        window.removeEventListener('beforeunload', this.componentCleanup);
+    }
+
+    getDashboardGroupsAPICall() {
         API({
             method: 'get',
             url: "/api/dashboard",
@@ -43,10 +62,18 @@ class Dashboard extends Component {
                 return;
             }
 
+            let chatGroups = data.nsData;
+            let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
+
+            chatGroups.forEach((namespaceInfo) => {
+                namespaceEndpointsMap[namespaceInfo.endpoint] = true;
+            })
+
             if (this._isMounted) {
                 this.setState({
-                    chat_groups: data.nsData,
-                    namespaceNotifications: data.namespaceNotifications
+                    chatGroups: chatGroups,
+                    namespaceNotifications: data.namespaceNotifications,
+                    namespaceEndpointsMap
                 });
             }
 
@@ -69,31 +96,22 @@ class Dashboard extends Component {
         });
     }
 
-    componentCleanup() {
-        console.log('Cleanup called');
-        if (this.props.socket) {
-            this.props.socket.removeListener('messageNotification', this.onSocketMessageNotificationCB);
-        }
-        
-    }
-
-    componentWillUnmount() {
-        this._isMounted = false;
-    
-        this.componentCleanup();
-        window.removeEventListener('beforeunload', this.componentCleanup);
-    }
-
     //------------------Socket CBs (socket passed from App.js)----------------
     // Real-time notifications for online users but not in namespace
     onSocketMessageNotificationCB = (namespaceEndpoint) => {
-        let namespaceNotifications = {...this.state.namespaceNotifications};
-        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
-        namespaceNotifications[namespaceEndpoint] = true;
-        this.setState({
-            namespaceNotifications,
-        });
+        // If message from new person, get user namespaces info again to get new chat group
+        if (this.state.namespaceEndpointsMap && !this.state.namespaceEndpointsMap[namespaceEndpoint]) {
+            console.log('Message from new user, getting groups again!');
+            this.getDashboardGroupsAPICall();
 
+        } else {
+            let namespaceNotifications = {...this.state.namespaceNotifications};
+            console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+            namespaceNotifications[namespaceEndpoint] = true;
+            this.setState({
+                namespaceNotifications,
+            });
+        } 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
     }
     //-----------------End of socket CBs--------------
@@ -162,10 +180,10 @@ class Dashboard extends Component {
 
         console.log(this.props);
         let chat_group_icons = [];
-        const chat_groups_info = this.state.chat_groups;
+        const chatGroups_info = this.state.chatGroups;
         // grab each group and its value which is endpoint
         // Object.entries returns an array of key value pairs
-        Object.entries(chat_groups_info).forEach(([key, nsInfo]) => {
+        Object.entries(chatGroups_info).forEach(([key, nsInfo]) => {
             // Push chat group icon component onto array
             chat_group_icons.push(
                 <ChatGroupIcon 
@@ -178,7 +196,7 @@ class Dashboard extends Component {
 
         return (
             <div>
-                <h2>Dashboard</h2>
+                <h2>Groups and Messages</h2>
                 <div style={{maxWidth: "170px"}}>
                     <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
                         {chat_group_icons}

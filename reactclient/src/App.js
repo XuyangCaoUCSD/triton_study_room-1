@@ -219,6 +219,12 @@ class App extends Component {
                                 Logout
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/userSearch" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='search' />      
+                                Find People
+                            </Menu.Item>
+                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />      

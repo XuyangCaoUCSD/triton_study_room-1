@@ -9,22 +9,49 @@ const redisClient = require('./redisClient');
 
 mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
 
-const existingNamespaces = [
-    ['/namespace/cse110', '/cse110', 'CSE 110'],
-    ['/namespace/cse100', '/cse100', 'CSE 100'],
-    ['/namespace/cse101', '/cse101', 'CSE 101']
-];
+// const existingNamespaces = [
+//     ['/namespace/cse110', '/cse110', 'CSE 110'],
+//     ['/namespace/cse100', '/cse100', 'CSE 100'],
+//     ['/namespace/cse101', '/cse101', 'CSE 101'],
+//     // ['/namespace/akietpham9..kap036', '/akietpham9..kap036', 'Direct Message']
+// ];
 
-function socketMain(io, pNamespaces, workerId = "None, not calling from servers.js") {
-    if (pNamespaces == null) {
-        pNamespaces = existingNamespaces;
+// Use async as using await in function (can change to not use but more convenient)
+async function socketMain(io, pNamespacesArray, workerId = "None, not calling from servers.js") {
+    // Note: pNamespacesArray is an array of arrays
+    
+    // Check whether dynamic or existing namespacesArray
+    if (pNamespacesArray == null) {
+        // AWAIT important
+        await Namespace.find({}).select("endpoint groupName")
+        .then((allNamespaces) => {       
+            pNamespacesArray = allNamespaces.map((namespaceInfo) => {
+                return [`/namespace${namespaceInfo.endpoint}`, namespaceInfo.endpoint, namespaceInfo.groupName];
+            })
+
+            console.log('EXISTING NAMESPACES ARE');
+            console.log(pNamespacesArray);
+        }).catch((err) => {
+            console.log('Error encountered finding all namespaces');
+            console.log(err);
+        });
+
+    } else {
+        console.log('Adding listener for new namespace: ');
+        console.log(pNamespacesArray[1]);
+    }
+
+    // At this point, namepsaces array must be truthy
+    if (!pNamespacesArray) {
+        console.log('\n\n\nEMPTY namespaces array!!!!\n\n\n\n');
+        return;
     }
 
     // Loop through existing namespaces
-    pNamespaces.forEach((item) => {
-        let namespaceRoute = item[0];
-        let namespaceEndpoint = item[1] 
-        let namespaceName = item[2];
+    pNamespacesArray.forEach((namespaceInfo) => {
+        let namespaceRoute = namespaceInfo[0];
+        let namespaceEndpoint = namespaceInfo[1] 
+        let namespaceName = namespaceInfo[2];
 
         io.of(namespaceRoute).on('connection', (nsSocket) => {
             console.log('nsSocket id is ' + nsSocket.id);
@@ -343,22 +370,6 @@ function socketMain(io, pNamespaces, workerId = "None, not calling from servers.
 
     }
 
-    // Not much point in keep track of number in each room (instead of namespace)
-    // function updateUsersInRoom(namespaceRoute, roomName) {
-    //     // Send back num of users in this room to all sockets connected to this room
-    //     io.of(namespaceRoute).in(roomName).clients((error, clients) => {
-    //         if (error) {
-    //             console.log(error);
-    //             return;
-    //         }
-    //         console.log('clients are');
-    //         console.log(clients);
-    //         // console.log(`There are ${clients.length} users in this room`);
-    //         io.of(namespaceRoute).in(roomName).emit('updateMembers', clients.length);
-    //     });
-    // }
-
-    
 }
 
 // Set unread to true or false in cache for user for some namespace room

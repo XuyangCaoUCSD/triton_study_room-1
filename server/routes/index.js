@@ -40,6 +40,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
                     img: ns.img,
                     endpoint: ns.endpoint,
                     groupName: ns.groupName,
+                    privateChat: ns.privateChat,
                 }
             });
 
