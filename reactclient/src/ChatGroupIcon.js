@@ -24,16 +24,29 @@ class ChatGroupIcon extends Component {
     // Notification for messages
     let messageNotification = null;
     if (this.props.hasNotifications) {
-        messageNotification = <Label style={{display: 'flex', justifyContent: 'space-between'}} circular color='red' empty></Label>;
+        messageNotification = <Label style={{right: "8%", top: "10%", zIndex: 10, position: 'absolute'}} circular color='red' empty></Label>;
+    }
+
+    let data = this.props.data;
+    if (data.privateChat) {
+        // Find the details of other user
+        let otherUser = data.peopleDetails.find((info) => {
+            return this.props.currUserEmail != info.email;
+        });
+                
+        return (
+            <Menu.Item as='a' onClick={this.props.onClickHandler} style={{ maxWidth: "100%", maxHeight: "100%"}}>
+                {messageNotification}
+                <Menu.Header>{otherUser.name}</Menu.Header>
+                <Image circular src={data.img} style={{ maxWidth: "100%", maxHeight: "100%"}} />
+            </Menu.Item>
+        );
     }
     return (
-        // <div onClick={this.props.onClickHandler} className="chat-group-icon" style={{ "border": "solid black", "width": "90px", "height": "50px", "background": "green"}}>
-        //     <Image src={this.props.data.img} style={{ "maxWidth": "100%", "maxHeight": "100%"}} />
-        // </div>
-        <Menu.Item as='a' onClick={this.props.onClickHandler} style={{ "maxWidth": "100%", "maxHeight": "100%"}}>
+        <Menu.Item as='a' onClick={this.props.onClickHandler} style={{ maxWidth: "100%", maxHeight: "100%"}}>
             {messageNotification}
-            <Menu.Header>{this.props.data.groupName}</Menu.Header>
-            <Image circular src={this.props.data.img} style={{ "maxWidth": "100%", "maxHeight": "100%"}} />
+            <Menu.Header>{data.groupName}</Menu.Header>
+            <Image circular src={data.img} style={{ maxWidth: "100%", maxHeight: "100%"}} />
         </Menu.Item>
     );
   }

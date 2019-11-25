@@ -102,11 +102,16 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         data.userEmail = foundUser.email;
 
                         let nsData = foundUser.namespaces.map((ns) => {
+                            let peopleDetails = null;
+                            if (ns.privateChat) {
+                                peopleDetails = ns.peopleDetails;
+                            }
                             return {
                                 img: ns.img,
                                 privateChat: ns.privateChat,
                                 endpoint: ns.endpoint,
-                                groupName: ns.groupName
+                                groupName: ns.groupName,
+                                peopleDetails
                             }
                         });
 
