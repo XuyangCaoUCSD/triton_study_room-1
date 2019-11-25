@@ -597,14 +597,20 @@ class Namespace extends Component {
         // Default stuff are for private chat, overwrite if not
         let roomsDiv = null;
         let activeUsersDiv = null;
-        let groupsOrSingleUserIcon = <Icon name='user'></Icon>;
         let messageColumnDivClassName = "fourteen wide column";
-        let roomNameSpan = <span className="curr-room-text">Direct Message</span> 
+        let roomNameArea = 
+            <span>
+                <Header size='tiny' as='h5' >
+                    <Icon name='user' />
+                    <Header.Content>Direct Message</Header.Content>
+                </Header>
+            </span>;
+            
         if (!this.state.currNs.privateChat) {
             roomsDiv = 
                 <div className="two wide column rooms">
-                    <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>
-                    <List divided link>
+                    <h3>Channels <Icon name='chat'></Icon></h3>
+                    <List divided size='large' link>
                         {rooms}
                     </List>
                 </div>;
@@ -620,9 +626,15 @@ class Namespace extends Component {
                     </List>
                 </div>;
             
-            groupsOrSingleUserIcon = <Icon name='users'></Icon>;
             messageColumnDivClassName = "ten wide column";
-            roomNameSpan = <span className="curr-room-text"> {this.state.currRoom.roomName} </span>;
+            // roomNameArea = <span className="curr-room-text"> {this.state.currRoom.roomName} </span>;
+            roomNameArea = 
+                <span>
+                    <Header size='tiny' as='h5' >
+                        <Icon name='users' />
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>
+                    </Header>
+                </span>
         }
             
         return (
@@ -636,10 +648,7 @@ class Namespace extends Component {
                 <div className={messageColumnDivClassName} style={{height: "100%", width: '100%'}}>
                     <div className="row">
                         <div className="three wide column">
-                            {roomNameSpan}
-                            <span className="curr-room-num-users">
-                                {groupsOrSingleUserIcon}
-                            </span>
+                            {roomNameArea}
                         </div>
                     </div> 
                     <Segment onScroll={this.handleMessageScroll} color="teal" style={{overflowY: 'scroll', height: '100%', width: '100%', wordWrap: 'break-word'}}>
