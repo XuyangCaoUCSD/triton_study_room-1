@@ -17,9 +17,9 @@ class Namespace extends Component {
         super(props);
         this.state = {
             inputMessageValue: '',
-            endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
+            endpoint: "/" + this.props.match.params.name,
             namespaceNameParam: this.props.match.params.name,
-            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {},
+            roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {}
         };
@@ -30,12 +30,15 @@ class Namespace extends Component {
 
         this.handleInputChange = this.handleInputChange.bind(this);
         this.componentCleanup = this.componentCleanup.bind(this);
+        this.buildRoom = this.buildRoom.bind(this);
+        this.activeUserClickHandler = this.activeUserClickHandler.bind(this);
+        this.buildActiveUser = this.buildActiveUser.bind(this);
+        this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
+        this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
         this.joinRoom = this.joinRoom.bind(this);
-        this.buildRoom = this.buildRoom.bind(this);
-
     }
 
     componentDidMount() {
@@ -50,9 +53,18 @@ class Namespace extends Component {
         }
 
         // Retrieve particular namespace information
+        this.getNamespaceDetailsAPICall(this.state.endpoint);
+
+        // Retrieve user namespaces information
+        this.getGroupsAPICall();
+    }
+    
+    // IMPORTANT: Need to accept endpoint parameter instead of using this.state.endpoint as 
+    // when route param changes this.setState does not get executed immediately (refer to componentDidUpdate)
+    getNamespaceDetailsAPICall(endpoint) {
         API({
             method: 'get',
-            url: `/api/namespace/${this.state.endpoint}`,
+            url: `/api/namespace${endpoint}`,
             withCredentials: true
         }).then((res) => {
             console.log('Get on Namespace route, Server responded with:');
@@ -76,9 +88,15 @@ class Namespace extends Component {
             
             let chatGroups = data.nsData;
             let currRoom = data.currRoom;
-
             let currNs = data.currNs;
             let roomNotifications = data.roomNotifications;
+            let userEmail = data.userEmail;
+
+            let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
+
+            chatGroups.forEach((namespaceInfo) => {
+                namespaceEndpointsMap[namespaceInfo.endpoint] = true;
+            })
             
             this.setState({
                 rooms: currNs.rooms,
@@ -86,6 +104,8 @@ class Namespace extends Component {
                 groupName: currNs.groupName,
                 roomNotifications,
                 chatGroups,
+                userEmail,
+                namespaceEndpointsMap
             });
 
 
@@ -97,9 +117,9 @@ class Namespace extends Component {
                 this.socket.disconnect();
             }
             
-            // this.socket = io.connect(`http://localhost:8181/namespace${this.state.endpoint}`); 
+            // this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`); 
             // Need full path for now to avoid warning
-            this.socket = io.connect(`http://localhost:8181/namespace/${this.state.endpoint}`);
+            this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`);
 
             console.log('just called connect');
             console.log(this.socket);
@@ -111,7 +131,7 @@ class Namespace extends Component {
             this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
             this.socket.on('roomNotification', this.onSocketRoomNotificationCB);
 
-            console.log(`client socket connecting to /namespace/${this.state.endpoint}`);
+            console.log(`client socket connecting to /namespace${endpoint}`);
 
             this.scrollToBottom(true);
 
@@ -136,8 +156,9 @@ class Namespace extends Component {
             }
 
         });
+    }
 
-        // Retrieve user namespaces information
+    getGroupsAPICall() {
         API({
             method: 'get',
             url: "/api/dashboard",
@@ -153,8 +174,9 @@ class Namespace extends Component {
             }
 
             if (this._isMounted) {
+                console.log('Setting new chat groups and notificaitons');
                 this.setState({
-                    chat_groups: data.nsData,
+                    chatGroups: data.nsData,
                     namespaceNotifications: data.namespaceNotifications
                 });
             }
@@ -177,7 +199,8 @@ class Namespace extends Component {
 
         });
     }
-    
+
+
     componentCleanup() {
         console.log('Cleanup called');
         if (this.socket != null) {
@@ -211,8 +234,38 @@ class Namespace extends Component {
         this._isMounted = false;
     }
     
-    componentDidUpdate() {
-        this.scrollToBottom();
+    componentDidUpdate(prevProps) {
+        
+        // Only reset route stuff if endpoint ("/" + name parameter) is not same as previous
+        if (prevProps == undefined || prevProps.match.params.name === this.props.match.params.name) {
+            this.scrollToBottom();
+        } else {
+            console.log('Changing namespace to ' + this.props.match.params.name + " (prev was " + prevProps.match.params.name);
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
+            // IMPORTANT DO EXACTLY AS HOWEVER STATE WAS INITIALISED IN CONSTRUCTOR 
+            this.setState({
+                inputMessageValue: '',
+                endpoint: "/" + this.props.match.params.name,
+                namespaceNameParam: this.props.match.params.name,
+                roomNotifications: {},
+                activeUsers: {},
+                namespaceNotifications: {},
+                // rooms: null
+            });
+
+            let endpoint = "/" + this.props.match.params.name;
+            
+            // Retrieve particular namespace information, passing in new endpoint as should not rely on this.state in call
+            this.getNamespaceDetailsAPICall(endpoint);
+
+            // Retrieve user namespaces information
+            this.getGroupsAPICall();
+            
+        }
     }
 
     // Scroll to last message
@@ -331,12 +384,19 @@ class Namespace extends Component {
     //----------------------- Parent socket CBs ------------
     // Real-time notifications for online users but not in namespace
     onParentSocketMessageNotificationCB = (namespaceEndpoint) => {
-        let namespaceNotifications = {...this.state.namespaceNotifications};
-        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
-        namespaceNotifications[namespaceEndpoint] = true;
-        this.setState({
-            namespaceNotifications,
-        });
+        // If message from new person, get user namespaces info again to get new chat group
+        if (this.state.namespaceEndpointsMap && !this.state.namespaceEndpointsMap[namespaceEndpoint]) {
+            console.log('Message from new user, getting groups again!');
+            this.getGroupsAPICall();
+
+        } else {
+            let namespaceNotifications = {...this.state.namespaceNotifications};
+            console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+            namespaceNotifications[namespaceEndpoint] = true;
+            this.setState({
+                namespaceNotifications,
+            });
+        } 
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
     }
@@ -352,7 +412,7 @@ class Namespace extends Component {
         console.log(`pushing /namespace${data.endpoint} to history`);
         // Temp, make it like dashboard where we use redirect
         this.props.history.push(`/namespace${data.endpoint}`);
-        window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+        // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
 
         // // Get request to get info for current namespace
         // API({
@@ -480,7 +540,7 @@ class Namespace extends Component {
                 let activeUsersInfo = Object.values(this.state.activeUsers);
                 let key = 0;
                 activeUsersInfo.forEach((userInfo) => {
-                    activeUsersList.push(buildActiveUser(userInfo, key));
+                    activeUsersList.push(this.buildActiveUser(userInfo, key));
                     key += 1
                 });
             }
@@ -490,7 +550,7 @@ class Namespace extends Component {
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2>{this.state.groupName}</h2>
+                    <h2 style={{textAlign: 'center'}}>{this.state.groupName}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -553,7 +613,7 @@ class Namespace extends Component {
                 <div className="two wide column" style={{height: "100%", width: '100%'}}>
                     <Header as='h4' textAlign='left'>
                         <Icon name='users' circular />
-                        <Header.Content>Online In {this.state.namespaceNameParam.toUpperCase()}: {activeUsersList.length}</Header.Content>
+                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
                     </Header>
                     <List selection animated verticalAlign='middle'>
                         {activeUsersList}
@@ -590,7 +650,80 @@ class Namespace extends Component {
             );
         }
         
-    } 
+    }
+
+    
+    // Should take them to direct message page
+    activeUserClickHandler(e) {
+        let selectedEmail = e.currentTarget.getAttribute('email'); // Note: currentTarget not target to ensure outermost div
+        console.log(selectedEmail);
+        
+        // If emails are same do nothing (don't redirect) (don't allow self-messaging for now)
+        if (this.state.userEmail === selectedEmail) {
+            console.log('Self user clicked, doing nothing');
+            return;
+        }
+
+        let data = {
+            privateChat: true,
+            secondUserEmail: selectedEmail
+        }
+
+        API({
+            method: 'post',
+            url: "/api/namespace",
+            withCredentials: true,
+            data
+        }).then((res) => {
+            console.log('Post request to namespace for private message response is:');
+
+            let data = res.data;
+            console.log('data is');
+            console.log(data);
+
+            if (!data.success) {
+                console.log('Error/failure encountered');
+                return;
+            }
+
+            this.props.history.push(`/namespace${data.group.endpoint}`);
+            // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+
+            
+        }).catch((err) => {
+            console.log(err);
+        });
+
+    }
+
+    // TODO build onClick for messaging
+    buildActiveUser(userInfo, listKey) {
+        let additionalDetails = (
+            <div>
+                Name: {userInfo.name}<br />
+                Email: {userInfo.email}<br />
+                {/* <Button size="mini" color='green' content='Message' /> */}
+            </div>
+        )
+        return (
+            <Popup
+                key={listKey}
+                trigger={
+                        <List.Item email={userInfo.email} user-name={userInfo.name} onClick={this.activeUserClickHandler} key={listKey}>     
+                            <Image avatar src={userInfo.avatar} />
+                            <List.Content>
+                                <List.Header>{userInfo.givenName}</List.Header>
+                            </List.Content>
+                        </List.Item>
+                }
+                content={additionalDetails}
+                position='top right'
+                on='hover'
+            />
+            
+        );
+        
+    }
 }
 
 function buildMessage(msg, listKey) {
@@ -609,35 +742,6 @@ function buildMessage(msg, listKey) {
         
 }
 
-// TODO build onClick for messaging
-function buildActiveUser(userInfo, listKey) {
-    let additionalDetails = (
-        <div>
-            Name: {userInfo.name}<br />
-            Email: {userInfo.email}<br />
-            {/* <Button size="mini" color='green' content='Message' /> */}
-        </div>
-    )
-    return (
-        <Popup 
-            key={listKey}
-            trigger={
-                    <List.Item key={listKey}>     
-                        <Image avatar src={userInfo.avatar} />
-                        <List.Content>
-                            <List.Header>{userInfo.givenName}</List.Header>
-                        </List.Content>
-                    </List.Item>
-            }
-            content={additionalDetails}
-            position='top right'
-            on='hover'
-        />
-        
-    );
-
-    
-}
 
 
 

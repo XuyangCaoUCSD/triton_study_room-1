@@ -7,7 +7,7 @@ const MessageSchema = new mongoose.Schema({
     creatorName: String,
     creatorAvatar: String,
     time: { type : Date, default: Date.now },
-    creator: {type: ObjectId, ref: 'User'}
+    creator: { type: ObjectId, ref: 'User' }
 });
 
 
