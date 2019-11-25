@@ -17,6 +17,7 @@ import Logout from './routes/Logout';
 import Register from './routes/Register';
 import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
+import Calendar from './routes/Calendar';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
@@ -31,7 +32,6 @@ class App extends Component {
             sidebarOpen: false,
             hasMessages: false,
             socket: null,
-            sidebarHidden: true // Note: different from open as this is when completely closed (not while closing)
         }
 
         this._isMounted = false;
@@ -84,10 +84,10 @@ class App extends Component {
     }
 
     onMessagesClick() {
+        this.onSetSidebarOpen(false);
         this.setState({
             hasMessages: false
-        })
-        this.onSetSidebarOpen(false);
+        });
     }
 
     isAuthenticated = async () => {
@@ -194,10 +194,10 @@ class App extends Component {
                         icon='labeled'
                         inverted
                         vertical
+                        style={{zIndex: 500}} // Make zIndex higher than button to open sideBar
                         visible={this.state.sidebarOpen}
                         width='thin'
-                        onHidden={() => this.setState({sidebarHidden: true})}
-                        onShow={() => this.setState({sidebarHidden: false})}
+                        onHide={() => this.setState({sidebarOpen: false})}
                     >   
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
@@ -220,13 +220,25 @@ class App extends Component {
                                 Logout
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/userSearch" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='search' />      
+                                Find People
+                            </Menu.Item>
+                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />      
                                 Dashboard
                             </Menu.Item>
                         </NavLink>
-                        {/* TODO CHANGE DASHBOARD ROUTE AND IMPLEMENT GROUPS ROUTE */}
+                        <NavLink as='a' to="/calendar" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='calendar alternate outline' />      
+                                Calendar
+                            </Menu.Item>
+                        </NavLink>
+                        {/* TODO CHANGE DASHBOARD ROUTE TO GROUPS ROUTE AND IMPLEMENT REAL DASHBOARD*/}
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onMessagesClick()}}>
                             <Menu.Item link>
                                 <Icon name='comments' /> 
@@ -236,15 +248,15 @@ class App extends Component {
                         </NavLink>   
                     </Sidebar>
 
+                    {/* Button to open sidebar */}
                     {
-                        this.state.sidebarHidden &&
+                        !this.state.sidebarOpen &&
                         <Sticky>              
-                            <Button color='blue' style={{top: 0, zIndex: 10, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
+                            <Button color='blue' style={{top: 0, zIndex: 499, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
                                 <Icon name='bars' />
                             </Button>
                         </Sticky>   
-                    }
-                    
+                    } 
                     
 
                     <div>
@@ -283,6 +295,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/dashboard" component={Dashboard} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/calendar" component={Calendar} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>

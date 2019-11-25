@@ -27,11 +27,12 @@ const net = require('net');
 const socketio = require('socket.io');
 const helmet = require('helmet')
 // const expressMain = require('./expressMain');
-const { socketMainTest } = require('./socketMainTest');
+const { socketMain } = require('./socketMain');
 const redisClient = require('./redisClient');
 
 const port = 8181;
 const num_processes = require('os').cpus().length;
+
 // installed redis from https://redis.io/topics/quickstart
 // have to actually run redis via: $ redis-server (go to location of the binary)
 // check to see if it's running -- redis-cli monitor
@@ -54,6 +55,21 @@ if (cluster.isMaster) {
 		workers[i].on('exit', function(code, signal) {
 			// console.log('respawning worker', i);
 			spawn(i);
+		});
+
+		// Check for new namespace message
+		workers[i].on('message', function(msg) {
+			// Only intercept messages that have a newNamespaceEndpoint property
+			if (msg.newNamespaceEndpoint) {
+				console.log('Worker to master: ');
+				console.log(msg);
+
+				// Send to all workers the msg containing newNamespace
+				for (var j = 0; j < num_processes; j++) {
+					workers[j].send(msg);
+				}
+				
+			}
 		});
     };
 
@@ -171,15 +187,6 @@ if (cluster.isMaster) {
 	// 	next();
 	// });
 
-	// // Let express serve static assets only in production
-	// if (process.env.NODE_ENV === "production") {
-	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
-	// }
-
-	app.use("/api", indexRoutes);
-	app.use("/api/auth", authRoutes);
-	app.use("/api/namespace", namespaceRoutes);
-
 	// Don't expose our internal server to the outside world. Hence port 0.
 	// Remember master listensFor outside world
 	const server = app.listen(0, 'localhost');
@@ -211,6 +218,18 @@ if (cluster.isMaster) {
 		}),        
 	}));
 
+	// Make io available
+	app.set('socketio', io);
+
+	// // Let express serve static assets only in production
+	// if (process.env.NODE_ENV === "production") {
+	// 	app.use(express.static("client/build"));  // Todo move client to same folder. Won't have to worry about CORS
+	// }
+
+	app.use("/api", indexRoutes);
+	app.use("/api/auth", authRoutes);
+	app.use("/api/namespace", namespaceRoutes);
+
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {
 		
@@ -222,6 +241,7 @@ if (cluster.isMaster) {
 		console.log('socket.request.user is ' + socket.request.user);  // From passportSocketIO middleware
 		
 		let userId = socket.request.user;
+
 		// // Cache ALL active users
 		// redisClient.hset(`All Active Sockets`, userId, socket.id, function (error, result) {
 		// 	if (error) {
@@ -276,21 +296,30 @@ if (cluster.isMaster) {
 	});
 	
 	// Listen to named namespaces
-	socketMainTest(io, cluster.worker.id);
+	socketMain(io, null, cluster.worker.id);
 
 	// Listen to messages sent from the master. Ignore everything else.
 	process.on('message', function(message, connection) {
-		// If not message by server for stickey connection, ignore
-		if (message !== 'sticky-session:connection') {
+		// Only allow stickey connection (from master) or newNamespace message
+		if (message !== 'sticky-session:connection' && !message.newNamespaceEndpoint) {
 			return;
 		}
 
-		// Emulate a connection event on the server by emitting the
-		// event with the connection the master sent us. 
-		// So the server listening to port 0 is connected
-		server.emit('connection', connection);
+		if (message.newNamespaceEndpoint) {
+			console.log('New namespace to run socketMain on is ' + message.newNamespaceRoute);
+			// Run socketMain with new newNamespace (CARE, parameter is array of array )
+			let namespacesArray = [ [message.newNamespaceRoute, message.newNamespaceEndpoint, message.newNamespaceName] ];
+			socketMain(io, namespacesArray, cluster.worker.id);
 
-		// Remember we did pauseOnConnect: true
-		connection.resume();
+		} else {
+			// Emulate a connection event on the server by emitting the
+			// event with the connection the master sent us. 
+			// So the server listening to port 0 is connected
+			server.emit('connection', connection);
+
+			// Remember we did pauseOnConnect: true
+			connection.resume();
+		}
+		
 	});
 }

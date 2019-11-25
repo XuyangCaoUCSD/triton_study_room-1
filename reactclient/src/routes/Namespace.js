@@ -8,7 +8,7 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Button, Label, Menu, Reveal } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu, Reveal } from 'semantic-ui-react';
 import Loading from "../Loading";
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -17,9 +17,9 @@ class Namespace extends Component {
         super(props);
         this.state = {
             inputMessageValue: '',
-            endpoint: this.props.match.params.name,  // TODO, currently no preceding '/'
+            endpoint: "/" + this.props.match.params.name,
             namespaceNameParam: this.props.match.params.name,
-            roomNotifications: this.props.roomNotifications ? this.props.roomNotifications : {},
+            roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {}
         };
@@ -33,6 +33,8 @@ class Namespace extends Component {
         this.buildRoom = this.buildRoom.bind(this);
         this.activeUserClickHandler = this.activeUserClickHandler.bind(this);
         this.buildActiveUser = this.buildActiveUser.bind(this);
+        this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
+        this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -51,9 +53,18 @@ class Namespace extends Component {
         }
 
         // Retrieve particular namespace information
+        this.getNamespaceDetailsAPICall(this.state.endpoint);
+
+        // Retrieve user namespaces information
+        this.getGroupsAPICall();
+    }
+    
+    // IMPORTANT: Need to accept endpoint parameter instead of using this.state.endpoint as 
+    // when route param changes this.setState does not get executed immediately (refer to componentDidUpdate)
+    getNamespaceDetailsAPICall(endpoint) {
         API({
             method: 'get',
-            url: `/api/namespace/${this.state.endpoint}`,
+            url: `/api/namespace${endpoint}`,
             withCredentials: true
         }).then((res) => {
             console.log('Get on Namespace route, Server responded with:');
@@ -77,10 +88,15 @@ class Namespace extends Component {
             
             let chatGroups = data.nsData;
             let currRoom = data.currRoom;
-
             let currNs = data.currNs;
             let roomNotifications = data.roomNotifications;
             let userEmail = data.userEmail;
+
+            let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
+
+            chatGroups.forEach((namespaceInfo) => {
+                namespaceEndpointsMap[namespaceInfo.endpoint] = true;
+            })
             
             this.setState({
                 rooms: currNs.rooms,
@@ -88,7 +104,9 @@ class Namespace extends Component {
                 groupName: currNs.groupName,
                 roomNotifications,
                 chatGroups,
-                userEmail
+                userEmail,
+                currNs,
+                namespaceEndpointsMap
             });
 
 
@@ -100,9 +118,9 @@ class Namespace extends Component {
                 this.socket.disconnect();
             }
             
-            // this.socket = io.connect(`http://localhost:8181/namespace${this.state.endpoint}`); 
+            // this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`); 
             // Need full path for now to avoid warning
-            this.socket = io.connect(`http://localhost:8181/namespace/${this.state.endpoint}`);
+            this.socket = io.connect(`http://localhost:8181/namespace${endpoint}`);
 
             console.log('just called connect');
             console.log(this.socket);
@@ -114,7 +132,7 @@ class Namespace extends Component {
             this.socket.on('updateActiveUsers', this.onSocketUpdateActiveUsersCB);
             this.socket.on('roomNotification', this.onSocketRoomNotificationCB);
 
-            console.log(`client socket connecting to /namespace/${this.state.endpoint}`);
+            console.log(`client socket connecting to /namespace${endpoint}`);
 
             this.scrollToBottom(true);
 
@@ -139,8 +157,9 @@ class Namespace extends Component {
             }
 
         });
+    }
 
-        // Retrieve user namespaces information
+    getGroupsAPICall() {
         API({
             method: 'get',
             url: "/api/dashboard",
@@ -156,8 +175,9 @@ class Namespace extends Component {
             }
 
             if (this._isMounted) {
+                console.log('Setting new chat groups and notificaitons');
                 this.setState({
-                    chat_groups: data.nsData,
+                    chatGroups: data.nsData,
                     namespaceNotifications: data.namespaceNotifications
                 });
             }
@@ -180,7 +200,8 @@ class Namespace extends Component {
 
         });
     }
-    
+
+
     componentCleanup() {
         console.log('Cleanup called');
         if (this.socket != null) {
@@ -214,8 +235,38 @@ class Namespace extends Component {
         this._isMounted = false;
     }
     
-    componentDidUpdate() {
-        this.scrollToBottom();
+    componentDidUpdate(prevProps) {
+        
+        // Only reset route stuff if endpoint ("/" + name parameter) is not same as previous
+        if (prevProps == undefined || prevProps.match.params.name === this.props.match.params.name) {
+            this.scrollToBottom();
+        } else {
+            console.log('Changing namespace to ' + this.props.match.params.name + " (prev was " + prevProps.match.params.name);
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
+            // IMPORTANT DO EXACTLY AS HOWEVER STATE WAS INITIALISED IN CONSTRUCTOR 
+            this.setState({
+                inputMessageValue: '',
+                endpoint: "/" + this.props.match.params.name,
+                namespaceNameParam: this.props.match.params.name,
+                roomNotifications: {},
+                activeUsers: {},
+                namespaceNotifications: {},
+                // rooms: null
+            });
+
+            let endpoint = "/" + this.props.match.params.name;
+            
+            // Retrieve particular namespace information, passing in new endpoint as should not rely on this.state in call
+            this.getNamespaceDetailsAPICall(endpoint);
+
+            // Retrieve user namespaces information
+            this.getGroupsAPICall();
+            
+        }
     }
 
     // Scroll to last message
@@ -248,24 +299,44 @@ class Namespace extends Component {
     }
 
     messageInputHandler = (e) => {
-        if (e.key === "Enter") {
+        // Only submit if user is clickin enter (not shift enter)
+        if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             const message = this.state.inputMessageValue; // Get value from state as input used is controlled component
+            
+            console.log('Message is');
+            console.log(message);
+
+            // Do nothing if empty message
+            if (message == "") {
+                console.log('Empty message');
+                return;
+            }
+
             this.setState({
                 inputMessageValue: '' // clear text area
             });
-            console.log('message is ');
-            console.log(message);
 
             this.scrollToBottom(true);
             
+            console.log('message input form is ');
+            console.log(this.messageInputForm);
+
             // Do this.socket emit
             if (this.socket != null) {
                 this.socket.emit('userMessage', message);
             } else {
                 console.log('ERROR: No socket to emit message');
             }
-        } 
+
+        } else if (e.key === "Tab") {
+            e.preventDefault();
+            let currInputMessage = this.state.inputMessageValue;
+            currInputMessage += "\t";
+            this.setState({
+                inputMessageValue: currInputMessage
+            });
+        }
     }
 
     // Hanldes message input change
@@ -334,12 +405,19 @@ class Namespace extends Component {
     //----------------------- Parent socket CBs ------------
     // Real-time notifications for online users but not in namespace
     onParentSocketMessageNotificationCB = (namespaceEndpoint) => {
-        let namespaceNotifications = {...this.state.namespaceNotifications};
-        console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
-        namespaceNotifications[namespaceEndpoint] = true;
-        this.setState({
-            namespaceNotifications,
-        });
+        // If message from new person, get user namespaces info again to get new chat group
+        if (this.state.namespaceEndpointsMap && !this.state.namespaceEndpointsMap[namespaceEndpoint]) {
+            console.log('Message from new user, getting groups again!');
+            this.getGroupsAPICall();
+
+        } else {
+            let namespaceNotifications = {...this.state.namespaceNotifications};
+            console.log(`Setting namespaceNotifications for ${namespaceEndpoint} to true`);
+            namespaceNotifications[namespaceEndpoint] = true;
+            this.setState({
+                namespaceNotifications,
+            });
+        } 
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
     }
@@ -355,7 +433,7 @@ class Namespace extends Component {
         console.log(`pushing /namespace${data.endpoint} to history`);
         // Temp, make it like dashboard where we use redirect
         this.props.history.push(`/namespace${data.endpoint}`);
-        window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+        // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
 
         // // Get request to get info for current namespace
         // API({
@@ -463,7 +541,7 @@ class Namespace extends Component {
             // Object.entries returns an array of key value pairs
             Object.entries(chatGroupsInfo).forEach(([key, nsInfo]) => {
                 // Push chat group icon component onto array
-                chatGroupIcons.push(<ChatGroupIcon key={key} data={nsInfo} hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} onClickHandler={() => this.iconsClickHandler(nsInfo)} />);
+                chatGroupIcons.push(<ChatGroupIcon key={key} data={nsInfo} currUserEmail={this.state.userEmail} hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} onClickHandler={() => this.iconsClickHandler(nsInfo)} />);
             });  
             
             let chatHistory = [];
@@ -488,12 +566,23 @@ class Namespace extends Component {
                 });
             }
 
+            let groupDisplayName;
+            if (this.state.currNs.privateChat) {
+                // Find the details of other user
+                let otherUser = this.state.currNs.peopleDetails.find((info) => {
+                    return this.state.userEmail != info.email;
+                });
+                groupDisplayName = otherUser.name;
+            } else {
+                groupDisplayName = this.state.groupName;
+            }
+
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2 style={{textAlign: 'center'}}>{this.state.groupName}</h2>
+                    <h2 style={{textAlign: 'center'}}>{groupDisplayName}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -505,6 +594,49 @@ class Namespace extends Component {
     }
 
     namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
+        // Default stuff are for private chat, overwrite if not
+        let roomsDiv = null;
+        let activeUsersDiv = null;
+        let messageColumnDivClassName = "fourteen wide column";
+        let roomNameArea = 
+            <span>
+                <Header size='tiny' as='h5' >
+                    <Icon name='user' />
+                    <Header.Content>Direct Message</Header.Content>
+                </Header>
+            </span>;
+            
+        if (!this.state.currNs.privateChat) {
+            roomsDiv = 
+                <div className="two wide column rooms">
+                    <h3>Channels <Icon name='chat'></Icon></h3>
+                    <List divided size='large' link>
+                        {rooms}
+                    </List>
+                </div>;
+            
+            activeUsersDiv = 
+                <div className="two wide column" style={{height: "100%", width: '100%'}}>
+                    <Header as='h4' textAlign='left'>
+                        <Icon name='users' circular />
+                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
+                    </Header>
+                    <List selection animated verticalAlign='middle'>
+                        {activeUsersList}
+                    </List>
+                </div>;
+            
+            messageColumnDivClassName = "ten wide column";
+            // roomNameArea = <span className="curr-room-text"> {this.state.currRoom.roomName} </span>;
+            roomNameArea = 
+                <span>
+                    <Header size='tiny' as='h5' >
+                        <Icon name='users' />
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>
+                    </Header>
+                </span>
+        }
+            
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -512,26 +644,12 @@ class Namespace extends Component {
                         {chatGroups}
                     </Menu>
                 </div>
-                <div className="two wide column rooms">
-                    <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>
-                    <List link>
-                        {rooms}
-                    </List>
-                    {/* <ul className="room-list" style={{listStyleType: "none", padding: 0}}>
-                        {rooms}
-                    </ul> */}
-                </div>
-                <div className="ten wide column" style={{height: "100%", width: '100%'}}>
+                {roomsDiv}
+                <div className={messageColumnDivClassName} style={{height: "100%", width: '100%'}}>
                     <div className="row">
                         <div className="three wide column">
-                            <span className="curr-room-text">{this.state.currRoom.roomName} </span> 
-                            <span className="curr-room-num-users">
-                                <i aria-hidden="true" className="users disabled large icon"></i>
-                            </span>
+                            {roomNameArea}
                         </div>
-                        {/* <div className="three wide column ui search pull-right">
-                            <input type="text" id="search-box" placeholder="Search" />
-                        </div> */}
                     </div> 
                     <Segment onScroll={this.handleMessageScroll} color="teal" style={{overflowY: 'scroll', height: '100%', width: '100%', wordWrap: 'break-word'}}>
                         <ul id="messages" className="twelve wide column" style={{listStyleType: "none", padding: 0}}>
@@ -547,21 +665,13 @@ class Namespace extends Component {
                                 <input name="message" type="text" placeholder="Enter your message" maxLength="40000" style={{width: '100%', wordWrap: 'break-word'}}/>
                             </div>
                         </form> */}
-                        <Form style={{width: '100%'}}>
-                            <TextArea value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
+                        <Form ref={(el) => { this.messageInputForm = el; }} style={{width: '100%'}}>
+                            <TextArea style={{whiteSpace: 'pre-wrap'}} value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
                         </Form>
 
                     </div>
                 </div>
-                <div className="two wide column" style={{height: "100%", width: '100%'}}>
-                    <Header as='h4' textAlign='left'>
-                        <Icon name='users' circular />
-                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
-                    </Header>
-                    <List selection animated verticalAlign='middle'>
-                        {activeUsersList}
-                    </List>
-                </div>
+                {activeUsersDiv}
             </div>
         )
     }
@@ -630,7 +740,7 @@ class Namespace extends Component {
             }
 
             this.props.history.push(`/namespace${data.group.endpoint}`);
-            window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+            // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
 
             
         }).catch((err) => {
@@ -640,46 +750,92 @@ class Namespace extends Component {
     }
 
     // TODO build onClick for messaging
+    // buildActiveUser(userInfo, listKey) {
+    //     let additionalDetails = (
+    //         <div>
+    //             Name: {userInfo.name}<br />
+    //             Email: {userInfo.email}<br />
+    //             {/* <Button size="mini" color='green' content='Message' /> */}
+    //         </div>
+    //     )
+    //     return (
+    //         <Popup
+    //             key={listKey}
+    //             trigger={
+    //                     <List.Item email={userInfo.email} user-name={userInfo.name} onClick={this.activeUserClickHandler} key={listKey}>     
+    //                         <Image avatar src={userInfo.avatar} />
+    //                         <List.Content>
+    //                             <List.Header>{userInfo.givenName}</List.Header>
+    //                         </List.Content>
+    //                     </List.Item>
+    //             }
+    //             content={additionalDetails}
+    //             position='top right'
+    //             on='hover'
+    //         />
+            
+    //     );
+        
+    // }
+
     buildActiveUser(userInfo, listKey) {
         let additionalDetails = (
             <div>
-                Name: {userInfo.name}<br />
-                Email: {userInfo.email}<br />
-                {/* <Button size="mini" color='green' content='Message' /> */}
+                <h4>
+                    Name: {userInfo.name}<br />
+                    Email: {userInfo.email}
+                </h4>
+                <br /><br /><br /><br /><br /><br /><br /><br /><br />
+               
+                <div>
+                    {this.state.userEmail != userInfo.email && <Button email={userInfo.email} user-name={userInfo.name} size="mini" color='green' onClick={this.activeUserClickHandler}  content='Message' />}     
+                </div>         
             </div>
         )
         return (
-            <Popup
-                key={listKey}
+            <Modal
+                closeIcon
+                size='small' 
+                key={listKey} 
                 trigger={
-                        <List.Item email={userInfo.email} user-name={userInfo.name} onClick={this.activeUserClickHandler} key={listKey}>     
-                            <Image avatar src={userInfo.avatar} />
-                            <List.Content>
-                                <List.Header>{userInfo.givenName}</List.Header>
-                            </List.Content>
-                        </List.Item>
+                    <List.Item email={userInfo.email} user-name={userInfo.name} key={listKey}>     
+                        <Image avatar src={userInfo.avatar} />
+                        <List.Content>
+                            <List.Header>{userInfo.givenName}</List.Header>
+                        </List.Content>
+                    </List.Item>
                 }
-                content={additionalDetails}
-                position='top right'
-                on='hover'
-            />
+            >
+                <Modal.Header>{userInfo.name}</Modal.Header>
+                <Modal.Content image>
+                    <Image wrapped size='medium' src={userInfo.avatar} />
+                    <Modal.Description>
+                        {additionalDetails}
+                    </Modal.Description>
+                </Modal.Content>
+            </Modal>
             
         );
         
     }
+
+    
 }
 
 function buildMessage(msg, listKey) {
     const convertedDate = new Date(msg.time).toLocaleString();
     return (
         <li key={listKey}>
-            <div className="user-image">
-                <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
-            </div>
-            <div className="user-message">
-                <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
-                <div className="message-text">{msg.content}</div>
-            </div>
+            <Message style={{whiteSpace: 'pre-wrap'}}>
+                <div className="user-image">
+                    <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
+                </div>
+                <div className="user-message">
+                    <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
+                    {msg.content}
+                </div>
+            </Message>
+            
         </li>
     )
         

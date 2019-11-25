@@ -5,7 +5,7 @@ const  express       = require('express'),
 
 const { ChatHistory } = require('../models/ChatHistory');
 const redisClient = require('../redisClient');
-const { setNamespaceUnreads, setRoomUnreads } = require('../socketMainTest');
+const { setNamespaceUnreads, setRoomUnreads } = require('../socketMain');
 
 const router = express.Router();
 
@@ -25,12 +25,9 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     console.log('peopleList is');
     console.log(peopleList);
 
-    // let data = {
-    //     success: true
-    // }
-    // res.send(data);
+    const io = req.app.get('socketio');
 
-    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleList);
+    findOrCreateNewGroup(res, io, userId, secondUserEmail, privateChat, peopleList);
     
 });
 
@@ -105,10 +102,16 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         data.userEmail = foundUser.email;
 
                         let nsData = foundUser.namespaces.map((ns) => {
+                            let peopleDetails = null;
+                            if (ns.privateChat) {
+                                peopleDetails = ns.peopleDetails;
+                            }
                             return {
                                 img: ns.img,
+                                privateChat: ns.privateChat,
                                 endpoint: ns.endpoint,
-                                groupName: ns.groupName
+                                groupName: ns.groupName,
+                                peopleDetails
                             }
                         });
 
@@ -116,7 +119,6 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         // console.log(nsData);
                         
                         data.nsData = nsData;           
-
 
                         const roomNotifications = {};
 
@@ -167,7 +169,7 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
     });
 }
 
-function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
+function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
     // Response data
     let data = {
         success: true
@@ -210,12 +212,12 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                 }
 
                 // ".." character is valid in url and invalid in emails => unique endpoint
-                let chatEndpoint = "/" + firstPart + ".." + secondPart;
-                console.log('New chatEndpoint will be ' + chatEndpoint);
+                let groupEndpoint = "/" + firstPart + ".." + secondPart;
+                console.log('Group endpoint (is/will be) ' + groupEndpoint);
 
                 // Check if exist, if not create new
                 Namespace.findOne({
-                    endpoint: chatEndpoint
+                    endpoint: groupEndpoint
                 }).then((foundNamespace) => {
                     // If already exist, just return it
                     if (foundNamespace) {
@@ -227,19 +229,19 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
 
                     // If not exist, create new
 
-                    console.log('CREATING NEW DIRECT MESSAGING GROUP');
+                    console.log('\n\nCREATING NEW DIRECT MESSAGING GROUP\n\n');
                     
                     ChatHistory.create({
                         messages: []
                     }).then((createdChatHistory) => {
                         console.log('created new chat history');
                         console.log(createdChatHistory);
-
+                        let groupName = 'Direct Message';
                         Namespace.create({
                             nsId: -1,
-                            groupName: 'Direct Message',
+                            groupName: groupName,
                             img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
-                            endpoint: chatEndpoint,
+                            endpoint: groupEndpoint,
                             privateChat: true,
                             rooms: [
                                 {roomId: 0, roomName: 'General', chatHistory: createdChatHistory.id},
@@ -275,7 +277,16 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                                 },
                                 {safe: true, upsert: true, new: true},
                             ).then((updatedUser) => {
-    
+                                
+                                // Send Message to master to add listeners to all threads for new (dynamic) namespace
+                                console.log('Sending newNamespace message to master');
+                                let messageToMaster = {
+                                    newNamespaceRoute: `/namespace${groupEndpoint}`,
+                                    newNamespaceEndpoint: groupEndpoint,
+                                    newNamespaceName: groupName
+                                }
+                                process.send(messageToMaster);
+
                                 // Send response
                                 res.send(data);
                             }).catch((err) => {
