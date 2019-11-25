@@ -105,6 +105,7 @@ class Namespace extends Component {
                 roomNotifications,
                 chatGroups,
                 userEmail,
+                currNs,
                 namespaceEndpointsMap
             });
 
@@ -565,12 +566,23 @@ class Namespace extends Component {
                 });
             }
 
+            let groupDisplayName;
+            if (this.state.currNs.privateChat) {
+                // Find the details of other user
+                let otherUser = this.state.currNs.peopleDetails.find((info) => {
+                    return this.state.userEmail != info.email;
+                });
+                groupDisplayName = otherUser.name;
+            } else {
+                groupDisplayName = this.state.groupName;
+            }
+
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2 style={{textAlign: 'center'}}>{this.state.groupName}</h2>
+                    <h2 style={{textAlign: 'center'}}>{groupDisplayName}</h2>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -582,6 +594,37 @@ class Namespace extends Component {
     }
 
     namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
+        // Default stuff are for private chat, overwrite if not
+        let roomsDiv = null;
+        let activeUsersDiv = null;
+        let groupsOrSingleUserIcon = <Icon name='user'></Icon>;
+        let messageColumnDivClassName = "fourteen wide column";
+        let roomNameSpan = <span className="curr-room-text">Direct Message</span> 
+        if (!this.state.currNs.privateChat) {
+            roomsDiv = 
+                <div className="two wide column rooms">
+                    <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>
+                    <List divided link>
+                        {rooms}
+                    </List>
+                </div>;
+            
+            activeUsersDiv = 
+                <div className="two wide column" style={{height: "100%", width: '100%'}}>
+                    <Header as='h4' textAlign='left'>
+                        <Icon name='users' circular />
+                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
+                    </Header>
+                    <List selection animated verticalAlign='middle'>
+                        {activeUsersList}
+                    </List>
+                </div>;
+            
+            groupsOrSingleUserIcon = <Icon name='users'></Icon>;
+            messageColumnDivClassName = "ten wide column";
+            roomNameSpan = <span className="curr-room-text"> {this.state.currRoom.roomName} </span>;
+        }
+            
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -589,18 +632,13 @@ class Namespace extends Component {
                         {chatGroups}
                     </Menu>
                 </div>
-                <div className="two wide column rooms">
-                    <h3>Channels <i aria-hidden="true" className="lock open small icon"></i></h3>
-                    <List divided link>
-                        {rooms}
-                    </List>
-                </div>
-                <div className="ten wide column" style={{height: "100%", width: '100%'}}>
+                {roomsDiv}
+                <div className={messageColumnDivClassName} style={{height: "100%", width: '100%'}}>
                     <div className="row">
                         <div className="three wide column">
-                            <span className="curr-room-text">{this.state.currRoom.roomName} </span> 
+                            {roomNameSpan}
                             <span className="curr-room-num-users">
-                                <i aria-hidden="true" className="users disabled large icon"></i>
+                                {groupsOrSingleUserIcon}
                             </span>
                         </div>
                     </div> 
@@ -624,15 +662,7 @@ class Namespace extends Component {
 
                     </div>
                 </div>
-                <div className="two wide column" style={{height: "100%", width: '100%'}}>
-                    <Header as='h4' textAlign='left'>
-                        <Icon name='users' circular />
-                        <Header.Content>Online In {this.state.groupName}: {activeUsersList.length}</Header.Content>
-                    </Header>
-                    <List selection animated verticalAlign='middle'>
-                        {activeUsersList}
-                    </List>
-                </div>
+                {activeUsersDiv}
             </div>
         )
     }
