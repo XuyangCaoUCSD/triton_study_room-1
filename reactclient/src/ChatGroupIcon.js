@@ -31,7 +31,8 @@ class ChatGroupIcon extends Component {
         //     <Image src={this.props.data.img} style={{ "maxWidth": "100%", "maxHeight": "100%"}} />
         // </div>
         <Menu.Item as='a' onClick={this.props.onClickHandler} style={{ "maxWidth": "100%", "maxHeight": "100%"}}>
-            {messageNotification} 
+            {messageNotification}
+            <Menu.Header>{this.props.data.groupName}</Menu.Header>
             <Image circular src={this.props.data.img} style={{ "maxWidth": "100%", "maxHeight": "100%"}} />
         </Menu.Item>
     );
