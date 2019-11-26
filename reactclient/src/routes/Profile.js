@@ -8,7 +8,9 @@ import {
     useLocation
 } from "react-router-dom";
 import API from '../utilities/API';
-import { Form, Message, Button, Image } from 'semantic-ui-react';
+import { Form, Message, Button, Image, Progress } from 'semantic-ui-react';
+import { CircularProgressbar } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 
 class Profile extends Component {
     constructor(props) {
@@ -16,7 +18,8 @@ class Profile extends Component {
         this.state = {
             selectedFile: null,
             avatarSource: null,
-            avatarHash: Date.now()
+            avatarHash: Date.now(),
+            uploadProgress: 0
         }
 
         this.fileUploadHandler = this.fileUploadHandler.bind(this);
@@ -82,11 +85,33 @@ class Profile extends Component {
         const formData = new FormData();
         formData.append('myAvatar', this.state.selectedFile, this.state.selectedFile.name);
 
+        if (this._isMounted) {
+            this.setState({
+                fileUploading: true
+            })
+        }
+        
+
         API({
             method: 'post',
             url: "/api/uploads/avatars",
             withCredentials: true,
-            data: formData // Only send formData, otherwise multer has issues on backend
+            data: formData, // Only send formData, otherwise multer has issues on backend
+            onUploadProgress: progressEvent =>  {
+                let percent = Math.round(progressEvent.loaded / progressEvent.total * 100)
+                console.log('Upload progress: ' + percent);
+                // TODO set state to show progress
+                this.setState({uploadProgress: percent});
+                if (percent === 100) {
+                    setTimeout(() => {
+                        if (this._isMounted) {
+                            this.setState({
+                                fileUploading: false
+                            });
+                        }
+                    }, 1500)
+                }
+            }
         }).then((res) => {
             console.log('Post on upload/avatar route, Server responded with:');
             console.log(res);
@@ -111,7 +136,11 @@ class Profile extends Component {
                     avatarSource: data.fileUrl,
                     avatarHash: Date.now()
                 });
-                window.location.reload();
+                setTimeout(() => {
+                    if (this._isMounted) {
+                        window.location.reload()
+                    }
+                }, 1000);
             }
 
         }).catch((err) => {
@@ -130,12 +159,27 @@ class Profile extends Component {
                     <p>{this.state.errorMessage}</p>
                 </Message>
         }
+        let progressBar = null;
+        if (this.state.fileUploading) {
+            progressBar = <CircularProgressbar value={this.state.uploadProgress} text={`${this.state.uploadProgress}%`} />;
+        }
+        
+
         return (
             <div>
                 {errorDisplay}
                 <input type="file" name="myAvatar" onChange={this.fileSelectedHandler} />
                 <br></br>
-                <Button onClick={this.fileUploadHandler}>Upload Avatar (1MB max.)</Button>
+                <div style={{display: 'inline' }}>
+                    <Button onClick={this.fileUploadHandler}>Upload Avatar (1MB max.)</Button>
+                    <span>
+                        <div style={{ maxWidth: '150px'}}>
+                            {progressBar}
+                        </div>
+                    </span>
+                </div>
+               
+                
                 <div>
                     <Image size='medium' src={`${this.state.avatarSource}?${this.state.avatarHash}`}></Image>
                 </div> 

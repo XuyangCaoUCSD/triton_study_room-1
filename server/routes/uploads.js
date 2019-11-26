@@ -110,7 +110,7 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
         avatarUpload(req, res, (err) => {
             if (err) {
                 data.success = false;
-                data.errorMessage = err.message;
+                data.errorMessage = err;
                 console.log('Error in upload');
                 res.send(data);
             } else {
