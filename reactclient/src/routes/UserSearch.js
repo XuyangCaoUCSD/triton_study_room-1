@@ -3,6 +3,7 @@ import _ from "lodash";
 import React, { Component } from "react";
 import { Search, Grid, Header, Segment, Label } from "semantic-ui-react";
 import API from '../utilities/API';
+import NotificationCard from './NotificationCard';
 
 
 var source = [];
@@ -28,7 +29,7 @@ const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
 //   description: PropTypes.string,
 // }
 
-const initialState = { isLoading: false, results: [], value: "", user_db_id:"5dd1bae0ff6c0a438b3deee6" };
+const initialState = { isLoading: false, results: [], value: ""};
 
 export default class SearchExampleStandard extends Component {
   state = initialState;
@@ -62,7 +63,9 @@ export default class SearchExampleStandard extends Component {
     this.setState({ value: result.title })
 
     if(result.is_friend === "You are friends!") {
-      alert("You two are already friends!");
+      return;
+    }
+    else if(result.is_friend === "Yourself") {
       return;
     }
 
@@ -74,7 +77,6 @@ export default class SearchExampleStandard extends Component {
         withCredentials: true,
         data: {
             send_to_id: result.db_id,
-            user_db_id: this.state.user_db_id,
         }
     }).then((response) => {
         // check what our back-end Express will respond (Does it receive our data?)

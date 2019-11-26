@@ -1,3 +1,4 @@
+//jshint esversion:8
 const  express       = require('express'),
        passport      = require('passport'),
        passportSetup = require('../config/passport-setup'), // IMPORTANT: Need to require somewhere to run file so google auth is initialised
@@ -7,6 +8,8 @@ const  express       = require('express'),
 const redisClient = require('../redisClient');
 
 var router = express.Router();
+
+const { Notification } = require("../models/Notification");
 
 // Root route
 router.get("/", (req, res) => {
@@ -34,7 +37,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
 
             const namespaces = foundUser.namespaces;
             const namespaceNotifications = {}
-            
+
             let nsData = namespaces.map((ns) => {
                 let peopleDetails = ns.peopleDetails;
                 return {
@@ -49,9 +52,9 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             data.nsData = nsData;
             data.userEmail = foundUser.email;
 
-            getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);       
+            getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);
         }
-    }); 
+    });
 });
 
 // // Show sign up form
@@ -80,7 +83,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
 // 			console.log(err);
 //             req.flash("error", err.message);
 //             return res.send(err.message);
-// 		} 
+// 		}
 // 		passport.authenticate("local")(req, res, () => {
 //             req.flash("success", "Welcome" + user.username);
 //             console.log("Authenticated user " + user.username);
@@ -115,7 +118,7 @@ router.get('/isLoggedIn', (req, res) => {
 // Login logic, using middleware to authenticate
 // authenticate takes req.body.password and req.body.username and takes care of logic for us by comparing
 // with what we have in db
-router.post("/login", passport.authenticate("local", 
+router.post("/login", passport.authenticate("local",
 	{
 		successRedirect: "/check",
 		failureRedirect: "/check"  // TODO
@@ -130,8 +133,46 @@ router.get("/logout", (req, res) => {
     res.send("LOGGED OUT SUCCESS");
 });
 
+
+router.get("/setting/dataRetrieve", middleware.isLoggedIn, function(req, res) {
+  let userId = req.session.passport.user;
+  User.findById(userId).then(function(userData) {
+    let to_be_sent = {
+      aboutMe: userData.aboutMe,
+      phone: userData.phone,
+      firstName: userData.givenName,
+      lastName: userData.familyName
+    };
+
+    res.send(to_be_sent);
+  }).catch(function(err) {
+    console.log(err);
+  })
+});
+
+router.post("/setting", middleware.isLoggedIn, function(req, res) {
+  let userId = req.session.passport.user;
+  console.log(req.body);
+
+  //update the user's aboutMe and phone number
+  User.updateOne({"_id": userId}, {"$set": {"aboutMe": req.body.aboutMe}}).exec().then(function(doc) {
+    User.updateOne({"_id": userId}, {"$set": {"phone": req.body.phone}}).exec().then(function(doc) {
+      console.log("user profile is updated");
+      res.send("database is successfully updated!");
+    }).catch(function(err) {
+      console.log(err);
+    });
+
+
+  }).catch(function(err) {
+    console.log(err);
+  });
+
+});
+
+
 router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
-    console.log('SEARCH DATA ROUTE REACHED');
+  console.log('SEARCH DATA ROUTE REACHED');
 	let userId = req.session.passport.user;
 	User.findById(userId).then(function(foundUser) {
 		let friendList = foundUser.friends;
@@ -141,7 +182,8 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
         console.log(friendList);
 
 	    User.find({}).then(function(data) {
-			let to_be_sent = [];
+
+      let to_be_sent = [];
 
 			for(var i = 0; i < data.length; i++) {
 
@@ -153,12 +195,16 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 					is_friend: "",
 					db_id: data[i]._id
 				};
-                
-                
+
+
 				if (friendList.indexOf(data[i]._id) != -1) {
 					user.is_friend = "You are friends!";
 				} else {
-					user.is_friend = "Click to add friend";
+					if (data[i]._id == userId) {
+            user.is_friend = "Yourself";
+          } else {
+            user.is_friend = "Click to add friend";
+          }
 				}
 
 				to_be_sent.push(user);
@@ -177,6 +223,111 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 	});
 
 });
+
+
+router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
+  let userId = req.session.passport.user;
+  let receiverId = req.body.send_to_id;
+
+  //generate a "friend_request" notification for the receiver
+  const friendRequest = new Notification({
+    type: "friend_request",
+    trigger: userId,
+    extra: ""
+  });
+
+  User.updateOne({"_id": receiverId}, {"$push": {"request_notification": friendRequest}}).exec().then(function(doc) {
+    console.log("successfully sent the friend request");
+  }).catch(function(err) {
+    console.log(err);
+  });
+
+  res.send("successfully sent the friend request");
+
+});
+
+
+router.get("/NotiCenter", middleware.isLoggedIn, async (req, res) => {
+  let userId = req.session.passport.user;
+  User.findById(userId).then(async function(data){
+    const cards = data.request_notification;
+    let to_be_sent = [];
+    //before sending the data, we also add the trigger's name to each card (since we need to display the name rather than the id)
+    for(var i = 0; i < cards.length; i++) {
+      card = {
+        type: cards[i].type,
+        trigger: cards[i].trigger,
+        extra: "",
+        _id: cards[i]._id,
+        avatar: "",
+        triggerEmail: ""
+      }
+      await User.findById(cards[i].trigger).then(function(triggerData) {
+        card.extra = triggerData.name;
+        card.avatar = triggerData.avatar;
+        card.triggerEmail = triggerData.email;
+        to_be_sent.push(card);
+        if (i == cards.length - 1) {
+          res.send(to_be_sent);
+        }
+      }).catch(function(err) {
+        console.log(err);
+      });
+    }
+
+router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res) {
+  console.log(req.body);
+  let userId = req.session.passport.user;
+  // update based on the card type and user's choice
+  if(req.body.type === "friend_request") {
+    // when the user accepted the friend request
+    if(req.body.choice === "accepted") {
+      // add the sender to the receiver's friend list
+      User.updateOne({"_id": userId}, {"$push": {"friends": req.body.trigger}}).exec().then(function(doc) {
+        // add the receiver to the sender's friend list
+        User.updateOne({"_id": req.body.trigger}, {"$push": {"friends": userId}}).exec().then(function(doc) {
+          // generate a "request_accepted" notification card to the sender
+          const friendAccepted = new Notification({
+            type: "friend_accepted",
+            trigger: userId,
+            extra: ""
+          });
+          User.updateOne({"_id": req.body.trigger}, {"$push": {"request_notification": friendAccepted}}).exec().then(function(doc) {
+            //friends are added and notification is sent
+            console.log("friends are added and notification is sent");
+          }).catch(function(err) {
+            console.log(err)
+          });
+
+        }).catch(function(err) {
+          console.log(err);
+        });
+      }).catch(function(err) {
+        console.log(err);
+      });
+    }
+
+    //else if the user declined the friend request we will just ignore it and delete this notification
+  }
+
+  //and we consume (delete) this notification
+  User.updateOne({"_id": userId}, {"$pull": {"request_notification": {"_id": req.body.cardId}}}).exec().then(function(doc) {
+    console.log("notification card is deleted.");
+  }).catch(function(err) {
+    console.log(err);
+  })
+
+  res.send("successfully updated the database and consumed the notification");
+});
+
+
+
+
+  }).catch(function(err) {
+    console.log(err);
+  });
+});
+
 
 // Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads
 function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotifications, data) {
@@ -201,7 +352,7 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
 
             // console.log('nsData is');
             // console.log(nsData);
-            
+
             data.namespaceNotifications = namespaceNotifications;
 
             // Todo Put in last callback / promise resolution needed for information retrieval
@@ -241,4 +392,3 @@ function get_all_user_data() {
         console.log(err);
     });
 }
-  

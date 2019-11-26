@@ -26,19 +26,19 @@ passport.use(
         clientSecret: keys.google.clientSecret,
         callbackURL: '/api/auth/google/redirect' // Need to be an authorised route in google dev console
     }, (accessToken, refreshToken, profile, done) => {
-        
-       
+
+
         User.findOne({googleId: profile.id}).then((currentUser) => {
             if (currentUser) {
                 // Already have user in DB
                 console.log('Existing user is:', currentUser);
                 done(null, currentUser);
-            } else { 
-                
+            } else {
+
                 // Check if UCSD email
-                if (!ucsdEmailCheck.checkMail(profile._json.email)) {
-                    return done(null, false, { message: 'Need UCSD email.' });
-                }
+                // if (!ucsdEmailCheck.checkMail(profile._json.email)) {
+                //     return done(null, false, { message: 'Need UCSD email.' });
+                // }
 
                 console.log('profile is');
                 console.log(profile);
@@ -49,7 +49,7 @@ passport.use(
                     familyName: profile._json.family_name,
                     email: profile._json.email,
                     googleId: profile.id,
-                    
+
                     // Temp give default namespaces
                     namespaces: [
                         "5dce55fddbcc431250507b82",
@@ -65,6 +65,6 @@ passport.use(
                 });
             }
         });
-        
+
     })
 );
