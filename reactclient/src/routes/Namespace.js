@@ -21,7 +21,8 @@ class Namespace extends Component {
             namespaceNameParam: this.props.match.params.name,
             roomNotifications: {},
             activeUsers: {},
-            namespaceNotifications: {}
+            namespaceNotifications: {},
+            peopleMap: {}
         };
 
         this.parentSocket = this.props.socket;
@@ -31,6 +32,7 @@ class Namespace extends Component {
         this.handleInputChange = this.handleInputChange.bind(this);
         this.componentCleanup = this.componentCleanup.bind(this);
         this.buildRoom = this.buildRoom.bind(this);
+        this.buildMessage = this.buildMessage.bind(this);
         this.activeUserClickHandler = this.activeUserClickHandler.bind(this);
         this.buildActiveUser = this.buildActiveUser.bind(this);
         this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
@@ -92,6 +94,13 @@ class Namespace extends Component {
             let roomNotifications = data.roomNotifications;
             let userEmail = data.userEmail;
 
+            let peopleMap = {};
+            
+            // Hash email to person info
+            data.currNs.peopleDetails.forEach((personInfo) => {
+                peopleMap[personInfo.email] = personInfo
+            });
+
             let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
 
             chatGroups.forEach((namespaceInfo) => {
@@ -106,11 +115,9 @@ class Namespace extends Component {
                 chatGroups,
                 userEmail,
                 currNs,
-                namespaceEndpointsMap
+                namespaceEndpointsMap,
+                peopleMap
             });
-
-
-            // this.socket = io.connect(`/namespace${cse110Namespace.endpoint}`, {transports: ['websocket']});
 
             if (this.socket != null) {
                 console.log('disconnecting before reconnecting');
@@ -551,7 +558,7 @@ class Namespace extends Component {
             if (this.state.currRoom && this.state.currRoom.chatHistory != null) {
                 let key = 0;
                 this.state.currRoom.chatHistory.messages.forEach((message) => {
-                    chatHistory.push(buildMessage(message, key));
+                    chatHistory.push(this.buildMessage(message, key));
                     key += 1
                 })
             }
@@ -570,7 +577,7 @@ class Namespace extends Component {
             if (this.state.currNs.privateChat) {
                 // Find the details of other user
                 let otherUser = this.state.currNs.peopleDetails.find((info) => {
-                    return this.state.userEmail != info.email;
+                    return this.state.userEmail !== info.email;
                 });
                 groupDisplayName = otherUser.name;
             } else {
@@ -605,7 +612,7 @@ class Namespace extends Component {
                     <Header.Content>Direct Message</Header.Content>
                 </Header>
             </span>;
-            
+
         if (!this.state.currNs.privateChat) {
             roomsDiv = 
                 <div className="two wide column rooms">
@@ -820,27 +827,26 @@ class Namespace extends Component {
     }
 
     
-}
-
-function buildMessage(msg, listKey) {
-    const convertedDate = new Date(msg.time).toLocaleString();
-    return (
-        <li key={listKey}>
-            <Message style={{whiteSpace: 'pre-wrap'}}>
-                <div className="user-image">
-                    <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/>
-                </div>
-                <div className="user-message">
-                    <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
-                    {msg.content}
-                </div>
-            </Message>
+    buildMessage(msg, listKey) {
+        const convertedDate = new Date(msg.time).toLocaleString();
+        return (
+            <li key={listKey}>
+                <Message style={{whiteSpace: 'pre-wrap'}}>
+                    <div className="user-image">
+                        {/* <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/> */}
+                        <Image avatar src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } style={{maxHeight: '30px', maxWidth: '30px'}}/>
+                    </div>
+                    <div className="user-message">
+                        <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
+                        {msg.content}
+                    </div>
+                </Message>
+                
+            </li>
+        )
             
-        </li>
-    )
-        
+    }
 }
-
 
 
 

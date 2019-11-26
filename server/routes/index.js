@@ -36,10 +36,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             const namespaceNotifications = {}
             
             let nsData = namespaces.map((ns) => {
-                let peopleDetails = null;
-                if (ns.privateChat) {
-                    peopleDetails = ns.peopleDetails;
-                }
+                let peopleDetails = ns.peopleDetails;
                 return {
                     img: ns.img,
                     endpoint: ns.endpoint,

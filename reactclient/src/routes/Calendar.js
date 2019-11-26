@@ -20,6 +20,12 @@ class Calendar extends Component {
                     'end': new Date('November 26, 2019 12:13:00'),
                 },
                 {
+                    'title': 'OLD EVENT',
+                    'allDay': true,
+                    'start': new Date('November 26, 2018 11:13:00'),
+                    'end': new Date('November 26, 2018 23:13:00'),
+                },
+                {
                     'title': 'Long Event',
                     'start': new Date('November 26, 2019 11:13:00'),
                     'end': new Date('November 27, 2019 11:13:00')

@@ -18,6 +18,7 @@ import Register from './routes/Register';
 import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
 import Calendar from './routes/Calendar';
+import Profile from './routes/Profile';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
@@ -226,6 +227,12 @@ class App extends Component {
                                 Find People
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/profile" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='user' />      
+                                Profile
+                            </Menu.Item>
+                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />      
@@ -296,6 +303,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/calendar" component={Calendar} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>
