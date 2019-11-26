@@ -111,7 +111,7 @@ class Profile extends Component {
                     avatarSource: data.fileUrl,
                     avatarHash: Date.now()
                 });
-                this.forceUpdate();
+                window.location.reload();
             }
 
         }).catch((err) => {
