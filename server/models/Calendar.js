@@ -6,8 +6,8 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 //schema for event (embedded in calendar_info)
 const EventSchema = new mongoose.Schema({
   eventName: String,
-  startTime: Number,
-  endTime: Number,
+  startTime: Date,
+  endTime: Date,
   location: String,
   visibility: String
 });
