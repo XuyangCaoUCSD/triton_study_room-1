@@ -129,7 +129,8 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
                         userId,
                         { 
                             $set: { avatar: fileUrl }
-                        }
+                        },
+                        {new: true}
                     ).populate('namespaces')
                     .then((updatedUser) => {
                         console.log('updatedUser is');
@@ -139,7 +140,7 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
 
                         // Update people details for namespaces in which user belongs
                         updatedUser.namespaces.forEach((ns) => {
-                                
+                                console.log('Updating user avatar in namespace ' + ns.groupName);
                                 Namespace.findById(ns.id).then((updatedNamespace) => { 
                                     // console.log('updatedNamespace is');
                                     // console.log(updatedNamespace);           
@@ -151,7 +152,7 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
 
                                     updatedNamespace.save().then((savedNamespace) => {
                                         console.log('Updated user details in namespace!');
-                                        // console.log(savedNamespace);
+                                        console.log(savedNamespace);
                                     }).catch((err) => {
                                         console.log(err);
                                     })

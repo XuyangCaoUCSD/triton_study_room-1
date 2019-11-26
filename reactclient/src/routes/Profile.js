@@ -15,7 +15,8 @@ class Profile extends Component {
         super(props);
         this.state = {
             selectedFile: null,
-            avatarSource: null
+            avatarSource: null,
+            avatarHash: Date.now()
         }
 
         this.fileUploadHandler = this.fileUploadHandler.bind(this);
@@ -42,7 +43,8 @@ class Profile extends Component {
             if (this._isMounted) {
                 console.log('Setting current avatar');
                 this.setState({
-                    avatarSource: data.avatarUrl
+                    avatarSource: data.avatarUrl,
+                    avatarHash: Date.now()
                 });
             }
             
@@ -103,12 +105,13 @@ class Profile extends Component {
                 return;
             }
 
-            console.log('Setting new avatar');
             if (this._isMounted) {
+                console.log('Setting new avatar');
                 this.setState({
-                    avatarSource: data.fileUrl
+                    avatarSource: data.fileUrl,
+                    avatarHash: Date.now()
                 });
-    
+                this.forceUpdate();
             }
 
         }).catch((err) => {
@@ -134,7 +137,7 @@ class Profile extends Component {
                 <br></br>
                 <Button onClick={this.fileUploadHandler}>Upload Avatar (1MB max.)</Button>
                 <div>
-                    <Image size='medium' src={this.state.avatarSource}></Image>
+                    <Image size='medium' src={`${this.state.avatarSource}?${this.state.avatarHash}`}></Image>
                 </div> 
             </div>
         );

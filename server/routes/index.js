@@ -207,8 +207,8 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
             // Todo Put in last callback / promise resolution needed for information retrieval
             // Send over namespace data 
             res.send(data); 
-            console.log('Sending: ');
-            console.log(data);
+            // console.log('Sending: ');
+            // console.log(data);
         } else {
             getUserNamespaceUnreads(userId, i + 1, namespaces, res, namespaceNotifications, data);
         }
