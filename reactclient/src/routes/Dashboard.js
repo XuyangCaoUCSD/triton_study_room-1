@@ -199,7 +199,7 @@ class Dashboard extends Component {
         return (
             <div>
                 <h2>Groups and Messages</h2>
-                <div style={{maxWidth: "170px"}}>
+                <div style={{maxWidth: "180px"}}>
                     <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
                         {chat_group_icons}
                     </Menu>

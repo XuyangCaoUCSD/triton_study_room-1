@@ -31,7 +31,7 @@ class ChatGroupIcon extends Component {
     if (data.privateChat) {
         // Find the details of other user
         let otherUser = data.peopleDetails.find((info) => {
-            return this.props.currUserEmail != info.email;
+            return this.props.currUserEmail !== info.email;
         });
                 
         return (

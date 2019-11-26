@@ -19,6 +19,7 @@ import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
 import NotiCenter from './routes/NotiCenter';
 import Calendar from './routes/Calendar';
+import Profile from './routes/Profile';
 import NotificationCard from './routes/NotificationCard';
 import Setting from './routes/Setting';
 import auth from "./auth/auth";
@@ -229,6 +230,12 @@ class App extends Component {
                                 Find People
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/profile" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='user' />      
+                                Profile
+                            </Menu.Item>
+                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />
@@ -299,6 +306,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/calendar" component={Calendar} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/notification" component={NotiCenter} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
 

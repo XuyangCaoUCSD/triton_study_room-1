@@ -5,7 +5,7 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 const MessageSchema = new mongoose.Schema({
     content: String,
     creatorName: String,
-    creatorAvatar: String,
+    creatorEmail: String,
     time: { type : Date, default: Date.now },
     creator: { type: ObjectId, ref: 'User' }
 });

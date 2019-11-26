@@ -25,9 +25,9 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     console.log('peopleList is');
     console.log(peopleList);
 
-    const io = req.app.get('socketio');
+    // const io = req.app.get('socketio');
 
-    findOrCreateNewGroup(res, io, userId, secondUserEmail, privateChat, peopleList);
+    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleList);
     
 });
 
@@ -102,10 +102,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                         data.userEmail = foundUser.email;
 
                         let nsData = foundUser.namespaces.map((ns) => {
-                            let peopleDetails = null;
-                            if (ns.privateChat) {
-                                peopleDetails = ns.peopleDetails;
-                            }
+                            let peopleDetails = ns.peopleDetails;
                             return {
                                 img: ns.img,
                                 privateChat: ns.privateChat,
@@ -161,15 +158,15 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
             // Todo Put in last callback / promise resolution needed for information retrieval
             // Send over namespace data 
             res.send(data); 
-            console.log('Sending: ');
-            console.log(data);
+            // console.log('Sending: ');
+            // console.log(data);
         } else {
             getUserRoomUnreads(endpoint, userId, i + 1, rooms, res, roomNotifications, data);
         }
     });
 }
 
-function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
+function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
     // Response data
     let data = {
         success: true
@@ -253,11 +250,13 @@ function findOrCreateNewGroup(res, io = null, firstUserId, secondUserEmail, priv
                                 { 
                                     email: firstUserEmail,
                                     givenName: foundUser1.givenName,
+                                    avatar: foundUser1.avatar,
                                     name: foundUser1.name
                                 },
                                 { 
                                     email: secondUserEmail,
                                     givenName: foundUser2.givenName,
+                                    avatar: foundUser2.avatar,
                                     name: foundUser2.name
                                 }
                             ]

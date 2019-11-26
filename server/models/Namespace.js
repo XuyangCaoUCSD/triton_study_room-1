@@ -21,7 +21,8 @@ const NamespaceSchema = new mongoose.Schema({
     peopleDetails: [{ 
         email: String,
         givenName: String,
-        name: String
+        name: String,
+        avatar: String
     }],
     studySessionsHistory: [ { type: ObjectId, ref: 'StudySessionHistory' } ]
 }, {

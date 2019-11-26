@@ -39,10 +39,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             const namespaceNotifications = {}
 
             let nsData = namespaces.map((ns) => {
-                let peopleDetails = null;
-                if (ns.privateChat) {
-                    peopleDetails = ns.peopleDetails;
-                }
+                let peopleDetails = ns.peopleDetails;
                 return {
                     img: ns.img,
                     endpoint: ns.endpoint,
@@ -359,10 +356,10 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
             data.namespaceNotifications = namespaceNotifications;
 
             // Todo Put in last callback / promise resolution needed for information retrieval
-            // Send over namespace data
-            res.send(data);
-            console.log('Sending: ');
-            console.log(data);
+            // Send over namespace data 
+            res.send(data); 
+            // console.log('Sending: ');
+            // console.log(data);
         } else {
             getUserNamespaceUnreads(userId, i + 1, namespaces, res, namespaceNotifications, data);
         }
