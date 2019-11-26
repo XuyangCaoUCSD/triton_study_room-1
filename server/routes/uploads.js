@@ -143,12 +143,14 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
                                 console.log('Updating user avatar in namespace ' + ns.groupName);
                                 Namespace.findById(ns.id).then((updatedNamespace) => { 
                                     // console.log('updatedNamespace is');
-                                    // console.log(updatedNamespace);           
+                                    // console.log(updatedNamespace);  
+                                    let index = 0;
                                     updatedNamespace.peopleDetails.forEach((userDetail) => {
                                         if (userDetail.email === updatedUser.email) {
-                                            userDetail.avatar = updatedUser.avatar;
+                                            updatedNamespace.peopleDetails[index].avatar = updatedUser.avatar;
                                         }
-                                    })
+                                        index += 1
+                                    });
 
                                     updatedNamespace.save().then((savedNamespace) => {
                                         console.log('Updated user details in namespace!');
