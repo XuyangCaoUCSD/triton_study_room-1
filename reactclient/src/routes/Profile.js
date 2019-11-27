@@ -112,10 +112,11 @@ class Profile extends Component {
                     setTimeout(() => {
                         if (this._isMounted) {
                             this.setState({
-                                fileUploading: false
+                                fileUploading: false,
+                                uploadProgress: 0
                             });
                         }
-                    }, 1500)
+                    }, 1000)
                 }
             }
         }).then((res) => {

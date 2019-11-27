@@ -8,8 +8,9 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu, Reveal } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
+import UploadFilesTest from "./UploadFilesTest";
 import ChatGroupIcon from '../ChatGroupIcon';
 
 class Namespace extends Component {
@@ -37,6 +38,7 @@ class Namespace extends Component {
         this.buildActiveUser = this.buildActiveUser.bind(this);
         this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
         this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
+        this.sendFileMessage = this.sendFileMessage.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -509,6 +511,11 @@ class Namespace extends Component {
         });
     }
 
+    sendFileMessage(fileName, fileUrl) {
+        let message = fileName + "\n" + fileUrl;
+        this.socket.emit('userMessage', message);
+    }
+
     render() {
         if (this.state.unauthorised) {
             return (
@@ -643,7 +650,23 @@ class Namespace extends Component {
                     </Header>
                 </span>
         }
-            
+        
+        let fileUpload = 
+            <Modal
+                // open={this.state.fileUploadWindowOpen}
+                closeIcon
+                size='small' 
+                trigger={
+                    <Button size='tiny' style={{right: "3.5%", bottom: "0%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
+                }
+            >
+                <Modal.Header>Upload Files</Modal.Header>
+                <Modal.Content >
+                    <UploadFilesTest sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
+                </Modal.Content>
+            </Modal>;
+
+
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -672,11 +695,12 @@ class Namespace extends Component {
                                 <input name="message" type="text" placeholder="Enter your message" maxLength="40000" style={{width: '100%', wordWrap: 'break-word'}}/>
                             </div>
                         </form> */}
+                        
                         <Form ref={(el) => { this.messageInputForm = el; }} style={{width: '100%'}}>
                             <TextArea style={{whiteSpace: 'pre-wrap'}} value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
                         </Form>
-
                     </div>
+                    {fileUpload}
                 </div>
                 {activeUsersDiv}
             </div>

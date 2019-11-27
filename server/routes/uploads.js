@@ -192,7 +192,7 @@ const namespaceStorage = multer.diskStorage({
     filename: function(req, file, cb) {
         let now = Date.now();
 
-        let fileName = now + file.originalname;
+        let fileName = now + "_" + file.originalname;
 
         console.log('File name is ' + fileName);
         cb(null, fileName);
@@ -202,7 +202,7 @@ const namespaceStorage = multer.diskStorage({
 // Init Upload for namespace files
 const namespaceUpload = multer({
     storage: namespaceStorage,
-    limits: {fileSize: 20971520}, // in bytes (so 20 MB);
+    limits: {fileSize: 20971520}, // in bytes (so exactly 20 MB);
     fileFilter: function(req, file, cb){
         namespaceCheckFileType(file, cb);
     }

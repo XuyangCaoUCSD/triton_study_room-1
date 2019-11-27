@@ -8,7 +8,7 @@ import {
     useLocation
 } from "react-router-dom";
 import API from '../utilities/API';
-import { Form, Message, Button, Image, Progress } from 'semantic-ui-react';
+import { Form, Message, Button, Image, Icon } from 'semantic-ui-react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
@@ -18,7 +18,9 @@ class UploadFileTest extends Component {
         this.state = {
             selectedFile: null,
             uploadProgress: 0,
-            fileUploading: false
+            fileUploading: false,
+            endpoint: this.props.endpoint ? this.props.endpoint : "/cse100", // TODO REMOVE CSE 100
+            groupName: this.props.groupName ? this.props.groupName: "CSE 100" // TODO REMOVE CSE 100
         }
 
         this.fileUploadHandler = this.fileUploadHandler.bind(this);
@@ -66,11 +68,9 @@ class UploadFileTest extends Component {
             })
         }
 
-        let endpoint = "/cse110";
-
         API({
             method: 'post',
-            url: `/api/uploads/namespace${endpoint}`, // TODO remove hardcode endpoint
+            url: `/api/uploads/namespace${this.state.endpoint}`, // TODO remove hardcode endpoint
             withCredentials: true,
             data: formData, // Only send formData, otherwise multer has issues on backend
             onUploadProgress: progressEvent =>  {
@@ -86,14 +86,15 @@ class UploadFileTest extends Component {
                     setTimeout(() => {
                         if (this._isMounted) {
                             this.setState({
-                                fileUploading: false
+                                fileUploading: false,
+                                uploadProgress: 0
                             });
                         }
                     }, 1500)
                 }
             }
         }).then((res) => {
-            console.log(`Post on uploads/namespace/${endpoint} route, Server responded with:`);
+            console.log(`Post on uploads/namespace${this.state.endpoint} route, Server responded with:`);
             console.log(res);
 
             let data = res.data;
@@ -112,6 +113,19 @@ class UploadFileTest extends Component {
 
             if (this._isMounted) {
                 console.log('SUCCESSFULLY UPLOADED FILE!');
+                
+                if (!this.props.sendFileMessage) {
+                    console.log('ERROR NO SEND FILE MESSAGE PROPS');
+                    alert('ERROR NO SEND FILE MESSAGE PROPS');
+                    return;
+                }
+
+                this.props.sendFileMessage(this.state.selectedFile.name, data.fileUrl);
+
+                setTimeout(() => {
+                    alert('FILE UPLOADED SUCCESSFULLY');
+                }, 700)
+                
             }
 
         }).catch((err) => {
@@ -141,7 +155,10 @@ class UploadFileTest extends Component {
                 <input type="file" onChange={this.fileSelectedHandler} />
                 <br></br>
                 <div style={{display: 'inline' }}>
-                    <Button onClick={this.fileUploadHandler}>Upload File to namespace (20MB max.)</Button>
+                    <Button onClick={this.fileUploadHandler}>
+                        <Icon name='upload' />
+                        Upload/Share File to {this.state.groupName} (20MB max.)
+                    </Button>
                     <span>
                         <div style={{ maxWidth: '150px'}}>
                             {progressBar}
