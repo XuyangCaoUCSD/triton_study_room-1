@@ -236,6 +236,18 @@ class App extends Component {
                                 Profile
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/notification" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='bell' />
+                                Nottifcations
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/setting" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='setting' />
+                                Settings
+                            </Menu.Item>
+                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />

@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import _ from "lodash";
 import React, { Component } from "react";
-import { Search, Grid, Header, Segment, Label } from "semantic-ui-react";
+import { Search, Grid, Header, Segment, Label, Image } from "semantic-ui-react";
 import API from '../utilities/API';
 import NotificationCard from './NotificationCard';
 
@@ -12,7 +12,7 @@ const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
   avatar && (
     <div key="image" className="image">
       {/* {createHTMLImage(image, { autoGenerateKey: false })} */}
-      <img src={avatar}></img>
+      <Image avatar src={avatar}></Image>
     </div>
   ),
   <div key="content" className="content">

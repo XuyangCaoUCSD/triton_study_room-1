@@ -55,11 +55,16 @@ class Setting extends Component {
 
     // when we load the "setting page" component, retrieve the data from our database
     componentDidMount() {
+        this._isMounted = true;
         this.fetch_data();
     }
 
     componentDidUpdate() {
         //console.log(this.state.isChecked);
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     // anytime when the component is loaded (refreshed using "F5"), the most updated value should be retrieved
@@ -74,11 +79,14 @@ class Setting extends Component {
             // extract the data from the body of response
             console.log("data successfully retrieved from backend!");
             console.log(response.data);
-            // assign what we received to the state variables which will be rendered
-            this.setState({aboutMe: response.data.aboutMe});
-            this.setState({phone: response.data.phone});
-            this.setState({firstName: response.data.firstName});
-            this.setState({lastName: response.data.lastName});
+            if (this._isMounted) {
+                // assign what we received to the state variables which will be rendered
+                this.setState({aboutMe: response.data.aboutMe});
+                this.setState({phone: response.data.phone});
+                this.setState({firstName: response.data.firstName});
+                this.setState({lastName: response.data.lastName});
+            }
+            
         }).catch((error) => {
             // otherwise some error occurs
             console.log("error when submitting: "+error);
@@ -97,7 +105,7 @@ class Setting extends Component {
             <div class="setting-form">
                 <Form.Field>
                 <br />
-                <h2 id="setting-title">Profile Setting Page <img id="gear" src="https://img.icons8.com/wired/64/000000/gear.png" /></h2>
+                <h2 id="setting-title">Profile Settings Page <img id="gear" src="https://img.icons8.com/wired/64/000000/gear.png" /></h2>
                 <br />
                 </Form.Field>
                 <Form method="post">

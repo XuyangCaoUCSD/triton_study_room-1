@@ -49,12 +49,16 @@ passport.use(
                     familyName: profile._json.family_name,
                     email: profile._json.email,
                     googleId: profile.id,
+                    aboutMe: "",
+                    phone: "",
+                    classes: [],
+                    request_notification: [],
 
                     // Temp give default namespaces
                     namespaces: [
-                        "5dce55fddbcc431250507b82",
-                        "5dce55fddbcc431250507b86",
-                        "5dce55fddbcc431250507b88"
+                        // "5dce55fddbcc431250507b82",
+                        // "5dce55fddbcc431250507b86",
+                        // "5dce55fddbcc431250507b88"
                     ]
                 }).save().then((newUser) => {
                     console.log('new user created: ' + newUser);
