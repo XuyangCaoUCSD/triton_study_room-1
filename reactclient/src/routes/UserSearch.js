@@ -4,7 +4,6 @@ import React, { Component } from "react";
 import { Search, Grid, Header, Segment, Label } from "semantic-ui-react";
 import API from '../utilities/API';
 
-
 var source = [];
 
 const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [

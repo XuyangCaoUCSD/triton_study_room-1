@@ -17,6 +17,7 @@ import Logout from './routes/Logout';
 import Register from './routes/Register';
 import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
+import UserProfile from "./routes/UserProfile";
 import Calendar from './routes/Calendar';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
@@ -238,6 +239,12 @@ class App extends Component {
                                 Calendar
                             </Menu.Item>
                         </NavLink>
+                        <NavLink as='a' to="/userprofile" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='calendar alternate outline' />
+                                User Profile
+                            </Menu.Item>
+                        </NavLink>
                         {/* TODO CHANGE DASHBOARD ROUTE TO GROUPS ROUTE AND IMPLEMENT REAL DASHBOARD*/}
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onMessagesClick()}}>
                             <Menu.Item link>
@@ -296,6 +303,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/calendar" component={Calendar} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userprofile" component={UserProfile} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>

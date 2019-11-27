@@ -9,7 +9,7 @@ import {
 } from "react-router-dom";
 import UserForm from '../UserForm';
 import auth from "../auth/auth";
-import { Message } from 'semantic-ui-react';
+import {Grid, Header, Label, Message, Divider, Image} from 'semantic-ui-react';
 
 class Login extends Component {
     constructor(props) {
@@ -88,18 +88,45 @@ class Login extends Component {
         
         return (
             <div>
-                {errorDisplay}
-                <h2>Login</h2>
-                <form style={{ textAlign: "center" }} onSubmit={this.googleLogInHandler}>
-                    <button className="ui google plus button">
-                        <i aria-hidden="true" className="google plus icon"></i>
-                        Google Login
-                    </button>
-                </form>
-                <p></p>
-                <form style={{ textAlign: "center" }} onSubmit={this.testLogoutListener}>
-                    <button>Logout</button>
-                </form>
+                <div className="ui center aligned middle aligned container" >
+                    {errorDisplay}
+                    <Image size="medium" centered={true} src="../geisel.svg"/>
+                    <Header style={{"font-size": "50px"}}>Triton Study Room</Header>
+                    <Divider/>
+                    <Grid columns={3}>
+                        <Grid.Column>
+                            <Header className="center aligned icon">
+                                <i className="user blue icon"/>
+                                Find Friends
+                            </Header>
+                        </Grid.Column>
+                        <Grid.Column>
+                            <Header className="center aligned icon">
+                                <i className="calendar outline blue icon"/>
+                                Match Study Times
+                            </Header>
+                        </Grid.Column>
+                        <Grid.Column>
+                            <Header className="center aligned icon">
+                                <i className="book blue icon"/>
+                                Reserve Study Spaces
+                            </Header>
+                        </Grid.Column>
+                    </Grid>
+                    <Divider/>
+                    <div className="ui google blue button center" onClick={this.googleLogInHandler}>
+                        <i aria-hidden="true" className="google icon"/> UCSD Student Login
+                    </div>
+                    <p></p>
+                    <div className="ui labeled button" tabIndex="0">
+                        <div className="ui gold button center" onClick={this.googleLogInHandler}>
+                            <i aria-hidden="true"/> Register Now
+                        </div>
+                        <Label className="ui basic gold left">
+                            Requires UCSD Student Account
+                        </Label>
+                    </div>
+                </div>
             </div>
         );
     }
