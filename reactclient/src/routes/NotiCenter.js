@@ -58,9 +58,13 @@ export default class NotiCenter extends Component {
 
     render() {
         return (
-            <Card.Group>
-                {this.generateCards()}
-            </Card.Group>
+            <div>
+                <h1>Notifications</h1>
+                <Card.Group>
+                    {this.generateCards()}
+                </Card.Group>
+            </div>
+            
         );
     }
 }

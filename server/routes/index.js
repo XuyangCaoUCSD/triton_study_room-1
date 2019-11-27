@@ -135,38 +135,38 @@ router.get("/logout", (req, res) => {
 
 
 router.get("/setting/dataRetrieve", middleware.isLoggedIn, function(req, res) {
-  let userId = req.session.passport.user;
-  User.findById(userId).then(function(userData) {
-    let to_be_sent = {
-      aboutMe: userData.aboutMe,
-      phone: userData.phone,
-      firstName: userData.givenName,
-      lastName: userData.familyName
-    };
+    let userId = req.session.passport.user;
+    User.findById(userId).then(function(userData) {
+        let to_be_sent = {
+            aboutMe: userData.aboutMe,
+            phone: userData.phone,
+            firstName: userData.givenName,
+            lastName: userData.familyName
+        };
 
-    res.send(to_be_sent);
-  }).catch(function(err) {
-    console.log(err);
-  })
+        res.send(to_be_sent);
+    }).catch(function(err) {
+        console.log(err);
+    })
 });
 
 router.post("/setting", middleware.isLoggedIn, function(req, res) {
-  let userId = req.session.passport.user;
-  console.log(req.body);
+    let userId = req.session.passport.user;
+    console.log(req.body);
 
-  //update the user's aboutMe and phone number
-  User.updateOne({"_id": userId}, {"$set": {"aboutMe": req.body.aboutMe}}).exec().then(function(doc) {
-    User.updateOne({"_id": userId}, {"$set": {"phone": req.body.phone}}).exec().then(function(doc) {
-      console.log("user profile is updated");
-      res.send("database is successfully updated!");
+    //update the user's aboutMe and phone number
+    User.updateOne({"_id": userId}, {"$set": {"aboutMe": req.body.aboutMe}}).exec().then(function(doc) {
+        User.updateOne({"_id": userId}, {"$set": {"phone": req.body.phone}}).exec().then(function(doc) {
+            console.log("user profile is updated");
+            res.send("database is successfully updated!");
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+
     }).catch(function(err) {
-      console.log(err);
+        console.log(err);
     });
-
-
-  }).catch(function(err) {
-    console.log(err);
-  });
 
 });
 
@@ -183,13 +183,13 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 
 	    User.find({}).then(function(data) {
 
-      let to_be_sent = [];
+            let to_be_sent = [];
 
 			for(var i = 0; i < data.length; i++) {
 
 				let user = {
 					title: (data[i].name),
-					about_me: data[i].about_me,
+					about_me: data[i].aboutMe,
 					avatar: data[i].avatar,
 					email: data[i].email,
 					is_friend: "",
@@ -201,11 +201,11 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 					user.is_friend = "You are friends!";
 				} else {
 					if (data[i]._id == userId) {
-            user.is_friend = "Yourself";
-          } else {
-            user.is_friend = "Click to add friend";
-          }
-				}
+                        user.is_friend = "Yourself";
+                    } else {
+                        user.is_friend = "Click to add friend";
+                    }
+                }
 
 				to_be_sent.push(user);
 
