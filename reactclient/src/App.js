@@ -28,6 +28,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
 import { Menu, Icon, Sidebar, Button, Label, Sticky } from 'semantic-ui-react';
 import io from 'socket.io-client';
+import UserProfile from "./routes/UserProfile";
 
 class App extends Component {
     constructor() {
