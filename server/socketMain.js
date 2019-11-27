@@ -145,7 +145,7 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
                         const createdMessage = new Message({
                             content: msg,
                             creatorName: givenName,
-                            creatorAvatar: avatar,
+                            creatorEmail: email,
                             creator: userId
                         });
     
@@ -154,12 +154,10 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
     
                         ChatHistory.findByIdAndUpdate(
                             room.chatHistory, 
-                            {$push: 
-                                {
-                                    "messages": createdMessage
-                                }
+                            {
+                                $push: { "messages": createdMessage }
                             },
-                            {safe: true, upsert: true, new: true},
+                            {safe: true, new: true},
                         ).then((updatedChatHistory) => {
                             // console.log(updatedChatHistory);
                             let lastMessage = updatedChatHistory.messages[updatedChatHistory.messages.length - 1];
@@ -167,7 +165,7 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
                             let response = {
                                 content: msg,
                                 creatorName: givenName,
-                                creatorAvatar: lastMessage.creatorAvatar,
+                                creatorEmail: email,
                                 time: lastMessage.time
                             }
     

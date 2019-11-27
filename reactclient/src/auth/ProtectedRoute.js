@@ -16,6 +16,7 @@ export const ProtectedRoute = ({ component: Comp, isLoggedIn, path, authMemoHand
             console.log('Logged in true');
         } else {
             console.log('Logged in false');
+            authMemoHandler();
         }
         return (
             <Route

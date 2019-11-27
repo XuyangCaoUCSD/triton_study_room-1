@@ -20,7 +20,8 @@ const  express     = require('express'),
 // Requiring routes
 const indexRoutes     = require("./routes/index"),
 	  authRoutes      = require('./routes/auth-routes'),
-	  namespaceRoutes = require('./routes/namespace-routes');
+	  namespaceRoutes = require('./routes/namespace-routes'),
+	  uploadRoutes    = require('./routes/uploads');
 
 const cluster = require('cluster');
 const net = require('net');
@@ -218,8 +219,8 @@ if (cluster.isMaster) {
 		}),        
 	}));
 
-	// Make io available
-	app.set('socketio', io);
+	// // Make io available
+	// app.set('socketio', io);
 
 	// // Let express serve static assets only in production
 	// if (process.env.NODE_ENV === "production") {
@@ -229,6 +230,8 @@ if (cluster.isMaster) {
 	app.use("/api", indexRoutes);
 	app.use("/api/auth", authRoutes);
 	app.use("/api/namespace", namespaceRoutes);
+	app.use("/api/uploads", uploadRoutes);
+	// app.use('/uploads', express.static('uploads'));
 
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {

@@ -17,8 +17,16 @@ import Logout from './routes/Logout';
 import Register from './routes/Register';
 import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
+<<<<<<< HEAD
 import UserProfile from "./routes/UserProfile";
+=======
+import NotiCenter from './routes/NotiCenter';
+>>>>>>> bf6a62df53771d844d51edad8e34982975411e99
 import Calendar from './routes/Calendar';
+import Profile from './routes/Profile';
+import NotificationCard from './routes/NotificationCard';
+import UploadFilesTest from './routes/UploadFilesTest';
+import Setting from './routes/Setting';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import 'semantic-ui-css/semantic.min.css';
@@ -37,7 +45,7 @@ class App extends Component {
 
         this._isMounted = false;
         // this.state.socket = null;
-        
+
         this.authMemoHandler = this.authMemoHandler.bind(this);
         this.isAuthenticated = this.isAuthenticated.bind(this);
         this.removeNavBarNotifications = this.removeNavBarNotifications.bind(this);
@@ -49,7 +57,7 @@ class App extends Component {
 
         // socket.on('data', (data) => {
         //   // inside this callback , we just got some new data!
-        //   // let's update state so we can 
+        //   // let's update state so we can
         //   // re-render App
         //   // We need to make copy of current state so we can mutate it
         //   const currentState = ({...this.state.data});
@@ -74,7 +82,7 @@ class App extends Component {
                 waitingForAPI: true
             })
         }
-        
+
         console.log('Auth memo handler executed');
         // Care, state variable will force rerender before redirect
         this.isAuthenticated();
@@ -94,7 +102,7 @@ class App extends Component {
     isAuthenticated = async () => {
         console.log('Checking auth');
         let result = await auth.isAuthenticated();
-        
+
         // Only set state if component is still there (not unmounted) to avoid memory leak
         if (this._isMounted) {
             if (result === true) {
@@ -106,7 +114,7 @@ class App extends Component {
 
                 console.log('This.state.socket is :');
                 console.log(this.state.socket);
-                
+
                 if (!this.state.socket || this.state.socket.disconnected) {
                     console.log('Connecting to main namespace');
                     this.state.socket = io.connect('http://localhost:8181'); // Connect to general (root) namespace once logged in
@@ -115,15 +123,15 @@ class App extends Component {
                     this.state.socket.on('messageNotification', this.onSocketMessageNotificationCB);
                     console.log('this.state.socket is now: ');
                     console.log(this.state.socket);
-                    
+
                     // Don't render components till socket connected
                     this.setState({
                         waitingForAPI: true
                     })
 
-                    
+
                 }
-                
+
 
             } else {
                 console.log('Setting login state to false');
@@ -137,7 +145,7 @@ class App extends Component {
                     this.state.socket.disconnect();
                 }
             }
-        } 
+        }
     }
 
     removeNavBarNotifications() {
@@ -150,13 +158,13 @@ class App extends Component {
     onSocketConnectCB = () => {
         console.log('Socket connected to main namespace');
         console.log(this.state.socket);
-        
+
         this.state.socket.emit('cacheOutsideUser', "");
 
         this.setState({
             waitingForAPI: false
         })
-        
+
         this.forceUpdate(); // Force update to pass in socket to routes
     }
 
@@ -199,43 +207,61 @@ class App extends Component {
                         visible={this.state.sidebarOpen}
                         width='thin'
                         onHide={() => this.setState({sidebarOpen: false})}
-                    >   
+                    >
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
                         </Button>
                         <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='home' />      
+                                <Icon name='home' />
                                 Home
                             </Menu.Item>
                         </NavLink>
                         <NavLink to="/login" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='sign-in' />      
+                                <Icon name='sign-in' />
                                 Log In
                             </Menu.Item>
                         </NavLink>
                         <NavLink as='a' to="/logout" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='sign-out' />      
+                                <Icon name='sign-out' />
                                 Logout
                             </Menu.Item>
                         </NavLink>
                         <NavLink as='a' to="/userSearch" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='search' />      
+                                <Icon name='search' />
                                 Find People
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/profile" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='user' />      
+                                Profile
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/notification" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='bell' />
+                                Nottifcations
+                            </Menu.Item>
+                        </NavLink>
+                        <NavLink as='a' to="/setting" onClick={() => {this.onSetSidebarOpen(false)}}>
+                            <Menu.Item link>
+                                <Icon name='setting' />
+                                Settings
                             </Menu.Item>
                         </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='calendar alternate outline' />      
+                                <Icon name='calendar alternate outline' />
                                 Dashboard
                             </Menu.Item>
                         </NavLink>
                         <NavLink as='a' to="/calendar" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
-                                <Icon name='calendar alternate outline' />      
+                                <Icon name='calendar alternate outline' />
                                 Calendar
                             </Menu.Item>
                         </NavLink>
@@ -248,23 +274,23 @@ class App extends Component {
                         {/* TODO CHANGE DASHBOARD ROUTE TO GROUPS ROUTE AND IMPLEMENT REAL DASHBOARD*/}
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onMessagesClick()}}>
                             <Menu.Item link>
-                                <Icon name='comments' /> 
-                                {messageNotification}  
+                                <Icon name='comments' />
+                                {messageNotification}
                                 Groups/Messages
                             </Menu.Item>
-                        </NavLink>   
+                        </NavLink>
                     </Sidebar>
 
                     {/* Button to open sidebar */}
                     {
                         !this.state.sidebarOpen &&
-                        <Sticky>              
+                        <Sticky>
                             <Button color='blue' style={{top: 0, zIndex: 499, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
                                 <Icon name='bars' />
                             </Button>
-                        </Sticky>   
-                    } 
-                    
+                        </Sticky>
+                    }
+
 
                     <div>
                         {/* <ul>
@@ -281,12 +307,12 @@ class App extends Component {
                                 <NavLink to="/dashboard">Dashboard&emsp;</NavLink>
                             </li>
                         </ul>
-                        
+
                         <hr /> */}
 
                         <br />
                         <br />
-    
+
                         {/*
                         A <Switch> looks through all its children <Route>
                         elements and renders the first one whose path
@@ -294,7 +320,7 @@ class App extends Component {
                         you have multiple routes, but you want only one
                         of them to render at a time
                         */}
-                
+
                         <Switch>
                             <Route exact path="/" component={Home} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
@@ -303,7 +329,14 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/namespace/:name" component={Namespace} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userSearch" component={UserSearch} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/calendar" component={Calendar} />
+<<<<<<< HEAD
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userprofile" component={UserProfile} />
+=======
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/notification" component={NotiCenter} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/uploadFilesTest" component={UploadFilesTest} />
+>>>>>>> bf6a62df53771d844d51edad8e34982975411e99
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>
@@ -316,7 +349,7 @@ class App extends Component {
                 <Loading type="spinningBubbles" color="#0B6623" />
             );
         }
-        
+
     }
 }
 

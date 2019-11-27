@@ -1,8 +1,9 @@
 import PropTypes from "prop-types";
 import _ from "lodash";
 import React, { Component } from "react";
-import { Search, Grid, Header, Segment, Label } from "semantic-ui-react";
+import { Search, Grid, Header, Segment, Label, Image } from "semantic-ui-react";
 import API from '../utilities/API';
+import NotificationCard from './NotificationCard';
 
 var source = [];
 
@@ -10,7 +11,7 @@ const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
   avatar && (
     <div key="image" className="image">
       {/* {createHTMLImage(image, { autoGenerateKey: false })} */}
-      <img src={avatar}></img>
+      <Image avatar src={avatar}></Image>
     </div>
   ),
   <div key="content" className="content">
@@ -27,65 +28,66 @@ const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
 //   description: PropTypes.string,
 // }
 
-const initialState = { isLoading: false, results: [], value: "", user_db_id:"5dd1bae0ff6c0a438b3deee6" };
+const initialState = { isLoading: false, results: [], value: ""};
 
 export default class SearchExampleStandard extends Component {
-  state = initialState;
+    state = initialState;
 
-  componentDidMount() {
-    this.fetch_data();
-  }
-
-  fetch_data() {
-    API({
-        // assemble HTTP get request
-        method: 'get',
-        url: "/api/userSearch",
-        withCredentials: true
-    }).then((response) => {
-        // extract the data from the body of response
-        console.log("data successfully retrieved from backend!");
-        console.log(response.data);
-        source = response.data;
-
-    }).catch((error) => {
-        // otherwise some error occurs
-        console.log("error when submitting: "+error);
-    });
-  }
-
-
-
-  handleResultSelect = (e, { result }) => {
-    // e.preventDefault();
-    this.setState({ value: result.title })
-
-    if(result.is_friend === "You are friends!") {
-      alert("You two are already friends!");
-      return;
+    componentDidMount() {
+        this.fetch_data();
     }
 
-    // assemble HTTP post request
-    // put the updated value (with user id) into the request body in the form of json
-    API({
-        method: 'post',
-        url: "/api/userAdd",
-        withCredentials: true,
-        data: {
-            send_to_id: result.db_id,
-            user_db_id: this.state.user_db_id,
-        }
-    }).then((response) => {
-        // check what our back-end Express will respond (Does it receive our data?)
-        console.log(response.data);
-        alert("Friend request has been sent to "+result.title+"!");
-    }).catch((error) => {
-        // if we cannot send the data to Express
-        console.log("error when submitting: "+error);
-        alert("failed to update these fields!");
-    });
+    fetch_data() {
+        API({
+            // assemble HTTP get request
+            method: 'get',
+            url: "/api/userSearch",
+            withCredentials: true
+        }).then((response) => {
+            // extract the data from the body of response
+            console.log("data successfully retrieved from backend!");
+            console.log(response.data);
+            source = response.data;
 
-  };
+        }).catch((error) => {
+            // otherwise some error occurs
+            console.log("error when submitting: "+error);
+        });
+    }
+
+
+
+    handleResultSelect = (e, { result }) => {
+        // e.preventDefault();
+        this.setState({ value: result.title })
+
+        if (result.is_friend === "You are friends!") {
+            return;
+        }
+        else if(result.is_friend === "Yourself") {
+            return;
+        }
+
+        // assemble HTTP post request
+        // put the updated value (with user id) into the request body in the form of json
+        API({
+            method: 'post',
+            url: "/api/userAdd",
+            withCredentials: true,
+            data: {
+                send_to_id: result.db_id,
+            }
+        }).then((response) => {
+            // check what our back-end Express will respond (Does it receive our data?)
+            console.log(response.data);
+            alert("Friend request has been sent to "+result.title+"!");
+        }).catch((error) => {
+            // if we cannot send the data to Express
+            console.log("error when submitting: "+error);
+            alert("failed to update these fields!");
+        });
+
+    };
 
 
     handleSearchChange = (e, { value }) => {
@@ -105,7 +107,7 @@ export default class SearchExampleStandard extends Component {
     };
 
     render() {
-    const { isLoading, value, results } = this.state;
+        const { isLoading, value, results } = this.state;
 
         return (
             <Grid>
