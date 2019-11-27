@@ -33,7 +33,7 @@ namespacesToPopulate.forEach((namespaceEndpoint) => {
             { 
                 $set: { peopleDetails: peopleDetails }
             },
-            {safe: true, upsert: true, new: true}
+            {safe: true, new: true}
         ).then((updatedNamespace) => {
             console.log('Updated namespace is');
             console.log(updatedNamespace);

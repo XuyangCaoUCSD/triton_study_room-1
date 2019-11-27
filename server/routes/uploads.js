@@ -23,10 +23,10 @@ const avatarStorage = multer.diskStorage({
     }
 });
 
-// Init Upload
+// Init Upload for avatars
 const avatarUpload = multer({
     storage: avatarStorage,
-    limits: {fileSize: 1024000}, // in bytes (so 1 MB);
+    limits: {fileSize: 1048576}, // in bytes (so 1 MB);
     fileFilter: function(req, file, cb){
         avatarCheckFileType(file, cb);
     }
@@ -44,7 +44,7 @@ function avatarCheckFileType(file, cb){
     if (mimetype && extname) {
         return cb(null, true);
     } else {
-        cb('Error: Images Only (jpeg, jpg, png)!');
+        cb({message: 'Error: Images Only (jpeg, jpg, png)!'});
     }
 }
 
@@ -78,10 +78,11 @@ router.get("/avatars/:fileName?", middleware.isLoggedIn, (req, res) => {
     } else {
         // If fileName is in parameters
 
+        // Check if file exists, then decide what to do
         fs.access(path.resolve(`./uploads/avatars/${fileName}`), fs.F_OK, (err) => {
             if (err) {
               console.error(err);
-              console.log('FILE NO EXIST');
+              console.log('AVATAR NO EXIST, SENDING DEFAULT');
               // Send default avatar
               res.sendFile(path.resolve(`./uploads/avatars/DEFAULT_USER_123.png`));
               return;
@@ -110,7 +111,8 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
         avatarUpload(req, res, (err) => {
             if (err) {
                 data.success = false;
-                data.errorMessage = err;
+                console.log(err);
+                data.errorMessage = err.message;
                 console.log('Error in upload');
                 res.send(data);
             } else {
@@ -173,8 +175,170 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
             }
         });
     });
-
     
+});
+
+
+
+let namespaceDestination = './uploads/namespace';  // IMPORTANT Path relative to SERVER folder (not this file);
+
+// Set The Storage Engine
+const namespaceStorage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        // Expects req.endpointWithoutSlashto be set
+        console.log('Destination is ' + `${namespaceDestination}/${req.endpointWithoutSlash}/`);
+        cb(null, `${namespaceDestination}/${req.endpointWithoutSlash}/`);
+    },
+    filename: function(req, file, cb) {
+        let now = Date.now();
+
+        let fileName = now + file.originalname;
+
+        console.log('File name is ' + fileName);
+        cb(null, fileName);
+    }
+});
+
+// Init Upload for namespace files
+const namespaceUpload = multer({
+    storage: namespaceStorage,
+    limits: {fileSize: 20971520}, // in bytes (so 20 MB);
+    fileFilter: function(req, file, cb){
+        namespaceCheckFileType(file, cb);
+    }
+}).single('namespaceFile');
+
+// Check File Type to block
+function namespaceCheckFileType(file, cb){
+    // Blocked extensions
+    const blockedFiletypes = /exe|xml|cmd|ksh/;
+    // Check ext
+    const extname = blockedFiletypes.test(path.extname(file.originalname).toLowerCase());
+    // Check mime
+    const mimetype = blockedFiletypes.test(file.mimetype);
+
+    if (!mimetype && !extname) {
+        return cb(null, true);
+    } else {
+        cb({message: 'Error: File type not allowed'});
+    }
+}
+
+
+// Retrieve a file from namespace
+router.get('/namespace/:namespace/:fileName', middleware.isLoggedIn, (req, res) => {
+    let fileName = req.params.fileName;
+    let userId = req.session.passport.user;
+
+    let endpointWithoutSlash = req.params.namespace;
+    console.log('\n Reached get route for namespace file with params ' + endpointWithoutSlash + ' and ' + fileName);
+    
+    // This case shouldn't be reached as made route parameters mandatory to reach here
+    if (!fileName || !endpointWithoutSlash) {
+        let data = {
+            success: false
+        }
+
+        data.errorMessage = "Need to specify a valid path to file!";
+        res.send(data);
+        
+    } else {
+        
+        // Check if file exists first
+        fs.access(path.resolve(`./uploads/namespace/${endpointWithoutSlash}/${fileName}`), fs.F_OK, (err) => {
+            if (err) {
+              console.error(err);
+              console.log('FILE NO EXIST');
+              res.send("ERROR NO SUCH FILE");
+              return;
+            }
+          
+            // file exists, send file
+            res.sendFile(path.resolve(`./uploads/namespace/${endpointWithoutSlash}/${fileName}`));	
+        });
+        
+    }
+});
+
+
+// Upload files to namespace
+router.post('/namespace/:namespace', middleware.isLoggedIn, (req, res) => {
+    console.log('Reached post route for namespace');
+
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let endpointWithoutSlash = req.params.namespace;
+
+    Namespace.findOne(
+        {endpoint: endpoint}
+    ).then( async (foundNamespace) => {
+
+        // Make sure user belongs to namespace
+        if (foundNamespace.people.indexOf(userId) === -1) {
+            console.log(userId + 'Attempted unauthorized upload to namespace ' + foundNamespace.endpoint);
+            res.statusMessage = "UNAUTHORISED CREDENTIALS!";
+            res.status(403);
+            res.send("ERROR, UNAUTHORIZED CREDENTIALS");
+            return;
+        }   
+
+        // namespaceUpload
+        let data = {
+            success: true
+        }
+
+        // Make namespace endpoint available in multer's setup function to determine file destination
+        req.endpointWithoutSlash = endpointWithoutSlash;
+
+        // Make directory for namespace if it doesn't exist already;
+        await fs.promises.mkdir(path.resolve(`./uploads/namespace/${endpointWithoutSlash}`), { recursive: true })
+
+        namespaceUpload(req, res, (err) => {
+            if (err) {
+                data.success = false;
+                console.log(err);
+                data.errorMessage = err.message;
+                console.log('Error in upload');
+                res.send(data);
+            } else {
+                if (req.file == undefined) {
+                    data.success = false;
+                    data.errorMessage = 'NO FILE SELECTED!';
+                    console.log('No file selected');
+                    res.send(data);
+                } else {
+                    data.message = 'File Uploaded!';
+                    console.log('File uploaded');
+                    let fileUrl = `http://localhost:8181/api/uploads/namespace/${endpointWithoutSlash}/${req.file.filename}`; // TODO CHANGE TO DOMAIN NAME WHEN HOSTING ONLINE
+                    data.fileUrl = fileUrl;
+
+                    Namespace.findByIdAndUpdate(
+                        foundNamespace.id,
+                        { 
+                            $push: { "files": fileUrl }
+                        },
+                        {new: true}
+                    ).then((updatedNamespace) => {
+                        console.log('updatedNamespace is');
+                        console.log(updatedNamespace);
+
+                        res.send(data);
+
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                }
+            }
+        });
+
+
+
+    }).catch((err) => {
+        console.log(err);
+    });
+
+
 });
 
 module.exports = router;

@@ -11,6 +11,7 @@ const NamespaceSchema = new mongoose.Schema({
     people: [ { type: ObjectId, ref: 'User' } ],
     forClass: ObjectId,
     privateChat: { type: Boolean, default: false },
+    privateGroup: { type: Boolean, default: false },
     rooms: [
                 { 
                     roomId: Number,
@@ -24,6 +25,7 @@ const NamespaceSchema = new mongoose.Schema({
         name: String,
         avatar: String
     }],
+    files: [],
     studySessionsHistory: [ { type: ObjectId, ref: 'StudySessionHistory' } ]
 }, {
     timestamps: true
