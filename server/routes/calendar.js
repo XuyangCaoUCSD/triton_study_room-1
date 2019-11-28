@@ -7,7 +7,7 @@ const  express       = require('express'),
 var router = express.Router();
 
 
-// /calendar route. Retrieve user's calendar info
+// /calendar route. Retrieve user's calendar events
 router.get('/', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     console.log("Reached calendar get route");
@@ -18,6 +18,37 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
 
     User.findById(userId).then((foundUser) => {
 
+        // If no calendar, create new
+        if (!foundUser.calendar) {
+            Calendar.create({
+                events: []
+            }).then((createdCalendar) => {
+                foundUser.calendar = createdCalendar.id;
+                foundUser.save().then((savedUser) => {
+                    console.log('Added calendar field to user');
+                    data.events = createdCalendar.events;
+                    res.send(data);
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+            }).catch((err) => {
+                console.log(err);
+            });
+
+        } else {
+            // If existing calendar, return existing events
+
+            Calendar.findById(foundUser.calendar).then((foundCalendar) => {
+                data.events = foundCalendar.events;
+                res.send(data);
+            }).catch((err) => {
+                console.log(err);
+            });
+
+        }
+
+
     }).catch((err) => {
         console.log(err);
     });
@@ -27,6 +58,8 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
 
 router.patch('/', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
+    let patchType = req.body.patchType;
+    let calendarEvent = req.body.calendarEvent;
     console.log("Reached calendar put route");
 
     let data = {
@@ -34,6 +67,40 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
     }
 
     User.findById(userId).then((foundUser) => {
+        if (patchType === 'add') {
+
+            Calendar.findByIdAndUpdate(
+                foundUser.calendar,
+                {$push: {events: calendarEvent}},
+                {safe: true, new: true}
+            ).then((updatedCalendar) => {
+                console.log('Added event to calendar');
+            }).catch((err) => {
+                console.log(err);
+            });
+
+        } else if (patchType === 'remove') {
+            Calendar.findByIdAndUpdate(
+                foundUser.calendar,
+                {$pull: {events: calendarEvent}},
+                {safe: true, new: true}
+            ).then((updatedCalendar) => {
+                console.log('Removed event to calendar');
+            }).catch((err) => {
+                console.log(err);
+            });
+
+        } else if (patchType === 'modify') {
+
+        } else {
+            console.log('Invalid patchType');
+            data.success = false;
+            data.errorMessage = 'Invalid patchType';
+            res.send(data);
+            return;
+        }
+        
+
 
     }).catch((err) => {
         console.log(err);
