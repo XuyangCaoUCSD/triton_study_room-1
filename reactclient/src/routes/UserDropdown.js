@@ -55,7 +55,7 @@ class UserDropdown extends Component {
                         description: response.data[i].email,                       
                         onClick: e => {
                             let index = e.currentTarget.getAttribute("sourceindex");
-                            this.props.action(this.state.source[index]);
+                            this.props.uponSelection(this.state.source[index]);
                           }
                    };
                    const usersCollected = this.state.dropdownView.concat(user);
@@ -87,7 +87,7 @@ class UserDropdown extends Component {
 
 UserDropdown.defaultProps = {
     endpoint: "global",
-    action: () => {}
+    uponSelection: () => {}
 };
 
 export default UserDropdown;
