@@ -42,6 +42,7 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleEmaiList, groupName);
 });
 
+
 router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     console.log('req.params is');
     console.log(req.params);
@@ -145,8 +146,9 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
-// Adds user to namespace
-router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
+
+// Adds user to namespace (only for private group or public groups. Direct messagets should automatically add user)
+router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let endpoint = "/" + req.params.namespace;
 
@@ -198,7 +200,7 @@ router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 foundNamespace.peopleDetails.push(userDetails);
 
                 foundNamespace.save().then((updatedNamespace) => {
-                    
+
                     console.log('Updated namespace with user and details');
                     data.newGroupEndpoint = updatedNamespace.endpoint;
 
@@ -254,13 +256,12 @@ router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
     }).catch((err) => {
         console.log(err);
     });
-    
-
 
 });
 
+
 // Removes user permanently from namespace
-router.delete('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
+router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let endpoint = "/" + req.params.namespace;
 
@@ -268,52 +269,83 @@ router.delete('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
         success: true
     }
 
-    Namespace.findOne({
-        endpoint: endpoint
-    }).then((foundNamespace) => {
-        let userIndex = foundNamespace.people.indexOf(userId);
-        if (userIndex === -1) {
-            console.log('User was already not in namespace');
+    User.findById(
+        userId
+    ).then((foundUser) => {
+        if (!foundUser) {
             data.success = false;
-            data.errorMessage = "User was not in this namespace";
+            data.errorMessage = "Couldn't find user";
+            console.log("Couldn't find user");
             res.send(data);
             return;
         }
 
-        if (userIndex >= 0) {
-            foundNamespace.people.splice(userIndex, 1);
-        }
-
-        // Find index of correct user object in details array
-        for (var i = 0; i < foundNamespace.peopleDetails.length; i++) {
-            if (foundNamespace.peopleDetails[i].email === foundUser.email) {
-                break;
+        Namespace.findOne({
+            endpoint: endpoint
+        }).then((foundNamespace) => {
+            let userIndex = foundNamespace.people.indexOf(userId);
+            if (userIndex === -1) {
+                console.log('User was already not in namespace');
+                data.success = false;
+                data.errorMessage = "User was not in this namespace";
+                res.send(data);
+                return;
             }
-        }
+    
+            // Remove userId from people array
+    
+            // Should be >= 0
+            if (userIndex >= 0) {
+                foundNamespace.people.splice(userIndex, 1);
+            }
+    
+            // Find index of correct user object in details array to remove
+            for (var i = 0; i < foundNamespace.peopleDetails.length; i++) {
+                if (foundNamespace.peopleDetails[i].email === foundUser.email) {
+                    break;
+                }
+            }
+    
+            if (i === foundNamespace.peopleDetails.length) {
+                console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
+                data.success = false;
+                data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
+                res.send(data);
+                return;
+            }
+    
+            foundNamespace.peopleDetails.splice(i, 1);
+            
+            // Save updated namespace
+            foundNamespace.save().then((savedNamespace) => {
+                console.log('Removed user and their details from namespace');
 
-        if (i === foundNamespace.peopleDetails.length) {
-            console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
-            data.success = false;
-            data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
-            res.send(data);
-            return;
-        }
-
-        foundNamespace.peopleDetails.splice(i, 1);
-        
-        foundNamespace.save().then((savedNamespace) => {
-            console.log('Removed user details from namespace');
-            res.send(data);
+                User.findByIdAndUpdate(
+                    userId,
+                    {$pull: {namespaces: savedNamespace.id}},
+                    {safe: true, new: true}
+                ).then((updatedUser) => {
+                    console.log('Removed namespace from user namespaces array');
+                    res.send(data);
+                }).catch((err) => {
+                    console.log(err);
+                });
+                
+            }).catch((err) => {
+                console.log(err);
+            });
+    
+    
         }).catch((err) => {
             console.log(err);
         });
 
-
     }).catch((err) => {
         console.log(err);
-    });
+    })
 
 });
+
 
 // Recursive call function over rooms to ensure callback chaining for redis calls for room unreads
 function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, data) {
