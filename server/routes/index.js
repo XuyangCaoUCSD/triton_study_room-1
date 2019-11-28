@@ -14,8 +14,8 @@ const { Notification } = require("../models/Notification");
 
 // Root route
 router.get("/", (req, res) => {
-    console.log('Someone connected to root route');
-    res.send("You are connected to the root route");
+    console.log('Someone connected to root api route');
+    res.send("You are connected to the root api route");
 	// res.render("landing");
 });
 
@@ -515,9 +515,6 @@ function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotificati
     });
 }
 
-module.exports = router;
-
-
 function get_user_data(person_id) {
     return User.findById(person_id).then(function(data) {
         if(!data) {
@@ -541,3 +538,5 @@ function get_all_user_data() {
         console.log(err);
     });
 }
+
+module.exports = router;

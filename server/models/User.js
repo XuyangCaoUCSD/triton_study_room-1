@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema({
 	newUser: { type: Boolean, default: true },
 	classes: [ { type: ObjectId, ref: 'Class' } ],
 	request_notification: [NotificationSchema],
-	myCalendar: CalendarSchema
+	calendar: { type: Object, ref: 'Calendar' }
 });
 
 // // Add methods for passport to User when creating model
