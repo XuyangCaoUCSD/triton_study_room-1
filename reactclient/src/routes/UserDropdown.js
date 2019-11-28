@@ -2,18 +2,6 @@ import React, {Component} from "react";
 import { Dropdown, Grid } from "semantic-ui-react";
 import API from '../utilities/API';
 
-const friendOptions = [
-  {
-    key: "Jenny Hess",
-    text: "Jenny Hess",
-    value: "Jenny Hess",
-    image: {
-      avatar: true,
-      src: "https://react.semantic-ui.com/images/avatar/small/jenny.jpg"
-    },
-    description: "wow@ucsd.edu"
-  },
-];
 
 class UserDropdown extends Component {
     constructor(props) {
@@ -39,16 +27,14 @@ class UserDropdown extends Component {
 
     fetch_data() {
         // accordingly modify the backend url
-        var baseUrl = "/api/userSearch";
-        if(this.props.namespace !== "global") {
-            baseUrl = baseUrl + "/" + this.props.namespace;
-        }
-        console.log("the baseUrl is "+baseUrl);
+        var backendUrl = "/api/userSearch";
+        backendUrl = backendUrl + this.props.endpoint;
+        console.log("the baseUrl is "+backendUrl);
         
         API({
             // assemble HTTP get request
             method: 'get',
-            url: baseUrl,
+            url: backendUrl,
             withCredentials: true
         }).then((response) => {
             // extract the data from the body of response
@@ -72,7 +58,8 @@ class UserDropdown extends Component {
                             this.props.action(this.state.source[index]);
                           }
                    };
-                   this.state.dropdownView.push(user);
+                   const usersCollected = this.state.dropdownView.concat(user);
+                   this.setState({dropdownView: usersCollected});
                }
             }
 
@@ -99,7 +86,7 @@ class UserDropdown extends Component {
 }
 
 UserDropdown.defaultProps = {
-    namespace: "global",
+    endpoint: "global",
     action: () => {}
 };
 
