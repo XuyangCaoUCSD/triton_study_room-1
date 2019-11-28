@@ -3,6 +3,7 @@ const  express       = require('express'),
        passport      = require('passport'),
        passportSetup = require('../config/passport-setup'), // IMPORTANT: Need to require somewhere to run file so google auth is initialised
        User          = require('../models/User'),
+       Namespace     = require('../models/Namespace');
        middleware    = require('../middleware/index');
 
 const redisClient = require('../redisClient');
@@ -185,6 +186,7 @@ router.post("/setting", middleware.isLoggedIn, function(req, res) {
 });
 
 
+// this route will retrieve all the users in our app
 router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
   console.log('SEARCH DATA ROUTE REACHED');
 	let userId = req.session.passport.user;
@@ -207,17 +209,17 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 					avatar: data[i].avatar,
 					email: data[i].email,
 					is_friend: "",
-					db_id: data[i]._id
+					// db_id: data[i]._id
 				};
 
 
 				if (friendList.indexOf(data[i]._id) != -1) {
-					user.is_friend = "You are friends!";
+					user.is_friend = "A friend of yours";
 				} else {
 					if (data[i]._id == userId) {
                         user.is_friend = "Yourself";
                     } else {
-                        user.is_friend = "Click to add friend";
+                        user.is_friend = "Not your friend yet";
                     }
                 }
 
@@ -237,6 +239,66 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 	});
 
 });
+
+router.get("/userSearch/:namespace", middleware.isLoggedIn, async (req, res) => {
+    let to_be_sent = [];
+    let userId = req.session.passport.user;
+    let endpoint = "/"+req.params.namespace;
+    console.log(endpoint);
+
+    User.findById(userId).then( async function(foundUser) {
+        let friendList = foundUser.friends;
+    
+        Namespace.findOne({"endpoint": endpoint}).then( async function(spaceInfo) {
+            console.log(spaceInfo.people);
+            for(var i = 0; i < spaceInfo.people.length; i++) {
+            //now find each user
+            await User.findOne({"_id": spaceInfo.people[i]}).then(function(userData) {
+                let user = {
+                    title: (userData.name),
+                    about_me: userData.aboutMe,
+                    avatar: userData.avatar,
+                    email: userData.email,
+                    is_friend: ""
+                };
+
+                //check friend
+                if (friendList.indexOf(userData._id) != -1) {
+                    user.is_friend = "A friend of yours";
+                } else {
+                    if (userData._id == userId) {
+                        user.is_friend = "Yourself";
+                    } else {
+                        user.is_friend = "Not your friend yet";
+                    }
+                }
+
+                to_be_sent.push(user);
+
+                }).catch(function(err) {
+                console.log(err);
+                });
+            }
+
+            res.send(to_be_sent);
+
+
+    }).catch(function(err) {
+    console.log(err);
+    });
+
+}).catch(function(err) {
+    console.log(err);
+});
+});
+
+router.post("/multiUserSubmit", middleware.isLoggedIn, function(req, res) {
+    console.log(req.body);
+    res.send("successfully get your multiUserSelection!");
+  
+  });
+
+
 
 
 router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
