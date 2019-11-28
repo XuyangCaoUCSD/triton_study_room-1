@@ -227,6 +227,49 @@ function namespaceCheckFileType(file, cb){
     }
 }
 
+//  Get all files messages belonging to namespace from database (not file server)
+router.get('/namespace/:namespace', middleware.isLoggedIn, (req, res) => {
+    
+    console.log('Reached files get route');
+
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let data = {
+        success: true
+    }
+
+    Namespace.findOne({
+        endpoint: endpoint
+    }).select('people files')
+    .then((foundNamespace) => {
+
+        // Serverside authorisation check (if user has permission for group) (in case somehow user has access to link)
+        if (foundNamespace.people.indexOf(userId) === -1) {
+            console.log('Attempted unauthorized access');
+            res.statusMessage = "UNAUTHORISED CREDENTIALS!";
+            res.status(403);
+            res.send("ERROR, UNAUTHORIZED CREDENTIALS");
+            return;
+        }
+
+        console.log('Getting files from ' + endpoint);
+        File.findById(foundNamespace.files).then((foundFileObj) => {
+            // No need to expose file id
+            data.files = foundFileObj.files.map((file) => {
+                return {
+                    originalName: file.originalName,
+                    url: file.url
+                }
+            });
+            res.send(data);
+        }).catch((err) => {
+            console.log(err);
+        })
+        
+    })
+    
+});
 
 // Retrieve a file from namespace
 router.get('/namespace/:namespace/:fileName', middleware.isLoggedIn, (req, res) => {

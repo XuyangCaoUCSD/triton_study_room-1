@@ -11,6 +11,7 @@ import io from 'socket.io-client';
 import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
 import UploadFile from "../ChildComponents/UploadFile";
+import FilesView from "../ChildComponents/FilesView";
 import ChatGroupIcon from '../ChatGroupIcon';
 import Linkify from 'react-linkify';
 
@@ -27,7 +28,8 @@ class Namespace extends Component {
             activeUsers: {},
             namespaceNotifications: {},
             peopleMap: {},
-            fileUploadWindowOpen: false
+            fileUploadWindowOpen: false,
+            filesViewWindowOpen: false
         };
 
         this.parentSocket = this.props.socket;
@@ -45,6 +47,8 @@ class Namespace extends Component {
         this.sendFileMessage = this.sendFileMessage.bind(this);
         this.handleFileUploadWindowOpen = this.handleFileUploadWindowOpen.bind(this);
         this.closeFileUploadWindow = this.closeFileUploadWindow.bind(this);
+        this.handleFilesViewWindowOpen = this.handleFilesViewWindowOpen.bind(this);
+        this.closeFilesViewWindow = this.closeFilesViewWindow.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -270,7 +274,8 @@ class Namespace extends Component {
                 roomNotifications: {},
                 activeUsers: {},
                 namespaceNotifications: {},
-                fileUploadWindowOpen: false
+                fileUploadWindowOpen: false,
+                filesViewWindowOpen: false
                 // rooms: null
             });
 
@@ -504,6 +509,20 @@ class Namespace extends Component {
         } 
     }
 
+    handleFilesViewWindowOpen() {
+        console.log('Opening files view window');
+        this.setState({
+            filesViewWindowOpen: true
+        });
+    }
+
+    closeFilesViewWindow() {
+        console.log('Closing files view window');
+        this.setState({
+            filesViewWindowOpen: false
+        });   
+    }
+
     render() {
         if (this.state.unauthorised) {
             return (
@@ -579,12 +598,16 @@ class Namespace extends Component {
                 groupDisplayName = this.state.groupName;
             }
 
+           
+
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
                 // TODO appropriate inner divs 100% width and height instead of having to nest
 
                 <div className="ui container" style={{height: "75vh", width: "100vw"}}>
-                    <h2 style={{textAlign: 'center'}}>{groupDisplayName}</h2>
+                    <div>
+                        <h2 style={{textAlign: 'center'}}>{groupDisplayName}</h2>
+                    </div>
                     {this.namespaceHTML(chatGroupIcons, rooms, chatHistory, activeUsersList)}
                 </div>
             );
@@ -596,15 +619,31 @@ class Namespace extends Component {
     }
 
     namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
+        let filesView =
+            <Modal
+                open={this.state.filesViewWindowOpen}
+                closeIcon
+                onClose={this.closeFilesViewWindow}
+                size='small' 
+                trigger={
+                    <div style={{float: 'right'}}>
+                        <Button size='big' circular onClick={this.handleFilesViewWindowOpen} style={{ zIndex: 10, position: 'relative'}} icon='file archive' />
+                    </div>        
+                }
+            >
+                <Modal.Header>{this.state.currNs.groupName} Files</Modal.Header>
+                <FilesView endpoint={this.state.currNs.endpoint}/>
+            </Modal>;
+
         // Default stuff are for private chat, overwrite if not
         let roomsDiv = null;
         let activeUsersDiv = null;
         let messageColumnDivClassName = "fourteen wide column";
         let roomNameArea = 
             <span>
-                <Header size='tiny' as='h5' >
+                <Header style={{display: 'inline'}} size='tiny' as='h5' >
                     <Icon name='user' />
-                    <Header.Content>Direct Message</Header.Content>
+                    <Header.Content>Direct Message</Header.Content>{filesView}
                 </Header>
             </span>;
 
@@ -632,9 +671,9 @@ class Namespace extends Component {
             // roomNameArea = <span className="curr-room-text"> {this.state.currRoom.roomName} </span>;
             roomNameArea = 
                 <span>
-                    <Header size='tiny' as='h5' >
+                    <Header style={{display: 'inline'}} size='tiny' as='h5' >
                         <Icon name='users' />
-                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{filesView}
                     </Header>
                 </span>
         }
@@ -654,7 +693,6 @@ class Namespace extends Component {
                     <UploadFile sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
                 </Modal.Content>
             </Modal>;
-
 
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
@@ -679,13 +717,7 @@ class Namespace extends Component {
                             </div>
                         </ul>
                     </Segment>
-                    <div className="message-form" style={{width: '100%', paddingBottom: '15px'}}>
-                        {/* <form className="ui-form" id="user-input" onSubmit={messageInputHandler} style={{width: '100%'}}>
-                            <div className="ui input fluid icon" >
-                                <input name="message" type="text" placeholder="Enter your message" maxLength="40000" style={{width: '100%', wordWrap: 'break-word'}}/>
-                            </div>
-                        </form> */}
-                        
+                    <div className="message-form" style={{width: '100%', paddingBottom: '15px'}}>                        
                         <Form ref={(el) => { this.messageInputForm = el; }} style={{width: '100%'}}>
                             {fileUpload}
                             <TextArea style={{whiteSpace: 'pre-wrap'}} value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
@@ -697,7 +729,7 @@ class Namespace extends Component {
             </div>
         )
     }
-    
+
     buildRoom(room, key) {
         // If user in this room
         if (room.roomName === this.state.currRoom.roomName) {
@@ -770,35 +802,6 @@ class Namespace extends Component {
         });
 
     }
-
-    // TODO build onClick for messaging
-    // buildActiveUser(userInfo, listKey) {
-    //     let additionalDetails = (
-    //         <div>
-    //             Name: {userInfo.name}<br />
-    //             Email: {userInfo.email}<br />
-    //             {/* <Button size="mini" color='green' content='Message' /> */}
-    //         </div>
-    //     )
-    //     return (
-    //         <Popup
-    //             key={listKey}
-    //             trigger={
-    //                     <List.Item email={userInfo.email} user-name={userInfo.name} onClick={this.activeUserClickHandler} key={listKey}>     
-    //                         <Image avatar src={userInfo.avatar} />
-    //                         <List.Content>
-    //                             <List.Header>{userInfo.givenName}</List.Header>
-    //                         </List.Content>
-    //                     </List.Item>
-    //             }
-    //             content={additionalDetails}
-    //             position='top right'
-    //             on='hover'
-    //         />
-            
-    //     );
-        
-    // }
 
     buildActiveUser(userInfo, listKey) {
         let additionalDetails = (

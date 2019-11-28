@@ -17,7 +17,7 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
 
     let privateChat = req.body.privateChat;
     let secondUserEmail = req.body.secondUserEmail;
-    let peopleEmaiList = req.body.peopleEmaiList;
+    let peopleDetailsList = req.body.peopleDetailsList;
     let groupName = req.body.groupName;
 
     console.log('privateChat is')
@@ -31,6 +31,14 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
 
     // const io = req.app.get('socketio');
 
+    // Just need list of emails
+    let peopleEmailList = null;
+    if (peopleDetailsList) {
+        peopleEmaiList = peopleDetailsList.map((personInfo) => {
+            return personInfo.email;
+        })    
+    }
+    
     findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleEmaiList, groupName);
 });
 
@@ -161,9 +169,11 @@ router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 return;
             }
 
-            // TODO
-            if (foundNamespace.privateChat || foundNamespace.privateGroup) {
-
+            // Never should need to join direct message this way?
+            if (foundNamespace.privateChat) {
+                data.success = false;
+                res.send(data);
+                return;
             }
 
             let userDetails = {
@@ -173,17 +183,67 @@ router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 avatar: foundUser.avatar
             }
 
-            Namespace.findByIdAndUpdate(
-                foundNamespace.id,
-                {$push: {'people': userId, 'peopleDetails': userDetails}},
-                {safe: true, new: true}
-            ).then((updatedNamespace) => {
-                console.log('Updated namespace with user and details');
-            
-                res.send(data);
-            }).catch((err) => {
-                console.log(err);
-            })
+            if (foundNamespace.privateGroup) {
+                let invitedIndex = foundNamespace.invited.indexOf(foundUser.email);
+                if (invitedIndex === -1) {
+                    console.log('User is not allowed to join namespace');
+                    data.success = false;
+                    data.errorMessage = "User is not allowed to join namespace";
+                    res.send(data);
+                    return;
+                }
+
+                Namespace.findByIdAndUpdate(
+                    foundNamespace.id,
+                    {$push: {'people': userId, 'peopleDetails': userDetails}},
+                    {safe: true, new: true}
+                ).then((updatedNamespace) => {
+                    console.log('Updated namespace with user and details');
+                    data.newGroupEndpoint = updatedNamespace.endpoint;
+                    
+                    User.findByIdAndUpdate(
+                        userId,
+                        {$push: {"namespaces": updatedNamespace.id}},
+                        {safe: true, new: true}
+                    ).then((updatedUser) => {
+                        console.log('Added namespace to user');
+                        res.send(data)
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                    
+                }).catch((err) => {
+                    console.log(err);
+                })
+
+            } else {
+                console.log('Joining a default class groups');
+                // DEFAULT CLASS GROUPS
+                Namespace.findByIdAndUpdate(
+                    foundNamespace.id,
+                    {$push: {'people': userId, 'peopleDetails': userDetails}},
+                    {safe: true, new: true}
+                ).then((updatedNamespace) => {
+                    console.log('Updated namespace with user and details');
+                    data.newGroupEndpoint = updatedNamespace.endpoint;
+
+                    User.findByIdAndUpdate(
+                        userId,
+                        {$push: {"namespaces": updatedNamespace.id}},
+                        {safe: true, new: true}
+                    ).then((updatedUser) => {
+                        console.log('Added namespace to user');
+                        res.send(data)
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+
+                }).catch((err) => {
+                    console.log(err);
+                })
+
+            }
+
     
         }).catch((err) => {
             console.log(err);
@@ -253,50 +313,6 @@ router.delete('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
     });
 
 });
-
-// TODO Get all files belonging to namespace
-router.get('/:namespace/files', middleware.isLoggedIn, (req, res) => {
-    
-    console.log('Reached files get route');
-
-    let userId = req.session.passport.user;
-    let endpoint = "/" + req.params.namespace;
-
-    let data = {
-        success: true
-    }
-
-    Namespace.findOne({
-        endpoint: endpoint
-    }).select('people files')
-    .then((foundNamespace) => {
-
-        // Serverside authorisation check (if user has permission for group) (in case somehow user has access to link)
-        if (foundNamespace.people.indexOf(userId) === -1) {
-            console.log('Attempted unauthorized access');
-            res.statusMessage = "UNAUTHORISED CREDENTIALS!";
-            res.status(403);
-            res.send("ERROR, UNAUTHORIZED CREDENTIALS");
-            return;
-        }
-
-        console.log('Getting files from ' + endpoint);
-        File.findById(foundNamespace.files).then((foundFileObj) => {
-            // No need to expose file id
-            data.files = foundFileObj.files.map((file) => {
-                return {
-                    originalName: file.originalName,
-                    url: file.url
-                }
-            });
-            res.send(data);
-        }).catch((err) => {
-            console.log(err);
-        })
-        
-    })
-    
-})
 
 // Recursive call function over rooms to ensure callback chaining for redis calls for room unreads
 function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, data) {
@@ -519,8 +535,12 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                 return;
             }
 
-            // Add creator user to email list
-            peopleEmailList.append(foundCreatorUser.email);
+            let creatorUserDetails = {
+                name: foundCreatorUser.name,
+                email: foundCreatorUser.email,
+                avatar: foundCreatorUser.avatar,
+                givenName: foundCreatorUser.givenName
+            }
 
             ChatHistory.create({
                 messages: []
@@ -539,53 +559,26 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                     admins: [
                         creatorUserId
                     ],
-                }).then( async (createdNamespace) => {
+                    people: [
+                        creatorUserId
+                    ],
+                    peopleDetails: [
+                        creatorUserDetails
+                    ]
+                }).then((createdNamespace) => {
                     console.log('created new private multi-user group');
                     console.log(createdNamespace);
-
-                    let peopleDetails = []; // Array of people details for namespace
-                    let people = []; // Array of people ids for namesapce
-
-                    // Update each member with the new namespace id, also retrieve their information to update namespace
-                    for (const memberEmail of peopleEmailList) {
-                        await User.findOneAndUpdate(
-                            {email: memberEmail},
-                            {
-                                $push: { "namespaces": createdNamespace.id }
-                            },
-                            {new: true}
-                        ).then((updatedMember) => {
-                            if (!updatedMember) {
-                                console.log('UNABLE TO FIND/UPDATE MEMBER WITH NEW NAMESPACE');
-                                return;
-                            }
-                            console.log('Updated namespace array of user ' + updatedMember.email);
-                            peopleDetails.push(
-                                {
-                                    name: updatedMember.name,
-                                    email: updatedMember.email,
-                                    avatar: updatedMember.avatar,
-                                    givenName: updatedMember.givenName
-                                }
-                            );
-    
-                            people.push(updatedMember.id);
-
-                        }).catch((err) => {
-                            console.log(err);
-                        });
-                    }
-
                     // Add new fields to namespace to save
 
                     // Use id as endpoint
                     let groupEndpoint = createdNamespace.id;
-                    createdNamespace.endpoint = groupEndpoint;
-                    createdNamespace.peopleDetails = peopleDetails;
-                    createdNamespace.people = people;
 
                     // Save namespace with added peopleDetails
-                    createdNamespace.save().then((savedNamespace) => {
+                    Namespace.findByIdAndUpdate(
+                        createdNamespace.id,
+                        {$set: {endpoint: groupEndpoint, invited: peopleEmaiList}},
+                        {safe: true, new: true}
+                    ).then((updatedNamespace) => {
                         // Send Message to master to dynamically add listeners to all threads for new (dynamic) namespace
                         console.log('Sending newNamespace message to master');
                         let messageToMaster = {
@@ -595,7 +588,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                         }
                         process.send(messageToMaster);
 
-                        data.group = createdNamespace;
+                        data.group = updatedNamespace;
                         // Send response
                         res.send(data);
 

@@ -13,11 +13,11 @@ const NamespaceSchema = new mongoose.Schema({
     privateChat: { type: Boolean, default: false },
     privateGroup: { type: Boolean, default: false },
     rooms: [
-                { 
-                    roomId: Number,
-                    roomName: String,
-                    chatHistory: { type: ObjectId, ref: 'ChatHistory' }
-                }
+        { 
+            roomId: Number,
+            roomName: String,
+            chatHistory: { type: ObjectId, ref: 'ChatHistory' }
+        }
     ],
     peopleDetails: [{ 
         email: String,
@@ -26,6 +26,7 @@ const NamespaceSchema = new mongoose.Schema({
         avatar: String
     }],
     files: { type: ObjectId, ref: 'File' },
+    invited: [String],
     studySessionsHistory: [ { type: ObjectId, ref: 'StudySessionHistory' } ]
 }, {
     timestamps: true
