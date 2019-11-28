@@ -29,26 +29,50 @@ const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
 //   description: PropTypes.string,
 // }
 
-const initialState = { isLoading: false, results: [], value: ""};
+const initialState = {isLoading: false, results: [], value: ""};
 
-export default class SearchExampleStandard extends Component {
-    state = initialState;
+export default class UserSearch extends Component {
+    
+    constructor(props) {
+        super(props);
+        this.state = {
+            isLoading: false,
+            results: [], 
+            value: ""
+        };
+
+    }
 
     componentDidMount() {
+        this._isMounted = true;
         this.fetch_data();
+        console.log(this.props.namespace);
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     fetch_data() {
+        // accordingly modify the backend url
+        var baseUrl = "/api/userSearch";
+        if(this.props.namespace !== "global") {
+            baseUrl = baseUrl + "/" + this.props.namespace;
+        }
+        console.log("the baseUrl is "+baseUrl);
+        
         API({
             // assemble HTTP get request
             method: 'get',
-            url: "/api/userSearch",
+            url: baseUrl,
             withCredentials: true
         }).then((response) => {
             // extract the data from the body of response
             console.log("data successfully retrieved from backend!");
             console.log(response.data);
-            source = response.data;
+            if(this._isMounted) {
+                source = response.data;
+            }
 
         }).catch((error) => {
             // otherwise some error occurs
@@ -60,15 +84,26 @@ export default class SearchExampleStandard extends Component {
 
     handleResultSelect = (e, { result }) => {
         // e.preventDefault();
-        this.setState({ value: result.title })
+        this.setState({ value: result.title });
+        if(this.props.goal === "add_friend") {
+            this.addFriend(result);
+        }
+        else if(this.props.goal === "multi_select") {
+            console.log(result.title);
+            this.props.action(result);
+        }
+        
+    };
 
-        if (result.is_friend === "You are friends!") {
+    // After discussion, this should be called somewhere else (like a user profile view page)
+    addFriend(result) {
+
+        if (result.is_friend === "A friend of yours") {
             return;
         }
         else if(result.is_friend === "Yourself") {
             return;
         }
-
         // assemble HTTP post request
         // put the updated value (with user id) into the request body in the form of json
         API({
@@ -87,8 +122,7 @@ export default class SearchExampleStandard extends Component {
             console.log("error when submitting: "+error);
             alert("failed to update these fields!");
         });
-
-    };
+    }
 
 
     handleSearchChange = (e, { value }) => {
@@ -111,34 +145,24 @@ export default class SearchExampleStandard extends Component {
         const { isLoading, value, results } = this.state;
 
         return (
-            <Grid>
-                <Grid.Column width={6}>
-                    <Search
-                    loading={isLoading}
-                    onResultSelect={this.handleResultSelect}
-                    onSearchChange={_.debounce(this.handleSearchChange, 500, {
-                        leading: true
-                    })}
-                    results={results}
-                    value={value}
-                    resultRenderer={resultRenderer}
-                    {...this.props}
-                    placeholder='Search by email or name'
-                    />
-                </Grid.Column>
-                <Grid.Column width={10}>
-                    <Segment>
-                    <Header>State</Header>
-                    <pre style={{ overflowX: "auto" }}>
-                        {JSON.stringify(this.state, null, 2)}
-                    </pre>
-                    <Header>Options</Header>
-                    <pre style={{ overflowX: "auto" }}>
-                        {JSON.stringify(source, null, 2)}
-                    </pre>
-                    </Segment>
-                </Grid.Column>
-            </Grid>
+            <Search
+            loading={isLoading}
+            onResultSelect={this.handleResultSelect}
+            onSearchChange={_.debounce(this.handleSearchChange, 500, {
+                leading: true
+            })}
+            results={results}
+            value={value}
+            resultRenderer={resultRenderer}
+            {...this.props}
+            placeholder='Search by email or name'
+            />
         );
     }
 }
+
+UserSearch.defaultProps = {
+    namespace: "global",
+    goal: "add_friend",
+    action: () => {}
+};
