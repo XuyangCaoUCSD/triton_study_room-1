@@ -12,6 +12,7 @@ import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Mod
 import Loading from "../Loading";
 import UploadFilesTest from "./UploadFilesTest";
 import ChatGroupIcon from '../ChatGroupIcon';
+import Linkify from 'react-linkify';
 
 class Namespace extends Component {
     constructor(props) {
@@ -850,7 +851,9 @@ class Namespace extends Component {
                     </div>
                     <div className="user-message">
                         <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
-                        {msg.content}
+                        <Linkify>
+                            {msg.content}
+                        </Linkify>
                     </div>
                 </Message>
                 

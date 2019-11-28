@@ -192,7 +192,9 @@ const namespaceStorage = multer.diskStorage({
     filename: function(req, file, cb) {
         let now = Date.now();
 
-        let fileName = now + "_" + file.originalname;
+        let fileOriginalNameWithoutSpaces = file.originalname.split(' ').join('')
+
+        let fileName = now + "_" + fileOriginalNameWithoutSpaces;
 
         console.log('File name is ' + fileName);
         cb(null, fileName);
