@@ -406,7 +406,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                         Namespace.create({
                             nsId: -1,
                             groupName: groupName,
-                            img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
+                            img: 'https://cmkt-image-prd.freetls.fastly.net/0.1.0/ps/1154791/910/607/m1/fpnw/wm0/private-message-.png?1459936606&s=f28adc88796a73407283ce6ffe889335',
                             endpoint: groupEndpoint,
                             privateChat: true,
                             rooms: [
