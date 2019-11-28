@@ -45,7 +45,7 @@ export default class UserSearch extends Component {
     componentDidMount() {
         this._isMounted = true;
         this.fetch_data();
-        console.log(this.props.namespace);
+        console.log(this.props.endpoint);
     }
 
     componentWillUnmount() {
@@ -54,16 +54,14 @@ export default class UserSearch extends Component {
 
     fetch_data() {
         // accordingly modify the backend url
-        var baseUrl = "/api/userSearch";
-        if(this.props.namespace !== "global") {
-            baseUrl = baseUrl + "/" + this.props.namespace;
-        }
-        console.log("the baseUrl is "+baseUrl);
+        var backendUrl = "/api/userSearch";
+        backendUrl = backendUrl + this.props.endpoint;
+        console.log("the baseUrl is "+backendUrl);
         
         API({
             // assemble HTTP get request
             method: 'get',
-            url: baseUrl,
+            url: backendUrl,
             withCredentials: true
         }).then((response) => {
             // extract the data from the body of response
@@ -78,8 +76,6 @@ export default class UserSearch extends Component {
             console.log("error when submitting: "+error);
         });
     }
-
-
 
     handleResultSelect = (e, { result }) => {
         // e.preventDefault();
@@ -161,7 +157,7 @@ export default class UserSearch extends Component {
 }
 
 UserSearch.defaultProps = {
-    namespace: "global",
+    endpoint: "global",
     goal: "add_friend",
     action: () => {}
 };

@@ -36,9 +36,11 @@ export default class MultiUserSelect extends Component {
         }
         //user doesn't exist before
         if(this._isMounted) {
-            this.state.selectedUsers.push(user);
+            const tempSelectedUsers = this.state.selectedUsers.concat(user);;
+            this.setState({selectedUsers: tempSelectedUsers});
 
-            this.state.usersDisplay.push(
+
+            const tempUsersDisplay = this.state.usersDisplay.concat(
                 <List.Item key={user.email} name={user.email}>
                 <span>
                 <Image avatar src={user.avatar} />
@@ -52,26 +54,29 @@ export default class MultiUserSelect extends Component {
                 </span>
               </List.Item>
             );
+            this.setState({usersDisplay: tempUsersDisplay});
         }
-        this.forceUpdate();
-        console.log("array is "+JSON.stringify(this.state.selectedUsers));
+        console.log("array is "+JSON.stringify(this.state));
     }
 
     _removeUser(event) {
         //console.log(event.currentTarget.name);
         for(var i = 0; i < this.state.selectedUsers.length; i++) {
             if(this.state.selectedUsers[i].email === event.currentTarget.name) {
-                this.state.selectedUsers.splice(i, 1);
+                const tempSelectedUsers = this.state.selectedUsers;
+                tempSelectedUsers.splice(i, 1);
+                this.setState({selectedUsers: tempSelectedUsers});
             }
         }
 
         for(var i = 0; i < this.state.usersDisplay.length; i++) {
             if(this.state.usersDisplay[i].key === event.currentTarget.name) {
-                this.state.usersDisplay.splice(i, 1);
+                const tempUsersDisplay = this.state.usersDisplay;
+                tempUsersDisplay.splice(i, 1);
+                this.setState({usersDisplay: tempUsersDisplay});
             }
         }
 
-        this.forceUpdate();
     }
 
     _multiUserSubmit(event) {
@@ -112,11 +117,11 @@ export default class MultiUserSelect extends Component {
         return (
             <Grid>
                 <Grid.Column width={4}>
-                    <UserSearch namespace="global" goal="multi_select" action={this.pushUser}/>
+                    <UserSearch endpoint={this.props.endpoint} goal="multi_select" action={this.pushUser} />
                     <br /><br />
-                    <UserDropdown namespace="global" action={this.pushUser}/>
+                    <UserDropdown endpoint={this.props.endpoint} action={this.pushUser} />
                     <br /><br />
-                    <Button onClick={this._multiUserSubmit}>Create a ...</Button>
+                    <Button onClick={this._multiUserSubmit}>Create a study group</Button>
                 </Grid.Column>
                 <Grid.Column width={4}>
                     <h3>Selected User</h3>
@@ -131,5 +136,5 @@ export default class MultiUserSelect extends Component {
 
 //by default if no namespace is given the scope is global
 MultiUserSelect.defaultProps = {
-    namespace: "global"
+    endpoint: "/global"
 };

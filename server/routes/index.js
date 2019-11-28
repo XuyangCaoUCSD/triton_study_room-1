@@ -241,61 +241,133 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 
 });
 
-router.get("/userSearch/:namespace", middleware.isLoggedIn, async (req, res) => {
+router.get("/userSearch/:endpoint", middleware.isLoggedIn, async (req, res) => {
     let to_be_sent = [];
     let userId = req.session.passport.user;
-    let endpoint = "/"+req.params.namespace;
+    let endpoint = "/"+req.params.endpoint;
     console.log(endpoint);
 
     User.findById(userId).then( async function(foundUser) {
         let friendList = foundUser.friends;
     
-        Namespace.findOne({"endpoint": endpoint}).then( async function(spaceInfo) {
-            console.log(spaceInfo.people);
-            for(var i = 0; i < spaceInfo.people.length; i++) {
-            //now find each user
-            await User.findOne({"_id": spaceInfo.people[i]}).then(function(userData) {
-                let user = {
-                    title: (userData.name),
-                    about_me: userData.aboutMe,
-                    avatar: userData.avatar,
-                    email: userData.email,
-                    is_friend: ""
-                };
-
-                //check friend
-                if (friendList.indexOf(userData._id) != -1) {
-                    user.is_friend = "A friend of yours";
-                } else {
-                    if (userData._id == userId) {
-                        user.is_friend = "Yourself";
+        //if the endpoint is customized
+        if(endpoint !== "/global") {
+            
+            Namespace.findOne({"endpoint": endpoint}).then( async function(spaceInfo) {
+                console.log(spaceInfo.people);
+                for(var i = 0; i < spaceInfo.people.length; i++) {
+                //now find each user
+                await User.findOne({"_id": spaceInfo.people[i]}).then(function(userData) {
+                    let user = {
+                        title: (userData.name),
+                        about_me: userData.aboutMe,
+                        avatar: userData.avatar,
+                        email: userData.email,
+                        is_friend: ""
+                    };
+    
+                    //check friend
+                    if (friendList.indexOf(userData._id) != -1) {
+                        user.is_friend = "A friend of yours";
+                        to_be_sent.push(user);
                     } else {
-                        user.is_friend = "Not your friend yet";
+                        if (userData._id == userId) {
+                            // user.is_friend = "Yourself";
+                            // skip self
+                            
+                        } else {
+                            user.is_friend = "Not your friend yet";
+                            to_be_sent.push(user);
+                        }
                     }
+    
+                    
+    
+                    }).catch(function(err) {
+                    console.log(err);
+                    });
                 }
+    
+                res.send(to_be_sent);
+    
+    
+            }).catch(function(err) {
+            console.log(err);
+            });
+        }
+        //otherwise find all users
+        else {
 
-                to_be_sent.push(user);
-
-                }).catch(function(err) {
+            User.find({}).then(function(data) {
+    
+                for(var i = 0; i < data.length; i++) {
+    
+                    let user = {
+                        title: (data[i].name),
+                        about_me: data[i].aboutMe,
+                        avatar: data[i].avatar,
+                        email: data[i].email,
+                        is_friend: "",
+                        // db_id: data[i]._id
+                    };
+    
+    
+                    if (friendList.indexOf(data[i]._id) != -1) {
+                        user.is_friend = "A friend of yours";
+                    } else {
+                        if (data[i]._id == userId) {
+                            // user.is_friend = "Yourself";
+                            continue;
+                        } else {
+                            user.is_friend = "Not your friend yet";
+                        }
+                    }
+    
+                    to_be_sent.push(user);
+    
+                }
+    
+                console.log(to_be_sent);
+                res.send(to_be_sent);
+            }).catch(function(err) {
                 console.log(err);
-                });
-            }
+            });
 
-            res.send(to_be_sent);
-
+        }
 
     }).catch(function(err) {
-    console.log(err);
+        console.log(err);
     });
-
-}).catch(function(err) {
-    console.log(err);
-});
 });
 
 router.post("/multiUserSubmit", middleware.isLoggedIn, function(req, res) {
+    //yourself
     console.log(req.body);
-    res.send("successfully get your multiUserSelection!");
+    let userId = req.session.passport.user;
+    //selected other user. now add the user self to the list
+    selectedUsers = req.body.selectedUser;
+    User.findOne({"_id": userId}).then(function(userSelf) {
+        let user = {
+            title: (userSelf.name),
+            about_me: userSelf.aboutMe,
+            avatar: userSelf.avatar,
+            email: userSelf.email,
+            is_friend: "Yourself",
+            // db_id: data[i]._id
+        };
+
+        selectedUsers.push(user);
+
+        console.log("these user will form a group: "+JSON.stringify(selectedUsers));
+
+        //Now begin processing those selected user data...
+
+        res.send("successfully get your multiUserSelection!");
+
+    }).catch(function(err) {
+
+    });
+    
   
   });
 
