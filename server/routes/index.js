@@ -209,7 +209,7 @@ router.get("/userSearch", middleware.isLoggedIn, function(req, res) {
 					about_me: data[i].aboutMe,
 					avatar: data[i].avatar,
 					email: data[i].email,
-					is_friend: "",
+                    is_friend: "",
 					// db_id: data[i]._id
 				};
 
@@ -263,7 +263,7 @@ router.get("/userSearch/:endpoint", middleware.isLoggedIn, async (req, res) => {
                         about_me: userData.aboutMe,
                         avatar: userData.avatar,
                         email: userData.email,
-                        is_friend: ""
+                        is_friend: "",
                     };
     
                     //check friend
@@ -376,7 +376,7 @@ router.post("/multiUserSubmit", middleware.isLoggedIn, function(req, res) {
 
 router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
   let userId = req.session.passport.user;
-  let receiverId = req.body.send_to_id;
+  let receiverEmail = req.body.send_to_email;
 
   //generate a "friend_request" notification for the receiver
   const friendRequest = new Notification({
@@ -385,7 +385,7 @@ router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
     extra: ""
   });
 
-  User.updateOne({"_id": receiverId}, {"$push": {"request_notification": friendRequest}}).exec().then(function(doc) {
+  User.updateOne({"email": receiverEmail}, {"$push": {"request_notification": friendRequest}}).exec().then(function(doc) {
     console.log("successfully sent the friend request");
   }).catch(function(err) {
     console.log(err);
