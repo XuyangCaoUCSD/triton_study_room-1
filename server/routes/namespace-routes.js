@@ -503,7 +503,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
         let maxMemberCount = 20;
         if (peopleEmaiList.length > maxMemberCount) {
             data.success = false;
-            data.errorMessage = `Group to large! Maximum of ${maxMemberCount} people per group. Study smart!`;
+            data.errorMessage = `Group too large! Maximum of ${maxMemberCount} people per group. Study smart!`;
             res.send(data);
             return;
         }
