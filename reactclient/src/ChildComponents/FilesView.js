@@ -91,6 +91,18 @@ class FilesView extends Component {
                 </Message>
             </li>
         ); 
+
+        // return (
+        //     <li key={listKey}>
+        //         <Message style={{whiteSpace: 'pre-wrap'}}>
+        //             <div>
+        //                 <div>
+        //                     <Header size='small'><a href={fileInfo.url}>{fileInfo.originalName}</a></Header>
+        //                 </div>          
+        //             </div>   
+        //         </Message>
+        //     </li>
+        // ); 
     }
 
     render() {
