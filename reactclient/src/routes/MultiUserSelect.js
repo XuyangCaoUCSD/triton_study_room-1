@@ -117,9 +117,9 @@ export default class MultiUserSelect extends Component {
         return (
             <Grid>
                 <Grid.Column width={4}>
-                    <UserSearch endpoint={this.props.endpoint} goal="multi_select" action={this.pushUser} />
+                    <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
                     <br /><br />
-                    <UserDropdown endpoint={this.props.endpoint} action={this.pushUser} />
+                    <UserDropdown endpoint={this.props.endpoint} uponSelection={this.pushUser} />
                     <br /><br />
                     <Button onClick={this._multiUserSubmit}>Create a study group</Button>
                 </Grid.Column>
