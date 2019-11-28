@@ -16,6 +16,8 @@ import ChatGroupIcon from '../ChatGroupIcon';
 class Namespace extends Component {
     constructor(props) {
         super(props);
+
+        // NOTE IF CHANGE, ALSO CHANGE IN COMPONENTDIDMOUNT
         this.state = {
             inputMessageValue: '',
             endpoint: "/" + this.props.match.params.name,
@@ -23,7 +25,8 @@ class Namespace extends Component {
             roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {},
-            peopleMap: {}
+            peopleMap: {},
+            fileUploadWindowOpen: false
         };
 
         this.parentSocket = this.props.socket;
@@ -39,6 +42,8 @@ class Namespace extends Component {
         this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
         this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
         this.sendFileMessage = this.sendFileMessage.bind(this);
+        this.handleFileUploadWindowOpen = this.handleFileUploadWindowOpen.bind(this);
+        this.closeFileUploadWindow = this.closeFileUploadWindow.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -264,6 +269,7 @@ class Namespace extends Component {
                 roomNotifications: {},
                 activeUsers: {},
                 namespaceNotifications: {},
+                fileUploadWindowOpen: false
                 // rooms: null
             });
 
@@ -433,8 +439,7 @@ class Namespace extends Component {
 
     //----------------------- End of parent socket CBs-------
 
-
-    // ----------- Handles change of namespace ----------
+    // Handles click on namespace
     iconsClickHandler = (data) => {
         console.log('data in icons click handler is');
         console.log(data);
@@ -443,46 +448,7 @@ class Namespace extends Component {
         // Temp, make it like dashboard where we use redirect
         this.props.history.push(`/namespace${data.endpoint}`);
         // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
-
-        // // Get request to get info for current namespace
-        // API({
-        //     method: 'get',
-        //     url: `/api/namespace${data.endpoint}`,
-        //     withCredentials: true
-      
-        // })
-        // .then((res) => {
-        //     console.log(`/api/namespace${data.endpoint} API responded with`);
-        //     console.log(res);
-        //     if (this._isMounted) {
-        //         this.setState({
-        //             redirectTo: `/namespace${data.endpoint}`
-        //         });
-        //     }
-            
-        // })
-        // .catch((err) => {
-        //     console.log(err);
-        //     console.log(`Err in getting /api/namespace${data.endpoint} info`);
-        // });
     }
-
-    // // Handles change of param (as will reach the same Namespace class instance, need to force rerender)
-    // static getDerivedStateFromProps(nextProps, prevState) {
-    //     if (nextProps.match.params.name !== prevState.namespaceNameParam){
-    //         return {
-    //             inputMessageValue: '',
-    //             currRoomNumActive: 0,
-    //             socketConnected: false, // Not used atm
-    //             endpoint: nextProps.match.params.name,  // TODO, currently no preceding '/'
-    //             namespaceNameParam: nextProps.match.params.name
-     
-    //         }
-    //     }
-    //     return null;
-    // }
-
-    // -------------- End of namespace change functions-----------
 
     // Handles click on other rooms
     joinRoom = (e) => {
@@ -514,6 +480,27 @@ class Namespace extends Component {
     sendFileMessage(fileName, fileUrl) {
         let message = fileName + "\n" + fileUrl;
         this.socket.emit('userMessage', message);
+
+        // Close Upload window after a delay
+        setTimeout(() => {
+            this.closeFileUploadWindow();
+        }, 700);
+    }
+    
+    handleFileUploadWindowOpen() {
+        console.log('Opening upload window');
+        this.setState({
+            fileUploadWindowOpen: true
+        });
+    }
+
+    closeFileUploadWindow() {
+        console.log('Closing upload window');
+        if (this._isMounted) {
+            this.setState({
+                fileUploadWindowOpen: false
+            });
+        } 
     }
 
     render() {
@@ -653,11 +640,12 @@ class Namespace extends Component {
         
         let fileUpload = 
             <Modal
-                // open={this.state.fileUploadWindowOpen}
+                open={this.state.fileUploadWindowOpen}
                 closeIcon
+                onClose={this.closeFileUploadWindow}
                 size='small' 
                 trigger={
-                    <Button size='tiny' style={{right: "3.5%", bottom: "0%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
+                    <Button size='tiny' onClick={this.handleFileUploadWindowOpen} style={{right: "3.5%", bottom: "0%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
                 }
             >
                 <Modal.Header>Upload Files</Modal.Header>

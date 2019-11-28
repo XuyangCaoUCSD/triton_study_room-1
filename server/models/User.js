@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema({
 	major: String,
 	aboutMe: String,
 	phone: String,
+	newUser: { type: Boolean, default: true },
 	classes: [ { type: ObjectId, ref: 'Class' } ],
 	request_notification: [NotificationSchema],
 	myCalendar: CalendarSchema
