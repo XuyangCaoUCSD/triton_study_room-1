@@ -62,6 +62,15 @@ class Dashboard extends Component {
                 return;
             }
 
+            if (data.newUser) {
+                console.log('NEW USER!!\n')
+                setTimeout(() => {
+                    this.props.history.push('/profile');
+                }, 2000)
+                
+                return;
+            }
+
             let chatGroups = data.nsData;
             let namespaceEndpointsMap = {}; // keeps track of what chat groups the user has for faster check
 

@@ -36,6 +36,20 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             res.send(data);
         } else {
 
+            // For new users
+            if (foundUser.newUser) {
+                data.newUser = true;
+
+                User.findByIdAndUpdate(
+                    userId,
+                    {$set: {newUser: false}}
+                ).then((updatedUser) => {
+                    console.log('Set new user to false');
+                }).catch((err) => {
+                    console.log(err);
+                });
+            }
+
             const namespaces = foundUser.namespaces;
             const namespaceNotifications = {}
 

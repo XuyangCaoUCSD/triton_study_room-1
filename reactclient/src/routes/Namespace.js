@@ -8,13 +8,16 @@ import {
 import API from '../utilities/API';
 // import Room from '../Room';
 import io from 'socket.io-client';
-import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu, Reveal } from 'semantic-ui-react';
+import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
+import UploadFilesTest from "./UploadFilesTest";
 import ChatGroupIcon from '../ChatGroupIcon';
 
 class Namespace extends Component {
     constructor(props) {
         super(props);
+
+        // NOTE IF CHANGE, ALSO CHANGE IN COMPONENTDIDMOUNT
         this.state = {
             inputMessageValue: '',
             endpoint: "/" + this.props.match.params.name,
@@ -22,7 +25,8 @@ class Namespace extends Component {
             roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {},
-            peopleMap: {}
+            peopleMap: {},
+            fileUploadWindowOpen: false
         };
 
         this.parentSocket = this.props.socket;
@@ -37,6 +41,9 @@ class Namespace extends Component {
         this.buildActiveUser = this.buildActiveUser.bind(this);
         this.getGroupsAPICall = this.getGroupsAPICall.bind(this);
         this.getNamespaceDetailsAPICall = this.getNamespaceDetailsAPICall.bind(this);
+        this.sendFileMessage = this.sendFileMessage.bind(this);
+        this.handleFileUploadWindowOpen = this.handleFileUploadWindowOpen.bind(this);
+        this.closeFileUploadWindow = this.closeFileUploadWindow.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -262,6 +269,7 @@ class Namespace extends Component {
                 roomNotifications: {},
                 activeUsers: {},
                 namespaceNotifications: {},
+                fileUploadWindowOpen: false
                 // rooms: null
             });
 
@@ -431,8 +439,7 @@ class Namespace extends Component {
 
     //----------------------- End of parent socket CBs-------
 
-
-    // ----------- Handles change of namespace ----------
+    // Handles click on namespace
     iconsClickHandler = (data) => {
         console.log('data in icons click handler is');
         console.log(data);
@@ -441,46 +448,7 @@ class Namespace extends Component {
         // Temp, make it like dashboard where we use redirect
         this.props.history.push(`/namespace${data.endpoint}`);
         // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
-
-        // // Get request to get info for current namespace
-        // API({
-        //     method: 'get',
-        //     url: `/api/namespace${data.endpoint}`,
-        //     withCredentials: true
-      
-        // })
-        // .then((res) => {
-        //     console.log(`/api/namespace${data.endpoint} API responded with`);
-        //     console.log(res);
-        //     if (this._isMounted) {
-        //         this.setState({
-        //             redirectTo: `/namespace${data.endpoint}`
-        //         });
-        //     }
-            
-        // })
-        // .catch((err) => {
-        //     console.log(err);
-        //     console.log(`Err in getting /api/namespace${data.endpoint} info`);
-        // });
     }
-
-    // // Handles change of param (as will reach the same Namespace class instance, need to force rerender)
-    // static getDerivedStateFromProps(nextProps, prevState) {
-    //     if (nextProps.match.params.name !== prevState.namespaceNameParam){
-    //         return {
-    //             inputMessageValue: '',
-    //             currRoomNumActive: 0,
-    //             socketConnected: false, // Not used atm
-    //             endpoint: nextProps.match.params.name,  // TODO, currently no preceding '/'
-    //             namespaceNameParam: nextProps.match.params.name
-     
-    //         }
-    //     }
-    //     return null;
-    // }
-
-    // -------------- End of namespace change functions-----------
 
     // Handles click on other rooms
     joinRoom = (e) => {
@@ -507,6 +475,32 @@ class Namespace extends Component {
         this.setState({
             roomNotifications
         });
+    }
+
+    sendFileMessage(fileName, fileUrl) {
+        let message = fileName + "\n" + fileUrl;
+        this.socket.emit('userMessage', message);
+
+        // Close Upload window after a delay
+        setTimeout(() => {
+            this.closeFileUploadWindow();
+        }, 700);
+    }
+    
+    handleFileUploadWindowOpen() {
+        console.log('Opening upload window');
+        this.setState({
+            fileUploadWindowOpen: true
+        });
+    }
+
+    closeFileUploadWindow() {
+        console.log('Closing upload window');
+        if (this._isMounted) {
+            this.setState({
+                fileUploadWindowOpen: false
+            });
+        } 
     }
 
     render() {
@@ -643,7 +637,24 @@ class Namespace extends Component {
                     </Header>
                 </span>
         }
-            
+        
+        let fileUpload = 
+            <Modal
+                open={this.state.fileUploadWindowOpen}
+                closeIcon
+                onClose={this.closeFileUploadWindow}
+                size='small' 
+                trigger={
+                    <Button size='tiny' onClick={this.handleFileUploadWindowOpen} style={{right: "3.5%", bottom: "0%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
+                }
+            >
+                <Modal.Header>Upload Files</Modal.Header>
+                <Modal.Content >
+                    <UploadFilesTest sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
+                </Modal.Content>
+            </Modal>;
+
+
         return (
             <div className="ui grid" style={{height: "100%", width: '100%'}}>
                 <div className="two wide column namespaces">
@@ -672,11 +683,12 @@ class Namespace extends Component {
                                 <input name="message" type="text" placeholder="Enter your message" maxLength="40000" style={{width: '100%', wordWrap: 'break-word'}}/>
                             </div>
                         </form> */}
+                        
                         <Form ref={(el) => { this.messageInputForm = el; }} style={{width: '100%'}}>
                             <TextArea style={{whiteSpace: 'pre-wrap'}} value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
                         </Form>
-
                     </div>
+                    {fileUpload}
                 </div>
                 {activeUsersDiv}
             </div>

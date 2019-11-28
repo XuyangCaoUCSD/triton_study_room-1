@@ -16,19 +16,21 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
 
     let privateChat = req.body.privateChat;
     let secondUserEmail = req.body.secondUserEmail;
-    let peopleList = req.body.peopleList;
+    let peopleEmaiList = req.body.peopleEmaiList;
+    let groupName = req.body.groupName;
 
     console.log('privateChat is')
     console.log(privateChat);
     console.log('secondUserEmail is');
     console.log(secondUserEmail);
-    console.log('peopleList is');
-    console.log(peopleList);
+    console.log('peopleEmaiList is');
+    console.log(peopleEmaiList);  // List of all people in group
+    console.log('groupName is');
+    console.log(groupName);
 
     // const io = req.app.get('socketio');
 
-    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleList);
-    
+    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleEmaiList, groupName);
 });
 
 router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
@@ -61,7 +63,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
             // console.log('Group does not yet exist, creating new');
             // let privateChat = req.body.privateChat;
             // let secondUserEmail = req.body.secondUserEmail;
-            // let peopleList = req.body.peopleList;
+            // let peopleEmaiList = req.body.peopleEmaiList;
             console.log('CANNOT FIND NAMESPACE');
             data.success = false;
             res.send(data);
@@ -166,13 +168,18 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
     });
 }
 
-function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleList = null) {
+
+// If private chat, either find or create new direct message.
+// If private group, always attempt to create new. peopleEmailList should NOT contain the creator's when first passed in
+function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleEmaiList = null, groupNameParam = null) {    
     // Response data
     let data = {
         success: true
     }
 
     if (privateChat) {
+        // Direct message case: will check if room exists, if yes return that, else, create new group
+
         // Only create group if both users are valid
         User.findById(firstUserId)
         .then((foundUser1) => {
@@ -269,15 +276,13 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                             // Add new namespace to user namespaces array
                             User.findByIdAndUpdate(
                                 firstUserId, 
-                                {$push: 
-                                    {
-                                        "namespaces": createdNamespace.id
-                                    }
+                                {
+                                    $push: { "namespaces": createdNamespace.id }
                                 },
                                 {safe: true, upsert: true, new: true},
                             ).then((updatedUser) => {
                                 
-                                // Send Message to master to add listeners to all threads for new (dynamic) namespace
+                                // Send Message to master to dynamically add listeners to all threads for new (dynamic) namespace
                                 console.log('Sending newNamespace message to master');
                                 let messageToMaster = {
                                     newNamespaceRoute: `/namespace${groupEndpoint}`,
@@ -294,12 +299,10 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
     
                             User.findByIdAndUpdate(
                                 foundUser2.id, 
-                                {$push: 
-                                    {
-                                        "namespaces": createdNamespace.id
-                                    }
+                                {
+                                    $push: { "namespaces": createdNamespace.id }
                                 },
-                                {safe: true, upsert: true, new: true},
+                                {safe: true, new: true},
                             ).then((updatedUser) => {
                                
                             }).catch((err) => {
@@ -326,8 +329,129 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
         }); 
         
     } else {
-        // Create group chat
+        // Create group chat case (will always try to create new group)
 
+        if (!peopleEmaiList) {
+            data.success = false;
+            data.errorMessage = "Need to provide list of people for group";
+            res.send(data);
+            return;
+        }
+
+        let maxMemberCount = 20;
+        if (peopleEmaiList.length > maxMemberCount) {
+            data.success = false;
+            data.errorMessage = `Group to large! Maximum of ${maxMemberCount} people per group. Study smart!`;
+            res.send(data);
+            return;
+        }
+        
+        let creatorUserId = firstUserId;
+
+        User.findById(creatorUserId)
+        .then((foundCreatorUser) => {
+            if (!foundCreatorUser) {
+                console.log('ERROR User (creator) not found');
+                data.success = false;
+                res.send(data)
+                return;
+            }
+
+            // Add creator user to email list
+            peopleEmailList.append(foundCreatorUser.email);
+
+            ChatHistory.create({
+                messages: []
+            }).then((createdChatHistory) => {
+                console.log('created new chat history');
+                console.log(createdChatHistory);
+                let groupName = groupNameParam;
+                Namespace.create({
+                    groupName: groupName,
+                    img: 'https://arc.duke.edu/sites/arc.duke.edu/files/resize/site-images/Bio-Studygroups-Image-341x166.png',
+                    privateChat: false,
+                    privateGroup: true,
+                    rooms: [
+                        {roomId: 0, roomName: 'General', chatHistory: createdChatHistory.id},
+                    ],
+                    admins: [
+                        creatorUserId
+                    ],
+                }).then( async (createdNamespace) => {
+                    console.log('created new private multi-user group');
+                    console.log(createdNamespace);
+
+                    let peopleDetails = []; // Array of people details for namespace
+                    let people = []; // Array of people ids for namesapce
+
+                    // Update each member with the new namespace id, also retrieve their information to update namespace
+                    for (const memberEmail of peopleEmailList) {
+                        await User.findOneAndUpdate(
+                            {email: memberEmail},
+                            {
+                                $push: { "namespaces": createdNamespace.id }
+                            },
+                            {new: true}
+                        ).then((updatedMember) => {
+                            if (!updatedMember) {
+                                console.log('UNABLE TO FIND/UPDATE MEMBER WITH NEW NAMESPACE');
+                                return;
+                            }
+                            console.log('Updated namespace array of user ' + updatedMember.email);
+                            peopleDetails.push(
+                                {
+                                    name: updatedMember.name,
+                                    email: updatedMember.email,
+                                    avatar: updatedMember.avatar,
+                                    givenName: updatedMember.givenName
+                                }
+                            );
+    
+                            people.push(updatedMember.id);
+
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                    }
+
+                    // Add new fields to namespace to save
+
+                    // Use id as endpoint
+                    let groupEndpoint = createdNamespace.id;
+                    createdNamespace.endpoint = groupEndpoint;
+                    createdNamespace.peopleDetails = peopleDetails;
+                    createdNamespace.people = people;
+
+                    // Save namespace with added peopleDetails
+                    createdNamespace.save().then((savedNamespace) => {
+                        // Send Message to master to dynamically add listeners to all threads for new (dynamic) namespace
+                        console.log('Sending newNamespace message to master');
+                        let messageToMaster = {
+                            newNamespaceRoute: `/namespace${groupEndpoint}`,
+                            newNamespaceEndpoint: groupEndpoint,
+                            newNamespaceName: groupName
+                        }
+                        process.send(messageToMaster);
+
+                        data.group = createdNamespace;
+                        // Send response
+                        res.send(data);
+
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+            }).catch((err) => {
+                console.log(err);
+            });
+
+        }).catch((err) => {
+            console.log(err);
+        });
 
     }
 
