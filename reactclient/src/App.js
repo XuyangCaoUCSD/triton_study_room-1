@@ -280,7 +280,7 @@ class App extends Component {
 
                     {/* Button to open sidebar */}
                     {
-                        !this.state.sidebarOpen &&
+                        !this.state.sidebarOpen && this.state.isLoggedIn &&
                         <Sticky>              
                             <Button color='blue' style={{top: 0, zIndex: 499, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
                                 <Icon name='bars' />
