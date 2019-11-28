@@ -195,6 +195,7 @@ class App extends Component {
             return (
                 <Router>
                     <Sidebar
+                        style={{overflowY: 'scroll'}}
                         as={Menu}
                         animation='overlay'
                         icon='labeled'

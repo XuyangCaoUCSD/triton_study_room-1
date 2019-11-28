@@ -334,7 +334,8 @@ router.post('/namespace/:namespace', middleware.isLoggedIn, (req, res) => {
 
                             Namespace.findByIdAndUpdate(
                                 foundNamespace.id,
-                                {$set: {files: createdFileObject.id}}
+                                {$set: {files: createdFileObject.id}},
+                                {new: true}
                             ).then((updatedNamespace) => {
                                 console.log('Saved new file object to ns');
                                 
