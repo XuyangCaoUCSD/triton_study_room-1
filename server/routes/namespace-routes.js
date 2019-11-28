@@ -193,14 +193,15 @@ router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                     return;
                 }
 
-                Namespace.findByIdAndUpdate(
-                    foundNamespace.id,
-                    {$push: {'people': userId, 'peopleDetails': userDetails}},
-                    {safe: true, new: true}
-                ).then((updatedNamespace) => {
+                foundNamespace.invited.splice(invitedIndex, 1);
+                foundNamespace.people.push(userId);
+                foundNamespace.peopleDetails.push(userDetails);
+
+                foundNamespace.save().then((updatedNamespace) => {
+                    
                     console.log('Updated namespace with user and details');
                     data.newGroupEndpoint = updatedNamespace.endpoint;
-                    
+
                     User.findByIdAndUpdate(
                         userId,
                         {$push: {"namespaces": updatedNamespace.id}},
