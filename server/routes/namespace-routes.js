@@ -260,6 +260,76 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
 });
 
 
+// Remove user from invite list on rejection
+router.patch('/:namespace/remove-invite', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let data = {
+        success: true
+    }
+
+    User.findById(
+        userId
+    ).then((foundUser) => {
+
+        Namespace.findOne({
+            endpoint: endpoint
+        }).then((foundNamespace) => {
+            if (foundNamespace.people.indexOf(userId) !== -1) {
+                console.log('User already in namespace');
+                data.success = false;
+                data.errorMessage = "User already in group";
+                res.send(data);
+                return;
+            }
+
+            // Never should need to do dms this way
+            if (foundNamespace.privateChat) {
+                data.success = false;
+                res.send(data);
+                return;
+            }
+
+            if (foundNamespace.privateGroup) {
+                let invitedIndex = foundNamespace.invited.indexOf(foundUser.email);
+                if (invitedIndex === -1) {
+                    console.log('User is not invited to join namespace');
+                    data.success = false;
+                    data.errorMessage = "User is not invited to join namespace";
+                    res.send(data);
+                    return;
+                }
+
+                foundNamespace.invited.splice(invitedIndex, 1);
+
+                foundNamespace.save().then((updatedNamespace) => {
+                    console.log('Removed invited user from namespace');
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+            } else {
+                console.log('Should not need to remove invite from any group type other than private groups');
+                data.success = false;
+                data.errorMessage = 'Should not need to remove invite from any group type other than private groups';
+                res.send(data);
+                return;
+            }
+
+    
+        }).catch((err) => {
+            console.log(err);
+        });
+
+
+    }).catch((err) => {
+        console.log(err);
+    });
+
+});
+
+
 // Removes user permanently from namespace
 router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
