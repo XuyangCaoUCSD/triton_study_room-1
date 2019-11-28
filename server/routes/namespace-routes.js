@@ -4,6 +4,7 @@ const  express       = require('express'),
        Namespace     = require('../models/Namespace');
 
 const { ChatHistory } = require('../models/ChatHistory');
+const { File } = require('../models/File');
 const redisClient = require('../redisClient');
 const { setNamespaceUnreads, setRoomUnreads } = require('../socketMain');
 
@@ -136,6 +137,167 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
+// Adds user to namespace
+router.put('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let data = {
+        success: true
+    }
+
+    User.findById(
+        userId
+    ).then((foundUser) => {
+
+        Namespace.findOne({
+            endpoint: endpoint
+        }).then((foundNamespace) => {
+            if (foundNamespace.people.indexOf(userId) !== -1) {
+                console.log('User already in namespace');
+                data.success = false;
+                data.errorMessage = "User already in group";
+                res.send(data);
+                return;
+            }
+
+            // TODO
+            if (foundNamespace.privateChat || foundNamespace.privateGroup) {
+
+            }
+
+            let userDetails = {
+                email: foundUser.email,
+                name: foundUser.name,
+                givenName: foundUser.givenName,
+                avatar: foundUser.avatar
+            }
+
+            Namespace.findByIdAndUpdate(
+                foundNamespace.id,
+                {$push: {'people': userId, 'peopleDetails': userDetails}},
+                {safe: true, new: true}
+            ).then((updatedNamespace) => {
+                console.log('Updated namespace with user and details');
+            
+                res.send(data);
+            }).catch((err) => {
+                console.log(err);
+            })
+    
+        }).catch((err) => {
+            console.log(err);
+        });
+
+
+    }).catch((err) => {
+        console.log(err);
+    });
+    
+
+
+});
+
+// Removes user permanently from namespace
+router.delete('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let data = {
+        success: true
+    }
+
+    Namespace.findOne({
+        endpoint: endpoint
+    }).then((foundNamespace) => {
+        let userIndex = foundNamespace.people.indexOf(userId);
+        if (userIndex === -1) {
+            console.log('User was already not in namespace');
+            data.success = false;
+            data.errorMessage = "User was not in this namespace";
+            res.send(data);
+            return;
+        }
+
+        if (userIndex >= 0) {
+            foundNamespace.people.splice(userIndex, 1);
+        }
+
+        // Find index of correct user object in details array
+        for (var i = 0; i < foundNamespace.peopleDetails.length; i++) {
+            if (foundNamespace.peopleDetails[i].email === foundUser.email) {
+                break;
+            }
+        }
+
+        if (i === foundNamespace.peopleDetails.length) {
+            console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
+            data.success = false;
+            data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
+            res.send(data);
+            return;
+        }
+
+        foundNamespace.peopleDetails.splice(i, 1);
+        
+        foundNamespace.save().then((savedNamespace) => {
+            console.log('Removed user details from namespace');
+            res.send(data);
+        }).catch((err) => {
+            console.log(err);
+        });
+
+
+    }).catch((err) => {
+        console.log(err);
+    });
+
+});
+
+// TODO Get all files belonging to namespace
+router.get('/:namespace/files', middleware.isLoggedIn, (req, res) => {
+    
+    console.log('Reached files get route');
+
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+
+    let data = {
+        success: true
+    }
+
+    Namespace.findOne({
+        endpoint: endpoint
+    }).select('people files')
+    .then((foundNamespace) => {
+
+        // Serverside authorisation check (if user has permission for group) (in case somehow user has access to link)
+        if (foundNamespace.people.indexOf(userId) === -1) {
+            console.log('Attempted unauthorized access');
+            res.statusMessage = "UNAUTHORISED CREDENTIALS!";
+            res.status(403);
+            res.send("ERROR, UNAUTHORIZED CREDENTIALS");
+            return;
+        }
+
+        console.log('Getting files from ' + endpoint);
+        File.findById(foundNamespace.files).then((foundFileObj) => {
+            // No need to expose file id
+            data.files = foundFileObj.files.map((file) => {
+                return {
+                    originalName: file.originalName,
+                    url: file.url
+                }
+            });
+            res.send(data);
+        }).catch((err) => {
+            console.log(err);
+        })
+        
+    })
+    
+})
+
 // Recursive call function over rooms to ensure callback chaining for redis calls for room unreads
 function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, data) {
     // Check in cache if there is unread messages for this user in this room
@@ -244,7 +406,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                         Namespace.create({
                             nsId: -1,
                             groupName: groupName,
-                            img: 'https://cdn4.iconfinder.com/data/icons/web-ui-color/128/Chat2-512.png',
+                            img: 'https://cmkt-image-prd.freetls.fastly.net/0.1.0/ps/1154791/910/607/m1/fpnw/wm0/private-message-.png?1459936606&s=f28adc88796a73407283ce6ffe889335',
                             endpoint: groupEndpoint,
                             privateChat: true,
                             rooms: [

@@ -42,7 +42,8 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
 
                 User.findByIdAndUpdate(
                     userId,
-                    {$set: {newUser: false}}
+                    {$set: {newUser: false}},
+                    {new: true}
                 ).then((updatedUser) => {
                     console.log('Set new user to false');
                 }).catch((err) => {

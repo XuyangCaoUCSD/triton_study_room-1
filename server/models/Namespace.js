@@ -25,7 +25,7 @@ const NamespaceSchema = new mongoose.Schema({
         name: String,
         avatar: String
     }],
-    files: [],
+    files: { type: ObjectId, ref: 'File' },
     studySessionsHistory: [ { type: ObjectId, ref: 'StudySessionHistory' } ]
 }, {
     timestamps: true

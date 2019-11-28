@@ -21,7 +21,6 @@ import NotiCenter from "./routes/NotiCenter";
 import Calendar from './routes/Calendar';
 import Profile from './routes/Profile';
 import NotificationCard from './routes/NotificationCard';
-import UploadFilesTest from './routes/UploadFilesTest';
 import Setting from './routes/Setting';
 import MultiUserSelect from './routes/MultiUserSelect';
 import auth from "./auth/auth";
@@ -196,6 +195,7 @@ class App extends Component {
             return (
                 <Router>
                     <Sidebar
+                        style={{overflowY: 'scroll'}}
                         as={Menu}
                         animation='overlay'
                         icon='labeled'
@@ -281,7 +281,7 @@ class App extends Component {
 
                     {/* Button to open sidebar */}
                     {
-                        !this.state.sidebarOpen &&
+                        !this.state.sidebarOpen && this.state.isLoggedIn &&
                         <Sticky>              
                             <Button color='blue' style={{top: 0, zIndex: 499, position: 'absolute'}} icon onClick={() => {this.onSetSidebarOpen(true)}}>
                                 <Icon name='bars' />
@@ -320,7 +320,7 @@ class App extends Component {
                         */}
                 
                         <Switch>
-                            <Route exact path="/" component={Home} />
+                            <Route exact path="/" component={Login} />
                             <Route exact path="/logout" render={(props) => {return <Logout {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <Route exact path="/login/:error?" render={(props) => {return <Login {...props} authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} />}} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} removeNavBarNotifications={this.removeNavBarNotifications} socket={this.state.socket} exact path="/dashboard" component={Dashboard} />
@@ -331,7 +331,6 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/notification" component={NotiCenter} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/uploadFilesTest" component={UploadFilesTest} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/multiUserSelect" component={MultiUserSelect} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />

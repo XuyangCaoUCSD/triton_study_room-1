@@ -110,7 +110,7 @@ if (cluster.isMaster) {
 	
 	var app = new express();
 
-	mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true});
+	mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
 	app.use(bodyParser.json()); // handle json data, needed for axios requests to put things in req.body
 	app.use(bodyParser.urlencoded({extended: true}));
 	app.set("view engine", "ejs");

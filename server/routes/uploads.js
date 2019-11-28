@@ -9,6 +9,7 @@ const router = express.Router();
 
 const User = require('../models/User');
 const Namespace = require('../models/Namespace');
+const { File } = require('../models/File');
 
 let avatarDestination = './uploads/avatars';  // IMPORTANT Path relative to SERVER folder (not this file);
 
@@ -213,7 +214,7 @@ const namespaceUpload = multer({
 // Check File Type to block
 function namespaceCheckFileType(file, cb){
     // Blocked extensions
-    const blockedFiletypes = /exe|xml|cmd|ksh/;
+    const blockedFiletypes = /exe|cmd|ksh/;
     // Check ext
     const extname = blockedFiletypes.test(path.extname(file.originalname).toLowerCase());
     // Check mime
@@ -315,21 +316,55 @@ router.post('/namespace/:namespace', middleware.isLoggedIn, (req, res) => {
                     let fileUrl = `http://localhost:8181/api/uploads/namespace/${endpointWithoutSlash}/${req.file.filename}`; // TODO CHANGE TO DOMAIN NAME WHEN HOSTING ONLINE
                     data.fileUrl = fileUrl;
 
-                    Namespace.findByIdAndUpdate(
-                        foundNamespace.id,
-                        { 
-                            $push: { "files": fileUrl }
-                        },
-                        {new: true}
-                    ).then((updatedNamespace) => {
-                        console.log('updatedNamespace is');
-                        console.log(updatedNamespace);
+                    console.log('file originalname is');
+                    console.log(req.file.originalname);
 
-                        res.send(data);
+                    let newFileEntry = {
+                        originalName: req.file.originalname, // name on the right is lower case
+                        url: fileUrl
+                    }
 
-                    }).catch((err) => {
-                        console.log(err);
-                    });
+                    // If file object doesn't exist, create new, else update existing
+                    if (!foundNamespace.files) {
+                        File.create({
+                            files: [newFileEntry],
+                            forNamespace: foundNamespace.endpoint
+                        }).then((createdFileObject) => {
+                            console.log('Created new file object for ns')
+
+                            Namespace.findByIdAndUpdate(
+                                foundNamespace.id,
+                                {$set: {files: createdFileObject.id}},
+                                {new: true}
+                            ).then((updatedNamespace) => {
+                                console.log('Saved new file object to ns');
+                                
+                                res.send(data);
+                            }).catch((err) => {
+                                console.log(err);
+                            })
+                            
+                        }).catch((err) => {
+                            console.log(err);
+                        })
+                    } else {
+                        File.findByIdAndUpdate(
+                            foundNamespace.files, // files field should be an id
+                            { 
+                                $push: { "files": newFileEntry }
+                            },
+                            {new: true} // Upsert true to create one if not already existing
+                        ).then((updatedFileObj) => {
+                            console.log('updatedFileObj is');
+                            console.log(updatedFileObj);
+    
+                            res.send(data);
+    
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                    }
+                    
                 }
             }
         });

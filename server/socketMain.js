@@ -7,7 +7,7 @@ const keys = require('./config/keys');
 const redis = require('redis');
 const redisClient = require('./redisClient');
 
-mongoose.connect(keys.mongoDB.connectionURI, {useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(keys.mongoDB.connectionURI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
 
 // const existingNamespaces = [
 //     ['/namespace/cse110', '/cse110', 'CSE 110'],
@@ -169,8 +169,8 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
                                 time: lastMessage.time
                             }
     
-                            console.log('message response is :');
-                            console.log(response);
+                            // console.log('message response is :');
+                            // console.log(response);
                             
                             // Send message to users in room
                             io.of(namespaceRoute).to(currRoomName).emit('userMessage', response);
@@ -208,9 +208,8 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
 
                                     // If user not online in namespace
                                     if (!onlineInNamespaceUserIds[memberUserId]) {
-                                        console.log('User ' + memberUserId + ' is not online in namespace');
+                                        // console.log('User ' + memberUserId + ' is not online in namespace');
                                         // Send real time notifications to users online BUT NOT online in namespace
-                                        // front-end TODO new socket connection to general namespace
                                         redisClient.hget(`All Outside Active Sockets`, memberUserId.toString(), function (error, result) {
                                             if (error) {
                                                 console.log(error);
@@ -226,7 +225,7 @@ async function socketMain(io, pNamespacesArray, workerId = "None, not calling fr
 
                                             // Send real time notification (TODO frontend)
                                             let socketId = result;
-                                            console.log('Emitting messageNotification to ' + socketId);
+                                            // console.log('Emitting messageNotification to ' + socketId);
                                             io.to(`${socketId}`).emit('messageNotification', namespaceEndpoint);
                                         });
 

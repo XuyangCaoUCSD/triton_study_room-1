@@ -10,7 +10,7 @@ import API from '../utilities/API';
 import io from 'socket.io-client';
 import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
-import UploadFilesTest from "./UploadFilesTest";
+import UploadFile from "../ChildComponents/UploadFile";
 import ChatGroupIcon from '../ChatGroupIcon';
 import Linkify from 'react-linkify';
 
@@ -646,12 +646,12 @@ class Namespace extends Component {
                 onClose={this.closeFileUploadWindow}
                 size='small' 
                 trigger={
-                    <Button size='tiny' onClick={this.handleFileUploadWindowOpen} style={{right: "3.5%", bottom: "0%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
+                    <Button size='tiny' onClick={this.handleFileUploadWindowOpen} style={{right: "0.4%", top: "7%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
                 }
             >
                 <Modal.Header>Upload Files</Modal.Header>
                 <Modal.Content >
-                    <UploadFilesTest sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
+                    <UploadFile sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
                 </Modal.Content>
             </Modal>;
 
@@ -662,6 +662,7 @@ class Namespace extends Component {
                     <Menu compact icon='labeled' vertical>
                         {chatGroups}
                     </Menu>
+                    
                 </div>
                 {roomsDiv}
                 <div className={messageColumnDivClassName} style={{height: "100%", width: '100%'}}>
@@ -686,10 +687,11 @@ class Namespace extends Component {
                         </form> */}
                         
                         <Form ref={(el) => { this.messageInputForm = el; }} style={{width: '100%'}}>
+                            {fileUpload}
                             <TextArea style={{whiteSpace: 'pre-wrap'}} value={this.state.inputMessageValue} name="message" onChange={this.handleInputChange} style={{resize: 'none'}} onKeyDown={this.messageInputHandler} maxLength="40000" placeholder="Enter your message" rows="2" />
                         </Form>
                     </div>
-                    {fileUpload}
+                    
                 </div>
                 {activeUsersDiv}
             </div>
@@ -838,23 +840,30 @@ class Namespace extends Component {
         );
         
     }
-
     
     buildMessage(msg, listKey) {
-        const convertedDate = new Date(msg.time).toLocaleString();
+        const convertedDate = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        let avatarColumnSize = '3.5em';
         return (
             <li key={listKey}>
                 <Message style={{whiteSpace: 'pre-wrap'}}>
-                    <div className="user-image">
-                        {/* <Image avatar src={msg.creatorAvatar} style={{maxHeight: '30px', maxWidth: '30px'}}/> */}
-                        <Image avatar src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } style={{maxHeight: '30px', maxWidth: '30px'}}/>
-                    </div>
-                    <div className="user-message">
-                        <div className="user-name-time">{msg.creatorName} <span>{convertedDate}</span></div>
-                        <Linkify>
-                            {msg.content}
-                        </Linkify>
-                    </div>
+                    <div>
+                        <div style={{ float: 'left', width: avatarColumnSize }} >
+                            <Image size='mini' avatar src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } style={{maxHeight: '10em', maxWidth: '10em'}}/>
+                        </div>
+                        <div className="right" style={{ marginLeft: avatarColumnSize }}>
+                            <div>
+                                <Header style={{display: 'inline'}} size='small'>{msg.creatorName}</Header> <span style={{fontSize: '0.85em', fontWeight: 'lighter', color: '#585858'}}>{convertedDate}</span>
+                            </div>
+                              
+                            <div>
+                                <Linkify>
+                                    {msg.content}
+                                </Linkify>
+                            </div>     
+                           
+                        </div>
+                    </div>   
                 </Message>
                 
             </li>

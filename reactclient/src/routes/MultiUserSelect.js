@@ -83,11 +83,13 @@ export default class MultiUserSelect extends Component {
         event.preventDefault();
         // assemble HTTP post request
         // put the updated value (with user id) into the request body in the form of json
+        console.log('selectedUsers are');
+        console.log(this.state.selectedUsers);
         API({
             method: 'post',
             url: "/api/multiUserSubmit",
             data: {
-            selectedUser: this.state.selectedUsers
+                selectedUser: this.state.selectedUsers
             },
             withCredentials: true,
         }).then((response) => {
