@@ -5,7 +5,6 @@ import { Search, Grid, Header, Segment, Label, Image } from "semantic-ui-react";
 import API from '../utilities/API';
 import NotificationCard from './NotificationCard';
 
-
 var source = [];
 
 const resultRenderer = ({ avatar, title, about_me, email, is_friend }) => [
