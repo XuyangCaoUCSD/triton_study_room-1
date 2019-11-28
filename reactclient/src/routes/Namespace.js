@@ -849,7 +849,7 @@ class Namespace extends Component {
                 <Message style={{whiteSpace: 'pre-wrap'}}>
                     <div>
                         <div style={{ float: 'left', width: avatarColumnSize }} >
-                            <Image avatar src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } />
+                            <Image src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } style={{width: '2.7em', height: '2.7em', position: 'relative', overflow: 'hidden', borderRadius: '50%'}}/>
                         </div>
                         <div className="right" style={{ marginLeft: avatarColumnSize }}>
                             <div>
