@@ -12,15 +12,20 @@ import { Form, Message, Button, Image, Icon } from 'semantic-ui-react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
-class UploadFileTest extends Component {
+class UploadFile extends Component {
     constructor(props) {
         super(props);
         this.state = {
             selectedFile: null,
             uploadProgress: 0,
             fileUploading: false,
-            endpoint: this.props.endpoint ? this.props.endpoint : "/cse100", // TODO REMOVE CSE 100
-            groupName: this.props.groupName ? this.props.groupName: "CSE 100" // TODO REMOVE CSE 100
+            endpoint: this.props.endpoint,
+            groupName: this.props.groupName
+            
+        }
+
+        if (!this.props.endpoint || !this.props.groupName) {
+            console.log('Missing required props');
         }
 
         this.fileUploadHandler = this.fileUploadHandler.bind(this);
@@ -116,15 +121,10 @@ class UploadFileTest extends Component {
                 
                 if (!this.props.sendFileMessage) {
                     console.log('ERROR NO SEND FILE MESSAGE PROPS');
-                    alert('ERROR NO SEND FILE MESSAGE PROPS');
                     return;
                 }
 
                 this.props.sendFileMessage(this.state.selectedFile.name, data.fileUrl);
-
-                setTimeout(() => {
-                    alert('FILE UPLOADED SUCCESSFULLY');
-                }, 700)
                 
             }
 
@@ -172,4 +172,4 @@ class UploadFileTest extends Component {
     
 }
 
-export default UploadFileTest;
+export default UploadFile;

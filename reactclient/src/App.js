@@ -21,7 +21,6 @@ import NotiCenter from "./routes/NotiCenter";
 import Calendar from './routes/Calendar';
 import Profile from './routes/Profile';
 import NotificationCard from './routes/NotificationCard';
-import UploadFilesTest from './routes/UploadFilesTest';
 import Setting from './routes/Setting';
 import MultiUserSelect from './routes/MultiUserSelect';
 import auth from "./auth/auth";
@@ -331,7 +330,6 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/notification" component={NotiCenter} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/uploadFilesTest" component={UploadFilesTest} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/multiUserSelect" component={MultiUserSelect} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />

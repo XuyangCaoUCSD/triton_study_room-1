@@ -10,7 +10,7 @@ import API from '../utilities/API';
 import io from 'socket.io-client';
 import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
-import UploadFilesTest from "./UploadFilesTest";
+import UploadFile from "../ChildComponents/UploadFile";
 import ChatGroupIcon from '../ChatGroupIcon';
 import Linkify from 'react-linkify';
 
@@ -651,7 +651,7 @@ class Namespace extends Component {
             >
                 <Modal.Header>Upload Files</Modal.Header>
                 <Modal.Content >
-                    <UploadFilesTest sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
+                    <UploadFile sendFileMessage={this.sendFileMessage} endpoint={this.state.currNs.endpoint} groupName={this.state.currNs.groupName} />
                 </Modal.Content>
             </Modal>;
 
@@ -841,7 +841,7 @@ class Namespace extends Component {
 
     
     buildMessage(msg, listKey) {
-        const convertedDate = new Date(msg.time).toLocaleString();
+        const convertedDate = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         return (
             <li key={listKey}>
                 <Message style={{whiteSpace: 'pre-wrap'}}>
