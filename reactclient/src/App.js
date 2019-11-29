@@ -291,7 +291,7 @@ class App extends Component {
                     } 
                     
 
-                    <div>
+                    <div style={{padding: '1em'}}>
                         {/* <ul>
                             <li style={{display: "inline-block"}}>
                                 <NavLink to="/">Home&emsp;</NavLink>
@@ -309,7 +309,6 @@ class App extends Component {
                         
                         <hr /> */}
 
-                        <br />
                         <br />
     
                         {/*
