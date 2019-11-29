@@ -48,7 +48,8 @@ export default class NotiCenter extends Component {
                     trigger={this.state.notifications[i].trigger}
                     cardId={this.state.notifications[i]._id}
                     avatar={this.state.notifications[i].avatar}
-                    email={this.state.notifications[i].triggerEmail} 
+                    email={this.state.notifications[i].triggerEmail}
+                    info2={this.state.notifications[i].extra2}
                 />
             );
         }
