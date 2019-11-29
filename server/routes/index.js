@@ -382,7 +382,8 @@ router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
   const friendRequest = new Notification({
     type: "friend_request",
     trigger: userId,
-    extra: ""
+    extra: "",
+    extra2: ""
   });
 
   User.updateOne({"email": receiverEmail}, {"$push": {"request_notification": friendRequest}}).exec().then(function(doc) {
@@ -396,33 +397,54 @@ router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
 });
 
 
-router.get("/NotiCenter", middleware.isLoggedIn, async (req, res) => {
-  let userId = req.session.passport.user;
-  User.findById(userId).then(async function(data){
-    const cards = data.request_notification;
-    let to_be_sent = [];
-    //before sending the data, we also add the trigger's name to each card (since we need to display the name rather than the id)
-    for(var i = 0; i < cards.length; i++) {
-      card = {
-        type: cards[i].type,
-        trigger: cards[i].trigger,
-        extra: "",
-        _id: cards[i]._id,
-        avatar: "",
-        triggerEmail: ""
-      }
-      await User.findById(cards[i].trigger).then(function(triggerData) {
-        card.extra = triggerData.name;
-        card.avatar = triggerData.avatar;
-        card.triggerEmail = triggerData.email;
-        to_be_sent.push(card);
-        if (i == cards.length - 1) {
-          res.send(to_be_sent);
-        }
-      }).catch(function(err) {
+router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
+    let userId = req.session.passport.user;
+    User.findById(userId).then(async function(data){
+        const cards = data.request_notification;
+        let to_be_sent = [];
+        //before sending the data, we also add the trigger's name to each card (since we need to display the name rather than the id)
+        for(var i = 0; i < cards.length; i++) {
+            card = {
+              type: cards[i].type,
+              trigger: cards[i].trigger,
+              extra: "",
+              extra2: "",
+              _id: cards[i]._id,
+              avatar: "",
+              triggerEmail: ""
+            }
+            if(card.type === "friend_request" || card.type === "friend_accepted") {
+                await User.findById(cards[i].trigger).then(function(triggerData) {
+                    card.extra = triggerData.name;
+                    card.avatar = triggerData.avatar;
+                    card.triggerEmail = triggerData.email;
+                    to_be_sent.push(card);
+                    if (i == cards.length - 1) {
+                      res.send(to_be_sent);
+                    }
+                  }).catch(function(err) {
+                    console.log(err);
+                  });
+            }
+            else if(card.type === "namespace_invite") {
+                //for namespace_invite, the trigger is the newly-created namespace objectId
+                await Namespace.findById(cards[i].trigger).then(function(triggerData) {
+                    card.extra = triggerData.groupName;
+                    card.extra2 = triggerData.endpoint;
+                    card.avatar = triggerData.img;
+                    to_be_sent.push(card);
+                    if (i == cards.length - 1) {
+                      res.send(to_be_sent);
+                    }
+                  }).catch(function(err) {
+                    console.log(err);
+                  });
+            }
+          }
+    }).catch(function(err) {
         console.log(err);
-      });
-    }
+    });
+});
 
 router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res) {
   console.log(req.body);
@@ -439,7 +461,8 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
           const friendAccepted = new Notification({
             type: "friend_accepted",
             trigger: userId,
-            extra: ""
+            extra: "",
+            extra2: ""
           });
           User.updateOne({"_id": req.body.trigger}, {"$push": {"request_notification": friendAccepted}}).exec().then(function(doc) {
             //friends are added and notification is sent
@@ -458,23 +481,14 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
 
     //else if the user declined the friend request we will just ignore it and delete this notification
   }
-
   //and we consume (delete) this notification
   User.updateOne({"_id": userId}, {"$pull": {"request_notification": {"_id": req.body.cardId}}}).exec().then(function(doc) {
     console.log("notification card is deleted.");
   }).catch(function(err) {
     console.log(err);
-  })
+  });
 
   res.send("successfully updated the database and consumed the notification");
-});
-
-
-
-
-  }).catch(function(err) {
-    console.log(err);
-  });
 });
 
 
