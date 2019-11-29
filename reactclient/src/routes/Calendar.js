@@ -147,15 +147,13 @@ class Calendar extends Component {
 
             if (this._isMounted) {
                 console.log('Adding new event to events array');
-                let responseEvent = data.newEvent;
                 
-                let newEvent = {
-                    title: responseEvent.eventName,
-                    start:  responseEvent.startTime,
-                    end: responseEvent.endTime,
-                }
+                let newEvent = data.newEvent;
 
-                let newEventsArr = [...this.state.events, newEvent]
+                console.log('new event received as response is');
+                console.log(newEvent);
+
+                let newEventsArr = [...this.state.events, newEvent];
                 this.setState({
                     events: newEventsArr,
                 });
