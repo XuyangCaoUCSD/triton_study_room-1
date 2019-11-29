@@ -50,6 +50,7 @@ export default class NotiCenter extends Component {
                     avatar={this.state.notifications[i].avatar}
                     email={this.state.notifications[i].triggerEmail}
                     info2={this.state.notifications[i].extra2}
+                    spaceCreatorName={this.state.notifications[i].spaceCreatorName}
                 />
             );
         }

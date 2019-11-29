@@ -699,25 +699,6 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                         data.group = updatedNamespace;
                         // Send response
                         // Send inivitation (notification "namespace_invite") to invited users
-                        for(var i = 0; i < peopleEmailList.length; i++) {
-                            let currentNotification = new Notification({
-                                type: "namespace_invite",
-                                trigger: updatedNamespace.id,
-                                extra: "",
-                                extra2: ""
-                            });
-
-                            User.findOneAndUpdate(
-                                {"email": peopleEmailList[i]},
-                                {"$push": {"request_notification": currentNotification}},
-                                {safe: true, new: true}
-                            ).then((updatedInvitedUser) => {
-                                console.log("Invited: "+updatedInvitedUser.email);
-                            }).catch((err) => {
-                                console.log(err);
-                            });
-
-                        }
 
                         User.findByIdAndUpdate(
                             creatorUserId,
@@ -725,6 +706,26 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                             {safe: true, new: true}
                         ).then((updatedUser) => {
                             console.log("the new namespace is added to the user "+updatedUser.email);
+
+                            for(var i = 0; i < peopleEmailList.length; i++) {
+                                let currentNotification = new Notification({
+                                    type: "namespace_invite",
+                                    trigger: updatedNamespace.id,
+                                    extra: updatedUser.name,
+                                    extra2: ""
+                                });
+    
+                                User.findOneAndUpdate(
+                                    {"email": peopleEmailList[i]},
+                                    {"$push": {"request_notification": currentNotification}},
+                                    {safe: true, new: true}
+                                ).then((updatedInvitedUser) => {
+                                    console.log("Invited: "+updatedInvitedUser.email);
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+    
+                            }
                             res.send(data);
                         }).catch((err) => {
                             console.log(err);

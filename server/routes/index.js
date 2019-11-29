@@ -68,7 +68,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             data.nsData = nsData;
             data.userEmail = foundUser.email;
 
-            if (!namespaces) {
+            if (namespaces.length === 0) {
                 res.send(data);
                 return;
             }
@@ -418,7 +418,8 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
               extra2: "",
               _id: cards[i]._id,
               avatar: "",
-              triggerEmail: ""
+              triggerEmail: "",
+              spaceCreatorName: cards[i].extra
             }
             if(card.type === "friend_request" || card.type === "friend_accepted") {
                 await User.findById(cards[i].trigger).then(function(triggerData) {

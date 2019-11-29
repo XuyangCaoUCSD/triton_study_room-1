@@ -13,8 +13,8 @@ const StudySessionHistorySchema = new mongoose.Schema({
     participants: [ReactionSchema],
     // is String the best data type?
     date: String,
-    startTime: Number,
-    endTime: Number,
+    start: Number,
+    end: Number,
     location: String
 });
 
