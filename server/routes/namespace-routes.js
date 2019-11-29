@@ -422,6 +422,9 @@ router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
 });
 
 
+
+
+
 // Recursive call function over rooms to ensure callback chaining for redis calls for room unreads
 function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, data) {
     // Check in cache if there is unread messages for this user in this room
