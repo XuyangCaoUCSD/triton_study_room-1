@@ -121,7 +121,7 @@ class Calendar extends Component {
         console.log('Calling API to add event');
         let data = {
             patchType: 'add',
-            calendarEvent: {...newEvent}
+            calendarEvent: newEvent // {...newEvent}
         }
 
         console.log('data to send in API is');
@@ -151,9 +151,8 @@ class Calendar extends Component {
                 
                 let newEvent = {
                     title: responseEvent.eventName,
-                    start: responseEvent.startTime,
+                    start:  responseEvent.startTime,
                     end: responseEvent.endTime,
-                    desc: responseEvent.description
                 }
 
                 let newEventsArr = [...this.state.events, newEvent]

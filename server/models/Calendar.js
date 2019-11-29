@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 //schema for event (embedded in calendar_info)
 const EventSchema = new mongoose.Schema({
-    eventName: String,
-    startTime: Date,
-    endTime: Date,
+    title: String,
+    start: Date,
+    end: Date,
     location: String,
     visibility: String
 });
