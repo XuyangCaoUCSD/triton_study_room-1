@@ -62,7 +62,7 @@ class UserDropdown extends Component {
                    this.setState({dropdownView: usersCollected});
                }
             }
-
+            
         }).catch((error) => {
             // otherwise some error occurs
             console.log("error when submitting: "+error);

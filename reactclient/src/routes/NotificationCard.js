@@ -20,12 +20,48 @@ class NotificationCard extends Component {
     console.log("accepted!");
     this.setState({showCard: false});
     this.consumeCard("accepted");
+
+    //if the card is a "namespace_invite"
+    if(this.props.type === "namespace_invite") {
+      this.handleUserInvite("accepted");
+    }
   }
 
   _onDecline(event) {
     console.log("declined!");
     this.setState({showCard: false});
     this.consumeCard("declined");
+
+    if(this.props.type === "namespace_invite") {
+      this.handleUserInvite("declined");
+    }
+  }
+
+    handleUserInvite(choice) {
+        let backendUrl = "/api/namespace"+this.props.info2;
+        if(choice === "accepted") {
+            backendUrl = backendUrl + "/add-user";
+        }
+        else if(choice === "declined") {
+            backendUrl = backendUrl + "/remove-invite";
+        }
+
+        console.log("BACKEND ROUTE is "+backendUrl);
+
+        API({
+            method: 'patch',
+            url: backendUrl,
+            withCredentials: true,
+        }).then((response) => {
+            // check what our back-end Express will respond (Does it receive our data?)
+            console.log(response.data);
+        }).catch((error) => {
+            // if we cannot send the data to Express
+            console.log("error when submitting: "+error);
+            alert("failed to update these fields!");
+        });
+
+
   }
 
   //user clicked one of the button and we send data to the backend
@@ -59,10 +95,13 @@ class NotificationCard extends Component {
     else if(this.props.type === "friend_accepted") {
       return (this.props.name+" accepted your friend request.");
     }
+    else if(this.props.type === "namespace_invite") {
+      return ("You are invited to join the study group "+this.props.name+".");
+    }
   }
 
   generateButtons() {
-    if(this.props.type === "friend_request") {
+    if(this.props.type === "friend_request" || this.props.type === "namespace_invite") {
       return (    <div className='ui two buttons'>
                     <Button basic color='green' onClick={this._onAccept}>
                       Approve

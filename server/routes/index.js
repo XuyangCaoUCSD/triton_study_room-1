@@ -361,6 +361,7 @@ router.post("/multiUserSubmit", middleware.isLoggedIn, function(req, res) {
         console.log("these user will form a group: "+JSON.stringify(selectedUsers));
 
         //Now begin processing those selected user data...
+        
 
         res.send("successfully get your multiUserSelection!");
 

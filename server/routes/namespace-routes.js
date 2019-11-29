@@ -1,7 +1,8 @@
 const  express       = require('express'),
        User          = require('../models/User'),
        middleware    = require('../middleware/index'),
-       Namespace     = require('../models/Namespace');
+       Namespace     = require('../models/Namespace'),
+       { Notification }  = require('../models/Notification');
 
 const { ChatHistory } = require('../models/ChatHistory');
 const { File } = require('../models/File');
@@ -13,6 +14,8 @@ const router = express.Router();
 
 // Create new group
 router.post('/', middleware.isLoggedIn, (req, res) => {
+
+    
     let userId = req.session.passport.user;
 
     let privateChat = req.body.privateChat;
@@ -24,8 +27,8 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     console.log(privateChat);
     console.log('secondUserEmail is');
     console.log(secondUserEmail);
-    console.log('peopleEmaiList is');
-    console.log(peopleEmaiList);  // List of all people in group
+    console.log('peopleDetailsList is');
+    console.log(peopleDetailsList);  // List of all people in group
     console.log('groupName is');
     console.log(groupName);
 
@@ -34,12 +37,13 @@ router.post('/', middleware.isLoggedIn, (req, res) => {
     // Just need list of emails
     let peopleEmailList = null;
     if (peopleDetailsList) {
-        peopleEmaiList = peopleDetailsList.map((personInfo) => {
+        peopleEmailList = peopleDetailsList.map((personInfo) => {
             return personInfo.email;
         })    
     }
     
-    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleEmaiList, groupName);
+    findOrCreateNewGroup(res, userId, secondUserEmail, privateChat, peopleEmailList, groupName);
+
 });
 
 
@@ -73,7 +77,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
             // console.log('Group does not yet exist, creating new');
             // let privateChat = req.body.privateChat;
             // let secondUserEmail = req.body.secondUserEmail;
-            // let peopleEmaiList = req.body.peopleEmaiList;
+            // let peopleEmailList = req.body.peopleEmailList;
             console.log('CANNOT FIND NAMESPACE');
             data.success = false;
             res.send(data);
@@ -453,7 +457,7 @@ function getUserRoomUnreads(endpoint, userId, i, rooms, res, roomNotifications, 
 
 // If private chat, either find or create new direct message.
 // If private group, always attempt to create new. peopleEmailList should NOT contain the creator's when first passed in
-function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleEmaiList = null, groupNameParam = null) {    
+function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = null, peopleEmailList = null, groupNameParam = null) {    
     // Response data
     let data = {
         success: true
@@ -613,7 +617,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
     } else {
         // Create group chat case (will always try to create new group)
 
-        if (!peopleEmaiList) {
+        if (!peopleEmailList) {
             data.success = false;
             data.errorMessage = "Need to provide list of people for group";
             res.send(data);
@@ -621,7 +625,7 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
         }
 
         let maxMemberCount = 20;
-        if (peopleEmaiList.length > maxMemberCount) {
+        if (peopleEmailList.length > maxMemberCount) {
             data.success = false;
             data.errorMessage = `Group too large! Maximum of ${maxMemberCount} people per group. Study smart!`;
             res.send(data);
@@ -675,12 +679,12 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                     // Add new fields to namespace to save
 
                     // Use id as endpoint
-                    let groupEndpoint = createdNamespace.id;
+                    let groupEndpoint = "/" + createdNamespace.id;
 
                     // Save namespace with added peopleDetails
                     Namespace.findByIdAndUpdate(
                         createdNamespace.id,
-                        {$set: {endpoint: groupEndpoint, invited: peopleEmaiList}},
+                        {$set: {endpoint: groupEndpoint, invited: peopleEmailList}},
                         {safe: true, new: true}
                     ).then((updatedNamespace) => {
                         // Send Message to master to dynamically add listeners to all threads for new (dynamic) namespace
@@ -694,7 +698,39 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
 
                         data.group = updatedNamespace;
                         // Send response
-                        res.send(data);
+                        // Send inivitation (notification "namespace_invite") to invited users
+                        for(var i = 0; i < peopleEmailList.length; i++) {
+                            let currentNotification = new Notification({
+                                type: "namespace_invite",
+                                trigger: updatedNamespace.id,
+                                extra: "",
+                                extra2: ""
+                            });
+
+                            User.findOneAndUpdate(
+                                {"email": peopleEmailList[i]},
+                                {"$push": {"request_notification": currentNotification}},
+                                {safe: true, new: true}
+                            ).then((updatedInvitedUser) => {
+                                console.log("Invited: "+updatedInvitedUser.email);
+                            }).catch((err) => {
+                                console.log(err);
+                            });
+
+                        }
+
+                        User.findByIdAndUpdate(
+                            creatorUserId,
+                            {"$push": {"namespaces": updatedNamespace.id}},
+                            {safe: true, new: true}
+                        ).then((updatedUser) => {
+                            console.log("the new namespace is added to the user "+updatedUser.email);
+                            res.send(data);
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+
+                        
 
                     }).catch((err) => {
                         console.log(err);
