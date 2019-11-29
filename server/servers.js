@@ -21,7 +21,8 @@ const  express     = require('express'),
 const indexRoutes     = require("./routes/index"),
 	  authRoutes      = require('./routes/auth-routes'),
 	  namespaceRoutes = require('./routes/namespace-routes'),
-	  uploadRoutes    = require('./routes/uploads');
+	  uploadRoutes    = require('./routes/uploads'),
+	  calendarRoutes  = require('./routes/calendar');
 
 const cluster = require('cluster');
 const net = require('net');
@@ -228,10 +229,10 @@ if (cluster.isMaster) {
 	// }
 
 	app.use("/api", indexRoutes);
+	app.use("/api/uploads", uploadRoutes);
 	app.use("/api/auth", authRoutes);
 	app.use("/api/namespace", namespaceRoutes);
-	app.use("/api/uploads", uploadRoutes);
-	// app.use('/uploads', express.static('uploads'));
+	app.use("/api/calendar", calendarRoutes);
 
 	// Listen to socket io client side connections to root namespace
     io.on('connection', function(socket) {

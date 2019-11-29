@@ -59,15 +59,39 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
 router.patch('/', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let patchType = req.body.patchType;
-    let calendarEvent = req.body.calendarEvent;
+    let calendarEvent;
+
+
     console.log("Reached calendar put route");
+
+    console.log('patchType is ' + patchType);
+    console.log('calendarEvent is ' + calendarEvent);
 
     let data = {
         success: true
     }
 
     User.findById(userId).then((foundUser) => {
+        // Determine what type of pathc
         if (patchType === 'add') {
+
+            if (!req.body.calendarEvent) {
+                data.success = false;
+                data.errorMessage = 'Need an event to add!';
+                res.send(data);
+                return;
+            }
+
+            let eventData = req.body.calendarEvent;
+
+            // Convert to correct schema form
+            calendarEvent = {
+                eventName: eventData.title,
+                startTime: eventData.start,
+                endTime: eventData.end,
+                location: eventData.location,
+                visibility: eventData.visibility
+            }
 
             Calendar.findByIdAndUpdate(
                 foundUser.calendar,
@@ -75,6 +99,11 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                 {safe: true, new: true}
             ).then((updatedCalendar) => {
                 console.log('Added event to calendar');
+                let newEvent = updatedCalendar.events[updatedCalendar.events - 1];
+                data.newEvent = newEvent;
+
+                res.send(data);
+
             }).catch((err) => {
                 console.log(err);
             });
@@ -86,6 +115,7 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                 {safe: true, new: true}
             ).then((updatedCalendar) => {
                 console.log('Removed event to calendar');
+                res.send(data);
             }).catch((err) => {
                 console.log(err);
             });
