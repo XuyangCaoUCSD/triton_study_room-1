@@ -90,7 +90,7 @@ export default class MultiUserSelect extends Component {
             url: "/api/namespace",
             data: {
                 peopleDetailsList: this.state.selectedUsers,
-                groupName: "testSmallGroup2"
+                groupName: "testSmallGroup99"
             },
             withCredentials: true,
         }).then((response) => {
