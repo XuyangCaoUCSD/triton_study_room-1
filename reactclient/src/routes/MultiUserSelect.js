@@ -87,9 +87,10 @@ export default class MultiUserSelect extends Component {
         console.log(this.state.selectedUsers);
         API({
             method: 'post',
-            url: "/api/multiUserSubmit",
+            url: "/api/namespace",
             data: {
-                selectedUser: this.state.selectedUsers
+                peopleDetailsList: this.state.selectedUsers,
+                groupName: "testSmallGroup"
             },
             withCredentials: true,
         }).then((response) => {
