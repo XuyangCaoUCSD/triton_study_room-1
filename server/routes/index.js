@@ -68,7 +68,13 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             data.nsData = nsData;
             data.userEmail = foundUser.email;
 
+            if (!namespaces) {
+                res.send(data);
+                return;
+            }
+            
             getUserNamespaceUnreads(userId, 0, namespaces, res, namespaceNotifications, data);
+           
         }
     });
 });

@@ -59,7 +59,7 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
 router.patch('/', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let patchType = req.body.patchType;
-    let calendarEvent;
+    let calendarEvent = req.body.calendarEvent;
 
 
     console.log("Reached calendar put route");
@@ -82,24 +82,13 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                 return;
             }
 
-            let eventData = req.body.calendarEvent;
-
-            // Convert to correct schema form
-            calendarEvent = {
-                eventName: eventData.title,
-                startTime: eventData.start,
-                endTime: eventData.end,
-                location: eventData.location,
-                visibility: eventData.visibility
-            }
-
             Calendar.findByIdAndUpdate(
                 foundUser.calendar,
                 {$push: {events: calendarEvent}},
                 {safe: true, new: true}
             ).then((updatedCalendar) => {
                 console.log('Added event to calendar');
-                let newEvent = updatedCalendar.events[updatedCalendar.events - 1];
+                let newEvent = updatedCalendar.events[updatedCalendar.events.length - 1];
                 data.newEvent = newEvent;
 
                 res.send(data);
