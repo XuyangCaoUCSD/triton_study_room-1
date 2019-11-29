@@ -418,7 +418,8 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
               extra2: "",
               _id: cards[i]._id,
               avatar: "",
-              triggerEmail: ""
+              triggerEmail: "",
+              spaceCreatorName: cards[i].extra
             }
             if(card.type === "friend_request" || card.type === "friend_accepted") {
                 await User.findById(cards[i].trigger).then(function(triggerData) {

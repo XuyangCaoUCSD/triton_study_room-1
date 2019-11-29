@@ -96,7 +96,7 @@ class NotificationCard extends Component {
       return (this.props.name+" accepted your friend request.");
     }
     else if(this.props.type === "namespace_invite") {
-      return ("You are invited to join the study group "+this.props.name+".");
+      return ("You are invited to join the study group "+this.props.name+" created by "+this.props.spaceCreatorName+".");
     }
   }
 

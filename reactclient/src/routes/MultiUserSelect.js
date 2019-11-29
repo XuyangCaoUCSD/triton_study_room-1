@@ -90,7 +90,7 @@ export default class MultiUserSelect extends Component {
             url: "/api/namespace",
             data: {
                 peopleDetailsList: this.state.selectedUsers,
-                groupName: "testSmallGroup"
+                groupName: "testSmallGroup2"
             },
             withCredentials: true,
         }).then((response) => {
@@ -137,5 +137,7 @@ export default class MultiUserSelect extends Component {
 
 //by default if no namespace is given the scope is global
 MultiUserSelect.defaultProps = {
-    endpoint: "/global"
+    endpoint: "/global",
+    // two types: createNamespace, createStudySession
+    creationType: "createNamespace"
 };
