@@ -68,7 +68,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
             data.nsData = nsData;
             data.userEmail = foundUser.email;
 
-            if (!namespaces) {
+            if (namespaces.length === 0) {
                 res.send(data);
                 return;
             }

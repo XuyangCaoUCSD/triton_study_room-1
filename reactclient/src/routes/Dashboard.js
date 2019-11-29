@@ -89,7 +89,10 @@ class Dashboard extends Component {
 
         }).catch((err) => {
             console.log("Error while getting dashboard route, logging error: \n" + err);
-
+            if (!err) {
+                console.log('Could not confirm error type from server');
+                return;
+            }
             let statusCode = err.response.status.toString();
             if (statusCode === "401") {
                 console.log("ERROR code 401 received - UNAUTHENTICATED");
@@ -134,47 +137,6 @@ class Dashboard extends Component {
         console.log(this.props);
         // this.props.handleNamespaceNotifications(data.endpoint, false);
         this.props.history.push(`/namespace${data.endpoint}`);
-        
-        // // Get request to get info for current namespace
-        // API({
-        //     method: 'get',
-        //     url: `/api/namespace${data.endpoint}`,
-        //     withCredentials: true
-      
-        // })
-        // .then((res) => {
-        //     console.log(`/api/namespace${data.endpoint} API responded with`);
-        //     console.log(res);
-        //     // if (this._isMounted) {
-        //     //     this.setState({
-        //     //         redirectTo: `/namespace${data.endpoint}`
-        //     //     });
-
-        //     //     // this.props.history.push(`/namespace${data.endpoint}`);
-                
-        //     // }
-        //     console.log('dashboard props are');
-        //     console.log(this.props);
-        //     this.props.history.push(`/namespace${data.endpoint}`);
-            
-        // })
-        // .catch((err) => {
-        //     console.log(err);
-        //     console.log(`Err in getting /api/namespace${data.endpoint} info`);
-
-        //     let statusCode = err.response.status.toString();
-        //     if (statusCode === "401") {
-        //         console.log("ERROR code 401 received - UNAUTHENTICATED");
-        //         this.props.history.push("/login/error");
-        //     } else if (statusCode === "403") { 
-        //         console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
-        //         if (this._isMounted) {
-        //             this.setState({
-        //                 unauthorised: true
-        //             })
-        //         }
-        //     }
-        // });
     }
 
     render() {

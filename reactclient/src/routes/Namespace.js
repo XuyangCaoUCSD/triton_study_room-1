@@ -27,7 +27,7 @@ class Namespace extends Component {
             roomNotifications: {},
             activeUsers: {},
             namespaceNotifications: {},
-            peopleMap: {},
+            peopleMap: null, // USE NULL NOT {} as important for truthiness check in code to check if need to update namespace info
             fileUploadWindowOpen: false,
             filesViewWindowOpen: false
         };
@@ -49,6 +49,7 @@ class Namespace extends Component {
         this.closeFileUploadWindow = this.closeFileUploadWindow.bind(this);
         this.handleFilesViewWindowOpen = this.handleFilesViewWindowOpen.bind(this);
         this.closeFilesViewWindow = this.closeFilesViewWindow.bind(this);
+        this.getUpdatedNamespaceInfo = this.getUpdatedNamespaceInfo.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -157,6 +158,10 @@ class Namespace extends Component {
 
         }).catch((err) => {
             console.log("Error while getting Namespace route, logging error: \n" + err);
+            if (!err) {
+                console.log('Could not confirm error type from server');
+                return;
+            }
             // Either use toString or ==
             if (err.response && err.response.status) {
                 console.log('err.response is: \n');
@@ -274,8 +279,9 @@ class Namespace extends Component {
                 roomNotifications: {},
                 activeUsers: {},
                 namespaceNotifications: {},
+                peopleMap: null, // USE NULL NOT {} as important for truthiness check in code to check if need to update namespace info
                 fileUploadWindowOpen: false,
-                filesViewWindowOpen: false
+                filesViewWindowOpen: false,
                 // rooms: null
             });
 
@@ -523,6 +529,54 @@ class Namespace extends Component {
         });   
     }
 
+    // To handle newly join people and maybe newly created rooms
+    getUpdatedNamespaceInfo() {
+        API({
+            method: 'get',
+            url: `/api/namespace${this.state.endpoint}`,
+            withCredentials: true
+        }).then((res) => {
+            console.log('Getting updated namespace info');
+            console.log(res);
+
+            let data = res.data;
+            console.log(data);
+
+        
+            if (!data.success) {
+                console.log('Failed get request on namespace route');
+                this.setState({
+                    nameSpaceNonExistent: true
+                })
+                return;
+            }
+
+            let currNs = data.currNs;
+            let roomNotifications = data.roomNotifications;
+
+            let peopleMap = {};
+            
+            // Hash email to person info
+            data.currNs.peopleDetails.forEach((personInfo) => {
+                peopleMap[personInfo.email] = personInfo
+            });
+            
+            if (this._isMounted) {
+                console.log('Updating namespace info as new user may have joined or new room created');
+                this.setState({
+                    rooms: currNs.rooms,
+                    roomNotifications,
+                    currNs,
+                    peopleMap
+                });
+            }
+            
+
+        }).catch((err) => {
+            console.log(err);
+        });
+    }
+
     render() {
         if (this.state.unauthorised) {
             return (
@@ -566,9 +620,7 @@ class Namespace extends Component {
             });  
             
             let chatHistory = [];
-            // chatHistory.push(buildMessage("Hello There"));
-            // chatHistory.push(buildMessage("Lorem Ipsum"));
-            // chatHistory.push(buildMessage("Pig latin"));
+
             if (this.state.currRoom && this.state.currRoom.chatHistory != null) {
                 let key = 0;
                 this.state.currRoom.chatHistory.messages.forEach((message) => {
@@ -847,12 +899,26 @@ class Namespace extends Component {
     buildMessage(msg, listKey) {
         const convertedDate = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         let avatarColumnSize = '3.5em';
+
+        // Only set source if peopleMap is nonempty
+        let avatarSource = null;
+
+        if (this.state.peopleMap) {
+            // If user details are there use it, else try to get updated details from namespace
+            if (this.state.peopleMap[msg.creatorEmail]) {
+                console.log('Using default stuff');
+                avatarSource = this.state.peopleMap[msg.creatorEmail].avatar;
+            } else {
+                this.getUpdatedNamespaceInfo();
+            }
+        } 
+                            
         return (
             <li key={listKey}>
                 <Message style={{whiteSpace: 'pre-wrap'}}>
                     <div>
                         <div style={{ float: 'left', width: avatarColumnSize }} >
-                            <Image src={this.state.peopleMap ? this.state.peopleMap[msg.creatorEmail].avatar : null } style={{width: '2.7em', height: '2.7em', position: 'relative', overflow: 'hidden', borderRadius: '50%'}}/>
+                            <Image src={avatarSource} style={{width: '2.7em', height: '2.7em', position: 'relative', overflow: 'hidden', borderRadius: '50%'}}/>
                         </div>
                         <div className="right" style={{ marginLeft: avatarColumnSize }}>
                             <div>
