@@ -305,6 +305,7 @@ router.patch('/:namespace/remove-invite', middleware.isLoggedIn, (req, res) => {
 
                 foundNamespace.save().then((updatedNamespace) => {
                     console.log('Removed invited user from namespace');
+                    res.send(data);
                 }).catch((err) => {
                     console.log(err);
                 });
