@@ -190,7 +190,9 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
             }
 
             if (foundNamespace.privateGroup) {
-                let invitedIndex = foundNamespace.invited.indexOf(foundUser.email);
+                let invited = foundNamespace.invited;
+
+                let invitedIndex = invited.indexOf(foundUser.email);
                 if (invitedIndex === -1) {
                     console.log('User is not allowed to join namespace');
                     data.success = false;
@@ -199,11 +201,18 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                     return;
                 }
 
-                foundNamespace.invited.splice(invitedIndex, 1);
-                foundNamespace.people.push(userId);
-                foundNamespace.peopleDetails.push(userDetails);
+                let people = foundNamespace.people;
+                let peopleDetails = foundNamespace.peopleDetails;
 
-                foundNamespace.save().then((updatedNamespace) => {
+                invited.splice(invitedIndex, 1);
+                people.push(userId);
+                peopleDetails.push(userDetails);
+
+                Namespace.findByIdAndUpdate(
+                    foundNamespace.id,
+                    {$set: {invited: invited, people: people, peopleDetails: peopleDetails}},
+                    {safe: true, new: true}
+                ).then((updatedNamespace) => {
 
                     console.log('Updated namespace with user and details');
                     data.newGroupEndpoint = updatedNamespace.endpoint;
@@ -296,7 +305,9 @@ router.patch('/:namespace/remove-invite', middleware.isLoggedIn, (req, res) => {
             }
 
             if (foundNamespace.privateGroup) {
-                let invitedIndex = foundNamespace.invited.indexOf(foundUser.email);
+                let invited = foundNamespace.invited;
+
+                let invitedIndex = invited.indexOf(foundUser.email);
                 if (invitedIndex === -1) {
                     console.log('User is not invited to join namespace');
                     data.success = false;
@@ -304,10 +315,14 @@ router.patch('/:namespace/remove-invite', middleware.isLoggedIn, (req, res) => {
                     res.send(data);
                     return;
                 }
+                
+                invited.splice(invitedIndex, 1);
 
-                foundNamespace.invited.splice(invitedIndex, 1);
-
-                foundNamespace.save().then((updatedNamespace) => {
+                Namespace.findByIdAndUpdate(
+                    foundNamespace.id,
+                    {$set: {invited: invited}},
+                    {new: true, safe: true}
+                ).then((updatedNamespace) => {
                     console.log('Removed invited user from namespace');
                     res.send(data);
                 }).catch((err) => {
@@ -336,7 +351,7 @@ router.patch('/:namespace/remove-invite', middleware.isLoggedIn, (req, res) => {
 
 
 // Removes user permanently from namespace
-router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
+router.patch('/:namespace/remove-user', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let endpoint = "/" + req.params.namespace;
 
@@ -358,7 +373,9 @@ router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
         Namespace.findOne({
             endpoint: endpoint
         }).then((foundNamespace) => {
-            let userIndex = foundNamespace.people.indexOf(userId);
+
+            let people = foundNamespace.people;
+            let userIndex = people.indexOf(userId);
             if (userIndex === -1) {
                 console.log('User was already not in namespace');
                 data.success = false;
@@ -368,20 +385,22 @@ router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
             }
     
             // Remove userId from people array
-    
+            
             // Should be >= 0
             if (userIndex >= 0) {
-                foundNamespace.people.splice(userIndex, 1);
+                people.splice(userIndex, 1);
             }
+
+            let peopleDetails = foundNamespace.peopleDetails;
     
             // Find index of correct user object in details array to remove
-            for (var i = 0; i < foundNamespace.peopleDetails.length; i++) {
-                if (foundNamespace.peopleDetails[i].email === foundUser.email) {
+            for (var i = 0; i < peopleDetails.length; i++) {
+                if (peopleDetails[i].email === foundUser.email) {
                     break;
                 }
             }
     
-            if (i === foundNamespace.peopleDetails.length) {
+            if (i === peopleDetails.length) {
                 console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
                 data.success = false;
                 data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
@@ -389,15 +408,19 @@ router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
                 return;
             }
     
-            foundNamespace.peopleDetails.splice(i, 1);
+            peopleDetails.splice(i, 1);
             
             // Save updated namespace
-            foundNamespace.save().then((savedNamespace) => {
+            Namespace.findByIdAndUpdate(
+                foundNamespace.id,
+                {$set: {people: people, peopleDetails: peopleDetails}},
+                {save: true, new: true}
+            ).then((updatedNamespace) => {
                 console.log('Removed user and their details from namespace');
 
                 User.findByIdAndUpdate(
                     userId,
-                    {$pull: {namespaces: savedNamespace.id}},
+                    {$pull: {namespaces: updatedNamespace.id}},
                     {safe: true, new: true}
                 ).then((updatedUser) => {
                     console.log('Removed namespace from user namespaces array');
@@ -420,8 +443,6 @@ router.patch('/:namespace/delete-user', middleware.isLoggedIn, (req, res) => {
     })
 
 });
-
-
 
 
 

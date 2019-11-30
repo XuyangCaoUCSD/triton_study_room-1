@@ -6,7 +6,6 @@ import { Button, Form, Input, Select, Confirm, TextArea } from 'semantic-ui-reac
 import API from '../utilities/API';
 import Modal from 'react-awesome-modal';
 import DateTimeRangeContainer from 'react-advanced-datetimerange-picker';
-import {FormControl} from 'react-bootstrap';
 
 class Calendar extends Component {
     constructor(props, context) {
@@ -66,6 +65,7 @@ class Calendar extends Component {
                     start: new Date(eventInfo.start),
                     end: new Date(eventInfo.end),
                     allDay: eventInfo.allDay,
+                    location: eventInfo.location,
                     title: eventInfo.title,
                     desc: eventInfo.desc
                 }
@@ -255,6 +255,7 @@ class Calendar extends Component {
                     _id: responseEvent._id,
                     title: responseEvent.title,
                     allDay: responseEvent.allDay,
+                    location: responseEvent.location,
                     start: new Date(responseEvent.start),
                     end: new Date(responseEvent.end),
                     desc: responseEvent.desc
@@ -327,13 +328,12 @@ class Calendar extends Component {
         console.log('e.target is');
         console.log(e.target);
 
-        let eventId = this.state.currentEvent._id;
-
         let newEvent = {
             start: new Date(this.state.currentEventStart),
             end: new Date(this.state.currentEventEnd),
             title: e.target.elements.title.value,
-            desc: e.target.elements.desc.value
+            desc: e.target.elements.desc.value,
+            location: e.target.elements.location ? e.target.elements.location.value : null
         }
 
         console.log('new event is');
@@ -507,6 +507,7 @@ class Calendar extends Component {
                     _id: responseEvent._id,
                     title: responseEvent.title,
                     allDay: responseEvent.allDay,
+                    location: responseEvent.location,
                     start: new Date(responseEvent.start),
                     end: new Date(responseEvent.end),
                     desc: responseEvent.desc

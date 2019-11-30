@@ -148,15 +148,28 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
                                     // console.log('updatedNamespace is');
                                     // console.log(updatedNamespace);  
                                     let index = 0;
-                                    for (index = 0; index < updatedNamespace.peopleDetails.length; index ++) {
-                                        if (updatedNamespace.peopleDetails[index].email === updatedUser.email) {
-                                            updatedNamespace.peopleDetails[index].avatar = updatedUser.avatar;
+                                    let foundIndex = -1
+                                    let peopleDetails = updatedNamespace.peopleDetails;
+                                    for (index = 0; index < peopleDetails.length; index ++) {
+                                        if (peopleDetails[index].email === updatedUser.email) {
+                                            foundIndex = index;
+                                            break;
                                         }
                                     };
 
-                                    updatedNamespace.save().then((savedNamespace) => {
+                                    if (foundIndex === -1) {
+                                        console.log('Error, could not file user info to remove from namespace');
+                                        return;
+                                    }
+
+                                    peopleDetails[index].avatar = updatedUser.avatar;
+
+                                    Namespace.findByIdAndUpdate(
+                                        updatedNamespace.id,
+                                        {$set: {peopleDetails: peopleDetails}},
+                                        {new: true, safe: true}
+                                    ).then((updatedAgainNamespace) => {
                                         console.log('Updated user details in namespace!');
-                                        console.log(savedNamespace);
                                     }).catch((err) => {
                                         console.log(err);
                                     })

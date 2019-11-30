@@ -430,9 +430,9 @@ class Namespace extends Component {
         console.log('Received roomNotification for room ' + roomName);
         this.updateRoomNotifications(roomName, true);
     }
-    // ---------------- End of socket callbacks --------------------
+    // ---------------- End of socket callbacks ---------------------
 
-    //----------------------- Parent socket CBs ------------
+    //----------------------- Parent socket CBs ---------------------
     // Real-time notifications for online users but not in namespace
     onParentSocketMessageNotificationCB = (namespaceEndpoint) => {
         // If message from new person, get user namespaces info again to get new chat group
@@ -452,7 +452,7 @@ class Namespace extends Component {
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
     }
 
-    //----------------------- End of parent socket CBs-------
+    //----------------------- End of parent socket CBs----------------
 
     // Handles click on namespace
     iconsClickHandler = (data) => {
@@ -909,7 +909,6 @@ class Namespace extends Component {
         if (this.state.peopleMap) {
             // If user details are there use it, else try to get updated details from namespace
             if (this.state.peopleMap[msg.creatorEmail]) {
-                console.log('Using default stuff');
                 avatarSource = this.state.peopleMap[msg.creatorEmail].avatar;
             } else {
                 this.getUpdatedNamespaceInfo();
