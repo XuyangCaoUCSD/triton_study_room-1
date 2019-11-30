@@ -1,6 +1,6 @@
 //jshint esversion: 6
 import React, {Component} from 'react';
-import { Button, Card, Image } from 'semantic-ui-react';
+import { Button, Card, Image, Label, List } from 'semantic-ui-react';
 import API from '../utilities/API';
 
 class NotificationCard extends Component {
@@ -8,12 +8,50 @@ class NotificationCard extends Component {
     super(props);
 
     this.state = {
-      showCard: true
+      showCard: true,
+      yourReaction: this.props.yourReaction,
+      listOfReactions: this.props.listOfReactions
     };
 
     this._onAccept = this._onAccept.bind(this);
     this._onDecline = this._onDecline.bind(this);
     this.consumeCard = this.consumeCard.bind(this);
+    this._acceptSession = this._acceptSession.bind(this);
+    this._declineSession = this._declineSession.bind(this);
+  }
+
+  _acceptSession(event) {
+    console.log("accepted study session!");
+    //front end change
+    
+    for(var i = 0; i < this.state.listOfReactions.length; i++) {
+      if(this.state.listOfReactions[i].person === "yourselfDiscovered") {
+        //too complex if temp and reassign, so I will just modify and forceUpdate
+        this.state.listOfReactions[i].reaction = "accept";
+        continue;
+      }
+    }
+    this.setState({yourReaction: "accept"});
+
+    //front end change
+    this.consumeCard("accepted");
+
+  }
+
+  _declineSession(event) {
+    console.log("decline study session!");
+    //front end change
+    for(var i = 0; i < this.state.listOfReactions.length; i++) {
+      if(this.state.listOfReactions[i].person === "yourselfDiscovered") {
+        //too complex if temp and reassign, so I will just modify and forceUpdate
+        this.state.listOfReactions[i].reaction = "reject";
+        continue;
+      }
+    }
+    this.setState({yourReaction: "reject"});
+
+    //back end change
+    this.consumeCard("declined");
   }
 
   _onAccept(event) {
@@ -88,6 +126,40 @@ class NotificationCard extends Component {
   }
 
 
+  customizeReaction(reactionType) {
+    if(reactionType==="accept") {
+      return(
+        <List.Description style={{color: "green"}}>
+        accepted
+        </List.Description>
+      );
+    }
+    else if(reactionType==="reject") {
+      return(
+        <List.Description style={{color: "red"}}>
+        rejected
+        </List.Description>
+      );
+    }
+    else if(reactionType==="wait_response") {
+      return(
+        <List.Description style={{color: "purple"}}>
+        waiting for the response
+        </List.Description>
+      );
+    }
+    else if(reactionType==="creator") {
+      return(
+        <List.Description style={{color: "blue"}}>
+        creator
+        </List.Description>
+      );
+    }
+  }
+
+
+
+
   generateDynamicContent() {
     if(this.props.type === "friend_request") {
       return (this.props.name+" sent you a friend request.");
@@ -98,6 +170,32 @@ class NotificationCard extends Component {
     else if(this.props.type === "namespace_invite") {
       return ("You are invited to join the study group "+this.props.name+" created by "+this.props.spaceCreatorName+".");
     }
+    else if(this.props.type === "study_session") {
+      const items = [];
+      for(var i = 0; i < this.props.listOfReactions.length; i++) {
+        items.push(
+          <List.Item>
+            <Image avatar src={this.props.listOfReactions[i].avatar} />
+            <List.Content>
+              <List.Header as='a'>{this.props.listOfReactions[i].person === "yourselfDiscovered" ? "Yourself" : this.props.listOfReactions[i].name}</List.Header>
+              {this.customizeReaction(this.props.listOfReactions[i].reaction)}
+            </List.Content>
+          </List.Item>
+        );
+      }
+
+      return(
+      <div>
+        <h4>Note:<br/>{this.props.desc}</h4>
+        <h4>Location:<br/>{this.props.location}</h4>
+        <h5>Start time:<br/>{(new Date(this.props.start)).toString()}</h5>
+        <h5>End time:<br />{(new Date(this.props.end)).toString()}</h5>
+        <h4>People invovled:</h4>
+        <List>{items}</List>
+        
+
+      </div>);
+    } 
   }
 
   generateButtons() {
@@ -118,6 +216,57 @@ class NotificationCard extends Component {
                     </Button>
                   </div>);
     }
+    else if(this.props.type === "study_session") {
+      if(this.props.name === "creator") {
+        return(
+          <div className='ui two buttons'>
+            <Button basic color='blue' disabled>
+              You are the creator
+            </Button>
+          </div>
+        );
+      }
+      else if(this.state.yourReaction === "reject") {
+        return(
+          <div className='ui two buttons'>
+            <Button basic color='red' disabled>
+              You rejected
+            </Button>
+          </div>
+        );
+      }
+      else if(this.state.yourReaction === "accept") {
+        return(
+          <div className='ui two buttons'>
+            <Button basic color='green' disabled>
+              You accepted
+            </Button>
+          </div>
+        );
+      }
+      else if(this.state.yourReaction === "wait_response") {
+        return(
+          <div className='ui two buttons'>
+            <Button basic color='green' onClick={this._acceptSession}>
+              Approve
+            </Button>
+            <Button basic color='red' onClick={this._declineSession}>
+              Decline
+            </Button>
+          </div>
+        );
+      }
+      
+    }
+  }
+
+  generateHeader() {
+    if(this.props.type === "study_session") {
+      return this.props.info2;
+    }
+    else {
+      return this.props.name;
+    }
   }
 
   render() {
@@ -129,7 +278,7 @@ class NotificationCard extends Component {
               size='mini'
               src={this.props.avatar}
             />
-            <Card.Header>{this.props.name}</Card.Header>
+            <Card.Header>{this.generateHeader()}</Card.Header>
             <Card.Meta>{this.props.email}</Card.Meta>
             <Card.Description>
               {this.generateDynamicContent()}
