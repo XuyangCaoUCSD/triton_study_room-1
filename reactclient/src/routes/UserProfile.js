@@ -78,19 +78,19 @@ export default class UserProfile extends Component {
 
         if( !userData.is_friend )
             friendAction =
-                <div className="extra">
-                    <div className="ui right floated primary button">
-                        Add Friend
-                        <i className="right plus icon"/>
-                    </div>
+                <div className="ui right floated primary button">
+                    Add Friend
+                    <i className="right plus icon"/>
                 </div>;
         else if( this.state.user_db_id !== this.state.target_user_db_id )
             friendAction =
-                <div className="extra">
-                    <div className="ui right floated negative button">
-                        Remove Friend
-                        <i className="right minus icon"/>
-                    </div>
+                <div className="ui right floated negative button">
+                    Remove Friend
+                    <i className="right minus icon"/>
+                </div>;
+        else friendAction =
+                <div className="ui right floated disbaled button">
+                    Yourself
                 </div>;
 
         return (
@@ -99,13 +99,13 @@ export default class UserProfile extends Component {
 
 
                     <div className="item">
-                        <div className="ui small image">
+                        <div className="ui small rounded image">
                             <img src={userData.avatar} alt="avatar"/>
                         </div>
                         <div className="content">
                             <Header>{userData.title}</Header>
                             <div className="meta">
-                                <a href={"mailto:"+userData.email}>{userData.email}</a>
+                                <a href={"mailto:"+userData.email}><i className="ui mail icon"/> {userData.email}</a>
                             </div>
                             <div className="description">{userData.about_me}</div>
                             {friendAction}

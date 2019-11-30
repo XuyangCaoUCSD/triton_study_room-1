@@ -88,7 +88,7 @@ class Login extends Component {
         
         return (
             <div>
-                <div className="ui center aligned middle aligned container" >
+                <div className="ui center aligned container" >
                     {errorDisplay}
                     <Image size="medium" centered={true} src="../geisel.svg"/>
                     <Header style={{"font-size": "50px"}}>Triton Study Room</Header>
@@ -114,17 +114,8 @@ class Login extends Component {
                         </Grid.Column>
                     </Grid>
                     <Divider/>
-                    <div className="ui google blue button center" onClick={this.googleLogInHandler}>
+                    <div className="ui blue button" onClick={this.googleLogInHandler}>
                         <i aria-hidden="true" className="google icon"/> UCSD Student Login
-                    </div>
-                    <p></p>
-                    <div className="ui labeled button" tabIndex="0">
-                        <div className="ui gold button center" onClick={this.googleLogInHandler}>
-                            <i aria-hidden="true"/> Register Now
-                        </div>
-                        <Label className="ui basic gold left">
-                            Requires UCSD Student Account
-                        </Label>
                     </div>
                 </div>
             </div>

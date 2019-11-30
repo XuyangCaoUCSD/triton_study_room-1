@@ -140,7 +140,7 @@ class App extends Component {
                 });
 
                 if (this.state.socket != null && this.state.socket.connected) {
-                    console.log('Manually disocnnecting socket');
+                    console.log('Manually disconnecting socket');
                     this.state.socket.disconnect();
                 }
             }
