@@ -113,8 +113,13 @@ export default class MultiUserSelect extends Component {
                 // check what our back-end Express will respond (Does it receive our data?)
                 console.log(response.data);
                 alert("data updated successfully!");
-                this.props.closeGroupModal();
-                this.props.getGroupsAPICall();
+                if (this.props.closeGroupModal) {
+                    this.props.closeGroupModal();
+                }
+                if (this.props.getGroupsAPICall) {
+                    this.props.getGroupsAPICall();
+                }
+                
             }).catch((error) => {
                 // if we cannot send the data to Express
                 console.log("error when submitting: "+error);
