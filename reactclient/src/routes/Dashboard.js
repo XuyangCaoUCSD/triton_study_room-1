@@ -1,7 +1,7 @@
 import React, {Component } from 'react';
 import { Route, Redirect } from "react-router-dom";
 import {withRouter} from 'react-router'
-import { Segment, Form, TextArea, Message, Menu } from 'semantic-ui-react';
+import { Icon, Popup, Button, Message, Menu, Dropdown } from 'semantic-ui-react';
 import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -10,7 +10,12 @@ class Dashboard extends Component {
         super(props);
         this.state = {
             chatGroups: {},
-            namespaceNotifications: {} // Map namespace to whether it has notifications
+            namespaceNotifications: {}, // Map namespace to whether it has notifications
+            editingGroups: false,
+            publicNamspacesOptions: [
+                { key: 'af', value: 'af', flag: 'af', text: 'Afghanistan' }
+            ],
+            selectedPublicNamespaceEndpoint: ""
         }
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
@@ -18,6 +23,9 @@ class Dashboard extends Component {
         console.log(this.props);
 
         this.getDashboardGroupsAPICall = this.getDashboardGroupsAPICall.bind(this);
+        this.handleJoinNamespace = this.handleJoinNamespace.bind(this);
+        this.getPublicNamespaces = this.getPublicNamespaces.bind(this);
+        this.removeGroup = this.removeGroup.bind(this);
     }
 
     componentDidMount() {
@@ -31,6 +39,7 @@ class Dashboard extends Component {
         
         // Retrieve user namespaces
         this.getDashboardGroupsAPICall();
+        this.getPublicNamespaces();
     }
 
     componentCleanup() {
@@ -45,6 +54,41 @@ class Dashboard extends Component {
     
         this.componentCleanup();
         window.removeEventListener('beforeunload', this.componentCleanup);
+    }
+
+    handlePublicNamespaceClick = (e) => {
+        this.setState({
+            selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint')
+        })
+    }
+
+    handleJoinNamespace() {
+        if (!this.state.selectedPublicNamespaceEndpoint) {
+            console.log('Need to select something to join'); 
+            return;
+        }
+
+        API({
+            method: 'patch',
+            url: `/api/namespace${this.state.selectedPublicNamespaceEndpoint}/add-user`,
+            withCredentials: true
+        }).then((res) => {
+            let data = res.data;
+            if (!data.success) {
+                console.log('Failed API to add user to namespace');
+            }
+
+            if (this._isMounted) {
+                this.setState({
+                    selectedPublicNamespaceEndpoint: ""
+                })
+                this.getDashboardGroupsAPICall();
+                this.getPublicNamespaces();
+            }
+
+        }).catch((err) => {
+            console.log(err);
+        });
     }
 
     getDashboardGroupsAPICall() {
@@ -109,6 +153,62 @@ class Dashboard extends Component {
         });
     }
 
+    getPublicNamespaces() {
+        API({
+            method: 'get',
+            url: "/api/namespace",
+            withCredentials: true
+        }).then((res) => {
+            console.log('Getting all public namespaces route, Server responded with:');
+            console.log(res);
+
+            let data = res.data;
+            if (!data.success) {
+                console.log('Failed API call');
+                return;
+            }
+            
+            let publicNamespaces = data.collectedNamespaces;
+
+            let publicNamespacesOptions = publicNamespaces.map((nsInfo) => {
+                return {
+                    key: nsInfo.endpoint,
+                    value: nsInfo.endpoint,
+                    endpoint: nsInfo.endpoint,
+                    image: nsInfo.img,
+                    text: nsInfo.groupName,
+                    onClick: this.handlePublicNamespaceClick
+                }
+            });
+
+            if (this._isMounted) {
+                this.setState({
+                    publicNamespacesOptions
+                });
+            }
+
+        }).catch((err) => {
+            console.log("Error while getting dashboard route, logging error: \n" + err);
+            if (!err) {
+                console.log('Could not confirm error type from server');
+                return;
+            }
+            let statusCode = err.response.status.toString();
+            if (statusCode === "401") {
+                console.log("ERROR code 401 received - UNAUTHENTICATED");
+                this.props.history.push("/login/error");
+            } else if (statusCode === "403") { 
+                console.log("ERROR code 403 received - UNAUTHORISED CREDENTIALS");
+                if (this._isMounted) {
+                    this.setState({
+                        unauthorised: true
+                    })
+                }
+            }
+
+        });
+    }
+
     //------------------Socket CBs (socket passed from App.js)----------------
     // Real-time notifications for online users but not in namespace
     onSocketMessageNotificationCB = (namespaceEndpoint) => {
@@ -139,6 +239,41 @@ class Dashboard extends Component {
         this.props.history.push(`/namespace${data.endpoint}`);
     }
 
+    editClickHandler = (e) => {
+        console.log('Editing groups');
+        
+        this.setState({
+            editingGroups: !this.state.editingGroups
+        });
+    }
+
+    // To be passed to ChatGroupIcon as props
+    removeGroup(endpoint) {
+        let currGroups = this.state.chatGroups;
+
+        let foundIndex = -1;
+
+        for (var i = 0; i < currGroups.length; i++) {
+            if (currGroups[i].endpoint === endpoint) {
+                foundIndex = currGroups;
+                break;
+            }
+        }
+
+        if (foundIndex === -1) {
+            console.log('ERROR: COULD NOT FIND GROUP TO REMOVE ON FRONT END');
+            return;
+        }
+
+        currGroups.splice(foundIndex, 1);
+
+        this.setState({
+            chatGroups: currGroups
+        });
+
+        this.getPublicNamespaces();
+    }
+
     render() {
         if (this.state.unauthorised) {
             return (
@@ -159,7 +294,9 @@ class Dashboard extends Component {
             // Push chat group icon component onto array
             chat_group_icons.push(
                 <ChatGroupIcon 
-                    key={key} data={nsInfo} 
+                    key={key} data={nsInfo}
+                    removeGroup={this.removeGroup}
+                    editingGroups={this.state.editingGroups}
                     hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} 
                     onClickHandler={() => this.iconsClickHandler(nsInfo)} 
                     currUserEmail={this.state.userEmail}
@@ -167,15 +304,53 @@ class Dashboard extends Component {
             );
         });
 
+        let editButtonPopupContent = this.state.editingGroups ? 'Cancel' : 'Leave a group';
+        let editButtonIconName = this.state.editingGroups ? 'cancel' : 'edit';
+
+        let joinNamespaceButton = <Button disabled onClick={this.handleJoinNamespace}>Join Group</Button>;
+
+        if (this.state.selectedPublicNamespaceEndpoint) {
+            joinNamespaceButton = <Button onClick={this.handleJoinNamespace}>Join Group</Button>;
+        }
+
+
         return (
-            <div>
-                <h2>Groups and Messages</h2>
-                <div style={{maxWidth: "180px"}}>
-                    <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
-                        {chat_group_icons}
-                    </Menu>
-                </div>  
+            <div className='ui grid' style={{height: "100%", width: '100%'}}>
+                <div className="four wide column">
+                    <h2 >
+                        Groups and Messages &nbsp;
+                        <Popup 
+                            content={editButtonPopupContent}
+                            trigger={
+                            <Button onClick={this.editClickHandler} size='tiny' circular color='orange' icon>
+                                <Icon name={editButtonIconName} />
+                            </Button>} 
+                        />
+                    </h2>
+                
+                    <div style={{maxWidth: "180px"}}>
+                        <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
+                            {chat_group_icons}
+                        </Menu>
+                    </div> 
+                </div>
+
+                <div className='five wide column'>
+                    <Dropdown
+                        placeholder='Select Group to join'
+                        search
+                        fluid
+                        selection
+                        options={this.state.publicNamespacesOptions}
+                    />
+                </div>
+
+                <div className='four wide column' >
+                    {joinNamespaceButton}
+                </div>
+                
             </div>
+            
         );  
     }
 }

@@ -247,12 +247,6 @@ class App extends Component {
                                 Nottifcations
                             </Menu.Item>
                         </NavLink>
-                        <NavLink as='a' to="/setting" onClick={() => {this.onSetSidebarOpen(false)}}>
-                            <Menu.Item link>
-                                <Icon name='setting' />
-                                Settings
-                            </Menu.Item>
-                        </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='calendar alternate outline' />      
@@ -331,7 +325,6 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/userprofile" component={UserProfile} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/profile" component={Profile} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/notification" component={NotiCenter} />
-                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/multiUserSelect" component={MultiUserSelect} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/apiTrigger" component={SimpleAPItrigger} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/createStudySession" component={StudySessionCreation} />

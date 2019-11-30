@@ -157,27 +157,7 @@ router.get("/logout", (req, res) => {
     res.send("LOGGED OUT SUCCESS");
 });
 
-router.get('/getPublicNamespaces', middleware.isLoggedIn, (req, res) => {
-    let collectedNamespaces = [];
-    Namespace.find({}).select('groupName endpoint img privateChat privateGroup').then(function(allNamespaces) {
-        for(var i = 0; i < allNamespaces.length; i++) {
-            if (allNamespaces[i].privateChat === false && allNamespaces[i].privateGroup === false) {
-                tailoredData = {
-                    groupName: allNamespaces[i].groupName,
-                    endpoint: allNamespaces[i].endpoint,
-                    img: allNamespaces[i].img
-                }
-                collectedNamespaces.push(tailoredData);
-            }
-        }
-
-        res.send(collectedNamespaces);
-    }).catch(function(err) {
-        console.log(err);
-    });
-})
-
-router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
+router.post('/createStudySession', middleware.isLoggedIn, async (req, res) => {
     console.log(req.body);
     let userId = req.session.passport.user;
     //generate each "reaction" for each user
@@ -185,7 +165,16 @@ router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
     for(var i = 0; i < req.body.selectedUsers.length; i++) {
         const currentReaction = new Reaction({
             person: req.body.selectedUsers[i].email,
-            reaction: "wait_response"
+            name: "",
+            reaction: "wait_response",
+            avatar: ""
+        });
+
+        await User.findOne({"email": req.body.selectedUsers[i].email}).then(function(userData) {
+            currentReaction.name = userData.name;
+            currentReaction.avatar = userData.avatar;
+        }).catch(function(err) {
+            console.log(err);
         });
 
         reactions.push(currentReaction);
@@ -194,7 +183,9 @@ router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
     User.findById(userId).then(function(ownerInfo) {
         reactions.push(new Reaction({
             person: ownerInfo.email,
-            reaction: "creator"
+            name: ownerInfo.name,
+            reaction: "creator",
+            avatar: ownerInfo.avatar
         }));
 
         //create the StudySessionHistory
@@ -202,7 +193,9 @@ router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
             participants: reactions,
             start: generateDateObject(req.body.startTime),
             end: generateDateObject(req.body.endTime),
-            location: req.body.location
+            location: req.body.location,
+            title: req.body.title,
+            desc: req.body.desc
         });
 
         studySession.save().then(function(doc) {
@@ -210,17 +203,43 @@ router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
             
             //now save this study session to each participant
             for(var n = 0; n < req.body.selectedUsers.length; n++) {
+                const notiCard = new Notification({
+                    type: "study_session",
+                    trigger: studySession._id,
+                    extra: "participant",
+                    extra2: ""
+                });
                 User.findOneAndUpdate(
                     {"email": req.body.selectedUsers[n].email},
-                    {"$push": {"studySessionsHistory": studySession._id}},
+                    {"$push": {"studySessionsHistory": studySession._id, "request_notification": notiCard}},
                     {safe: true, new: true}
                 ).then(function(doc) {
-                    console.log("write this study session to each user too!");
-                    res.send("Created this study session!!");
+                    console.log("write this study session to one of the users too!");
+                    
                 }).catch(function(err) {
                     console.log(err);
                 });
             }
+
+            const creatorNotiCard = new Notification({
+                type: "study_session",
+                trigger: studySession._id,
+                extra: "creator",
+                extra2: ""
+            });
+
+            //also save to the creator
+            User.findOneAndUpdate(
+                {"email": ownerInfo.email},
+                {"$push": {"studySessionsHistory": studySession._id, "request_notification": creatorNotiCard}},
+                {safe: true, new: true}
+            ).then(function(doc) {
+                console.log("write this study session to the creator!");
+            }).catch(function(err) {
+                console.log(err);
+            });
+
+            res.send("Created this study session!!");
         }).catch(function(err) {
             console.log(err);
         });
@@ -480,7 +499,7 @@ router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
 });
 
 
-router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
+router.get("/NotiCenter", middleware.isLoggedIn, function(req, res) {
     let userId = req.session.passport.user;
     User.findById(userId).then(async function(data){
         const cards = data.request_notification;
@@ -495,8 +514,15 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
               _id: cards[i]._id,
               avatar: "",
               triggerEmail: "",
-              spaceCreatorName: cards[i].extra
+              spaceCreatorName: cards[i].extra,
+              listOfReactions: [],
+              yourReaction: "",
+              desc: "",
+              location: "",
+              start: null,
+              end: null
             }
+            // case for adding friend
             if(card.type === "friend_request" || card.type === "friend_accepted") {
                 await User.findById(cards[i].trigger).then(function(triggerData) {
                     card.extra = triggerData.name;
@@ -510,6 +536,7 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
                     console.log(err);
                   });
             }
+            // case for namespace invitation
             else if(card.type === "namespace_invite") {
                 //for namespace_invite, the trigger is the newly-created namespace objectId
                 await Namespace.findById(cards[i].trigger).then(function(triggerData) {
@@ -524,6 +551,53 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
                     console.log(err);
                   });
             }
+            // case for study session invitation
+            else if(card.type === "study_session") {
+                card.avatar = "http://localhost:8181/api/uploads/avatars/study.jpeg";
+                // protocol: directly copy your role: (if you are participant or creator)
+                card.extra = cards[i].extra;
+
+                // get all users' reactions
+                await StudySessionHistory.findById(cards[i].trigger).then(async function(sessionInfo) {
+                    card.listOfReactions = sessionInfo.participants;
+                    card.extra2 = sessionInfo.title;
+                    card.desc = sessionInfo.desc;
+                    card.location = sessionInfo.location;
+                    card.start = sessionInfo.start;
+                    card.end = sessionInfo.end;
+                    // and if you are not the creator, we collect your reaction here so how it should be rendered can be
+                    // immediately decided on the front end
+                    if(card.extra === "participant") {
+                        await User.findById(userId).then(function(yourself) {
+                            for(var p = 0; p < sessionInfo.participants.length; p++) {
+                                if(yourself.email === card.listOfReactions[p].person) {
+                                    
+                                    card.yourReaction = sessionInfo.participants[p].reaction;
+                                    card.listOfReactions[p].person = "yourselfDiscovered";
+                                    console.log("reached if statement!!!");
+                                    break;
+                                }
+                            }
+                        }).catch(function(err) {
+                            console.log(err);
+                        });
+                    }
+
+                    to_be_sent.push(card);
+                    console.log(card);
+                    if (i === cards.length - 1) {
+                        res.send(to_be_sent);
+                    }
+                }).catch(function(err) {
+                    console.log(err);
+                });
+            }
+
+
+
+
+
+
           }
     }).catch(function(err) {
         console.log(err);
@@ -565,12 +639,52 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
 
     //else if the user declined the friend request we will just ignore it and delete this notification
   }
-  //and we consume (delete) this notification
-  User.updateOne({"_id": userId}, {"$pull": {"request_notification": {"_id": req.body.cardId}}}).exec().then(function(doc) {
-    console.log("notification card is deleted.");
-  }).catch(function(err) {
-    console.log(err);
-  });
+  else if(req.body.type === "study_session") {
+      User.findById(userId).then(function(userData) {
+        const userEmail = userData.email;
+
+        StudySessionHistory.findById(req.body.trigger).then(function(sessionInfo) {
+            for(var q = 0; q < sessionInfo.participants.length; q++) {
+                if(sessionInfo.participants[q].person === userEmail) {
+                    let updatedParticipants = sessionInfo.participants;
+                    if(req.body.choice === "accepted") {
+                        updatedParticipants[q].reaction = "accept";
+                    }
+                    else if(req.body.choice === "declined") {
+                        updatedParticipants[q].reaction = "reject";
+                    }
+                    StudySessionHistory.findOneAndUpdate(
+                        {"_id": req.body.trigger},
+                        {"$set": {"participants": updatedParticipants}},
+                        {safe: true, new: true}
+                    ).then(function(doc) {
+                        console.log("updated your reaction!!");
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                }
+            }
+        }).catch(function(err) {
+            console.log(err);
+        });
+        
+      }).catch(function(err) {
+          console.log(err);
+      });
+  }
+
+
+
+
+
+  //and we consume (delete) this notification (except the study session case)
+  if(req.body.type !== "study_session") {
+    User.updateOne({"_id": userId}, {"$pull": {"request_notification": {"_id": req.body.cardId}}}).exec().then(function(doc) {
+        console.log("notification card is deleted.");
+      }).catch(function(err) {
+        console.log(err);
+      });
+  }
 
   res.send("successfully updated the database and consumed the notification");
 });
