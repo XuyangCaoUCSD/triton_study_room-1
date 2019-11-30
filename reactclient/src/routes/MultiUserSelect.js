@@ -17,7 +17,11 @@ export default class MultiUserSelect extends Component {
 
         this.state = {
             selectedUsers: [],
-            usersDisplay: []
+            usersDisplay: [],
+            startTime: "",
+            endTime: "",
+            eventTitle: "",
+            location: ""
         };
 
         this.pushUser = this.pushUser.bind(this);
@@ -79,50 +83,156 @@ export default class MultiUserSelect extends Component {
 
     }
 
+    generateDateObject(timeString) {
+        const year = Number(timeString.substring(0, 4));
+        // Date's month ranges from 0 (Jan) to 11 (Dec)
+        const month = Number(timeString.substring(5, 7)) - 1;
+        const day = Number(timeString.substring(8, 10));
+        const hours = Number(timeString.substring(11, 13));
+        const minutes = Number(timeString.substring(14, 16));
+        return new Date(year, month, day, hours, minutes);
+    }
+
     _multiUserSubmit(event) {
         event.preventDefault();
         // assemble HTTP post request
         // put the updated value (with user id) into the request body in the form of json
         console.log('selectedUsers are');
         console.log(this.state.selectedUsers);
-        API({
-            method: 'post',
-            url: "/api/namespace",
-            data: {
-                peopleDetailsList: this.state.selectedUsers,
-                groupName: "testSmallGroup99"
-            },
-            withCredentials: true,
-        }).then((response) => {
-            // check what our back-end Express will respond (Does it receive our data?)
-            console.log(response.data);
-            alert("data updated successfully!");
-        }).catch((error) => {
-            // if we cannot send the data to Express
-            console.log("error when submitting: "+error);
-            alert("failed to update these fields!");
-        });
+        if(this.props.creationType === "createNamespace") {
+            API({
+                method: 'post',
+                url: "/api/namespace",
+                data: {
+                    peopleDetailsList: this.state.selectedUsers,
+                    groupName: this.state.eventTitle
+                },
+                withCredentials: true,
+            }).then((response) => {
+                // check what our back-end Express will respond (Does it receive our data?)
+                console.log(response.data);
+                alert("data updated successfully!");
+            }).catch((error) => {
+                // if we cannot send the data to Express
+                console.log("error when submitting: "+error);
+                alert("failed to update these fields!");
+            });
+        } 
+        else if(this.props.creationType === "createStudySession") {
+            //check if the user has not pick time yet
+            if(this.state.startTime === "" || this.state.endTime === "") {
+                alert("Please pick both the start time and end time!");
+                return;
+            }
+
+            //check if current time < picked start time < picked end time
+            if(!(this.currentTime < this.generateDateObject(this.state.startTime))) {
+                alert("Your picked start time is before the current time! Please reselect.");
+                return;
+            }
+
+            if(!(this.generateDateObject(this.state.startTime) < this.generateDateObject(this.state.endTime))) {
+                alert("Your picked end time is not after your picked start time! Please reselect.");
+                return;
+            }
+
+            //now assemble the body data and send
+
+            const bodyData = {
+                selectedUsers: this.state.selectedUsers,
+                sessionName: "ece35 midterm review",
+                startTime: this.state.startTime,
+                endTime: this.state.endTime,
+                title: this.state.eventTitle,
+                location: this.state.location
+            };
+
+            API({
+                method: 'post',
+                url: "/api/createStudySession",
+                data: bodyData,
+                withCredentials: true,
+            }).then((response) => {
+                // check what our back-end Express will respond (Does it receive our data?)
+                console.log(response.data);
+                alert("data updated successfully!");
+            }).catch((error) => {
+                // if we cannot send the data to Express
+                console.log("error when submitting: "+error);
+                alert("failed to update these fields!");
+            });
+
+        }
     }
-
-
 
     componentDidMount() {
         this._isMounted = true;
+        this.currentTime = new Date();
     }
 
     componentWillUnmount() {
         this._isMounted = false;
     }
 
+    ifGenerateTimePick() {
+        if(this.props.creationType === "createStudySession") {
+            return (
+                <div>
+                    <Label>Pick a start time</Label>
+                    <input type="datetime-local" id="start-point"
+                    name="start-point" style={{maxWidth:300}}
+                    onChange={e => this.setState({startTime: e.target.value})}></input>
+                    <br />
+                    <Label>Pick an end time</Label>
+                    <input type="datetime-local" id="end-point"
+                    name="end-point" style={{maxWidth:300}}
+                    onChange={e => this.setState({endTime: e.target.value})}></input>
+                </div>
+            );
+        }
+        else {
+            return (null);
+        }
+    }
+
+    ifGenerateLocation() {
+        if(this.props.creationType === "createStudySession") {
+            return (
+                <div>
+                    <Label>Study session location</Label>
+                    <input type="text" style={{maxWidth:300}}
+                    onChange={e => this.setState({location: e.target.value})}
+                    ></input>
+                </div>
+                
+            );
+        }
+        else {
+            return (null);
+        }
+    }
+
     render() {
         return (
             <Grid>
                 <Grid.Column width={4}>
+                    <Form>
+                    <Form.Field>
+                    <Label>{this.props.creationType === "createNamespace" ? "Study group name" : "Study session name"}</Label>
+                    <input type="text" style={{maxWidth:300}}
+                    onChange={e => this.setState({eventTitle: e.target.value})}></input>
+                    <br />
+                    {this.ifGenerateLocation()}
+                    </Form.Field>
+                    <br /><br />
                     <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
                     <br /><br />
                     <UserDropdown endpoint={this.props.endpoint} uponSelection={this.pushUser} />
                     <br /><br />
-                    <Button onClick={this._multiUserSubmit}>Create a study group</Button>
+                    {this.ifGenerateTimePick()}
+                    <br /><br />
+                    <Button onClick={this._multiUserSubmit}>{this.props.creationType === "createNamespace" ? "Create a study group" : "Create this study session"}</Button>
+                    </Form>
                 </Grid.Column>
                 <Grid.Column width={4}>
                     <h3>Selected User</h3>
