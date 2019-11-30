@@ -519,7 +519,7 @@ router.post("/userAdd", middleware.isLoggedIn, function(req, res) {
 });
 
 
-router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
+router.get("/NotiCenter", middleware.isLoggedIn, function(req, res) {
     let userId = req.session.passport.user;
     User.findById(userId).then(async function(data){
         const cards = data.request_notification;
@@ -590,9 +590,11 @@ router.get("/NotiCenter", middleware.isLoggedIn, async function(req, res) {
                     if(card.extra === "participant") {
                         await User.findById(userId).then(function(yourself) {
                             for(var p = 0; p < sessionInfo.participants.length; p++) {
-                                if(yourself.email === card.listOfReactions[i].person) {
-                                    card.yourReaction = sessionInfo.participants[i].reaction;
-                                    card.listOfReactions[i].person = "yourselfDiscovered";
+                                if(yourself.email === card.listOfReactions[p].person) {
+                                    
+                                    card.yourReaction = sessionInfo.participants[p].reaction;
+                                    card.listOfReactions[p].person = "yourselfDiscovered";
+                                    console.log("reached if statement!!!");
                                     break;
                                 }
                             }
