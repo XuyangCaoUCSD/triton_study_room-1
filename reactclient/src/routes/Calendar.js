@@ -29,23 +29,6 @@ class Calendar extends Component {
                 //     'start': new Date('November 26, 2019 11:13:00'),
                 //     'end': new Date('November 26, 2019 12:13:00'),
                 // },
-                // {
-                //     'title': 'OLD EVENT',
-                //     'allDay': true,
-                //     'start': new Date('November 26, 2018 11:13:00'),
-                //     'end': new Date('November 26, 2018 23:13:00'),
-                // },
-                // {
-                //     'title': 'Long Event',
-                //     'start': new Date('November 26, 2019 11:13:00'),
-                //     'end': new Date('November 27, 2019 11:13:00')
-                // },
-                // {
-                //     'title': 'SOMETHING STARTS',
-                //     'start': new Date('November 24, 2019 11:13:00'),
-                //     'end': new Date('November 24, 2019 12:15:00'),
-                //     desc: 'BLAH'
-                // },
             ],
 
             currentEvent: null,
@@ -127,17 +110,30 @@ class Calendar extends Component {
     }
 
     handleSelectSlot = ({ start, end }) => {
-        const title = window.prompt('New Event name')
-        if (title) {
-            let newEvent = {
-                start,
-                end,
-                title
-            }
+        // const title = window.prompt('New Event name')
+        // if (title) {
+        //     let newEvent = {
+        //         start,
+        //         end,
+        //         title
+        //     }
             
-            this.addEventAPI(newEvent);
-        }
-          
+        //     this.addEventAPI(newEvent);
+        // }
+        console.log('Start is');
+        console.log(start);
+        console.log('end is');
+        console.log(end);
+        let currentEventStart = moment(start);
+        let currentEventEnd = moment(end);
+        let currentEvent = {};
+
+        this.setState({
+            createModalOpen: true,
+            currentEventStart,
+            currentEventEnd,
+            currentEvent
+        }); 
     }
 
     handleEventClick = (e) => {
@@ -154,6 +150,12 @@ class Calendar extends Component {
     closeModifyModal = () => {
         this.setState({
             modifyModalOpen: false
+        });
+    }
+
+    closeCreateModal = () => {
+        this.setState({
+            createModalOpen: false
         });
     }
 
@@ -196,9 +198,6 @@ class Calendar extends Component {
 
     handleModifyEventSubmit = (e) => {
         e.preventDefault();
-
-        console.log('submitted event is');
-        console.log(e);
 
         console.log('e.target is');
         console.log(e.target);
@@ -321,6 +320,27 @@ class Calendar extends Component {
 
         });
     }
+
+    handleCreateEventSubmit = (e) => {
+        e.preventDefault();
+
+        console.log('e.target is');
+        console.log(e.target);
+
+        let eventId = this.state.currentEvent._id;
+
+        let newEvent = {
+            start: new Date(this.state.currentEventStart),
+            end: new Date(this.state.currentEventEnd),
+            title: e.target.elements.title.value,
+            desc: e.target.elements.desc.value
+        }
+
+        console.log('new event is');
+        console.log(newEvent);
+        
+        this.addEventAPI(newEvent);
+    }
     
     handleRemoveConfirmCancel = () => {
         this.setState({
@@ -423,6 +443,22 @@ class Calendar extends Component {
     
     }
 
+    // Triggered when click create event button
+    handleCreateEventOpen = (e) => {
+        // Default start and end for new event
+        let now = new Date();
+        let currentEventStart = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0));
+        let currentEventEnd = moment(currentEventStart).add(1, "days").subtract(1, "seconds");
+        let currentEvent = {};
+
+        this.setState({
+            createModalOpen: true,
+            currentEventStart,
+            currentEventEnd,
+            currentEvent
+        });
+    }
+
     // Just opens confirmation window, does not send a request to delete just yet
     handleDeleteEventClick = (e) => {
         e.preventDefault();
@@ -484,6 +520,7 @@ class Calendar extends Component {
                     console.log('Updating new events array')
                     this.setState({
                         events: newEventsArr,
+                        createModalOpen: false
                     });
                 }
                 
@@ -536,7 +573,7 @@ class Calendar extends Component {
             "format":"DD-MM-YYYY HH:mm",
             "sundayFirst" : true
         }
-        let maxDate = moment(currentTime).add(2, "years"); // max is 2 years from now
+        let maxDate = moment(currentTime).add(3, "years"); // max is 3 years from now
         let eventRange = "";
         if (this.state.currentEventStart) {
             eventRange = moment(this.state.currentEventStart).format('LLLL') + " - " + moment(this.state.currentEventEnd).format('LLLL');
@@ -562,18 +599,23 @@ class Calendar extends Component {
                 /> 
             </DateTimeRangeContainer>;
 
-        let modifyModalContent = null;
+        // Modal for modify or update
+        let modalContent = null;
+
         if (this.state.currentEvent) {
-            // let startTime = this.state.currentEvent.start.toLocaleTimeString([], {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-            // let endTime = this.state.currentEvent.end.toLocaleTimeString([], {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-            // let startTime = moment.parseZone(this.state.currentEvent.start) != "NaN" ? moment.parseZone(this.state.currentEvent.start) : this.state.currentEvent.start;
-            // let endTime = moment.parseZone(this.state.currentEvent.end) != "NaN" ? moment.parseZone(this.state.currentEvent.end) : this.state.currentEvent.end;
             let description = this.state.currentEvent.desc ? this.state.currentEvent.desc : "";
-            let eventName = this.state.currentEvent.title;
-            modifyModalContent = 
+            let eventName = this.state.currentEvent.title ? this.state.currentEvent.title : "";
+            // Text different for update or Modify
+            let headerText = this.state.modifyModalOpen ? "Modify event" : "Create event";
+            let submitButtonText = this.state.modifyModalOpen ? "Update event" : "Create event";
+
+            let submitHandler = this.state.modifyModalOpen ? this.handleModifyEventSubmit : this.handleCreateEventSubmit;
+            let cancelFunction = this.state.modifyModalOpen ? this.closeModifyModal : this.closeCreateModal;
+
+            modalContent = 
                 <div style={{padding: '1em'}}>
-                    <h1>Modify event</h1>
-                     <Form onSubmit={this.handleModifyEventSubmit}>
+                    <h1>{headerText}</h1>
+                     <Form onSubmit={submitHandler}>
                         <Form.Field
                             required
                             name='title'
@@ -581,26 +623,9 @@ class Calendar extends Component {
                             label='Event Name'
                             placeholder='event name'
                             value={eventName}
-                            onChange={this.handleEventTitleChange}
+                            onChange={this.handleEventTitleChange}  
                         />
-                        {/* <Form.Field
-                            required
-                            name='start'
-                            control={Input}
-                            label='Start Time'
-                            placeholder='Start time'
-                            value={startTime}
-                            onChange={this.handleEventStartChange}
-                        />
-                        <Form.Field
-                            required
-                            name='end'
-                            control={Input}
-                            label='End Time'
-                            placeholder='End time'
-                            value={endTime}
-                            onChange={this.handleEventEndChange}
-                        /> */}
+
                         {SelectedEventDateTime}
                         
                         <Form.Field
@@ -616,35 +641,40 @@ class Calendar extends Component {
                         <Form.Field
                             control={Button}
                             positive
-                            content='Update Event'
+                            content={submitButtonText}
                         />
                             
                     </Form>
                     
-                    <Button negative style={{position: 'absolute', bottom: "5%", right: '5%'}} onClick={this.handleDeleteEventClick}>Delete Event</Button>   
+                    {/* Do not show delete button when creating event */}
+                    {this.state.modifyModalOpen && <Button negative style={{position: 'absolute', bottom: "5%", right: '5%'}} onClick={this.handleDeleteEventClick}>Delete Event</Button>} 
                     
-                    <Button style={{position: 'absolute', top: "5%", right: '5%'}} onClick={() => this.closeModifyModal()}>Cancel</Button>               
+                    <Button style={{position: 'absolute', top: "5%", right: '5%'}} onClick={() => cancelFunction()}>Cancel</Button>               
                 </div>
         }    
         
-
+        
 
         return (
             <div>
+                <Button style={{position: 'absolute', top: "3.5%", right: '30%'}} onClick={this.handleCreateEventOpen}>Add an event</Button> 
                 <Confirm
                     open={this.state.removeConfirmOpen}
                     content='Are you sure you want to remove this event?'
                     onCancel={this.handleRemoveConfirmCancel}
                     onConfirm={(event) => this.handleRemoveConfirmConfirmed(event)}
                 />
-                <Modal visible={this.state.modifyModalOpen} width="50%" height="85%" effect="fadeInUp" onClickAway={() => this.closeModifyModal}>
-                    {modifyModalContent}
+                <Modal visible={this.state.modifyModalOpen} width="50%" height="85%" effect="fadeInUp" onClickAway={() => this.closeModifyModal()}>
+                    {modalContent}
+                </Modal>
+                <Modal visible={this.state.createModalOpen} width="50%" height="85%" effect="fadeInUp" onClickAway={() => this.closeCreateModal()}>
+                    {modalContent}
                 </Modal>
                 <BigCalendar
                     culture='en-US'
                     events={this.state.events}
-                    step={5}
-                    timeslots={12}
+                    step={10}
+                    timeslots={6}
                     popup
                     selectable
                     onSelectEvent={this.handleEventClick}
