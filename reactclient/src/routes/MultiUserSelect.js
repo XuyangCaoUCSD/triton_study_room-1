@@ -251,7 +251,7 @@ export default class MultiUserSelect extends Component {
                     </Form>
                 </Grid.Column>
                 <Grid.Column width={4}>
-                    <h3>Selected User</h3>
+                    <h3>Selected Users</h3>
                     <List>
                         {this.state.usersDisplay}
                     </List>
