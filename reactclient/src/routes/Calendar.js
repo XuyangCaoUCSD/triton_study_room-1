@@ -657,7 +657,7 @@ class Calendar extends Component {
 
         return (
             <div>
-                <Button style={{position: 'absolute', top: "3.5%", right: '30%'}} onClick={this.handleCreateEventOpen}>Add an event</Button> 
+                <Button primary style={{position: 'absolute', top: "3.6%", right: '28%'}} onClick={this.handleCreateEventOpen}>Add an event</Button> 
                 <Confirm
                     open={this.state.removeConfirmOpen}
                     content='Are you sure you want to remove this event?'
