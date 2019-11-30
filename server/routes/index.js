@@ -6,6 +6,8 @@ const  express       = require('express'),
        Namespace     = require('../models/Namespace');
        middleware    = require('../middleware/index');
 
+const { StudySessionHistory, Reaction } = require('../models/StudySessionHistory');
+
 const redisClient = require('../redisClient');
 
 var router = express.Router();
@@ -174,6 +176,60 @@ router.get('/getPublicNamespaces', middleware.isLoggedIn, (req, res) => {
         console.log(err);
     });
 })
+
+router.post('/createStudySession', middleware.isLoggedIn, (req, res) => {
+    console.log(req.body);
+    let userId = req.session.passport.user;
+    //generate each "reaction" for each user
+    let reactions = [];
+    for(var i = 0; i < req.body.selectedUsers.length; i++) {
+        const currentReaction = new Reaction({
+            person: req.body.selectedUsers[i].email,
+            reaction: "wait_response"
+        });
+
+        reactions.push(currentReaction);
+    }
+    // plus the reaction of the creator
+    User.findById(userId).then(function(ownerInfo) {
+        reactions.push(new Reaction({
+            person: ownerInfo.email,
+            reaction: "creator"
+        }));
+
+        //create the StudySessionHistory
+        const studySession = new StudySessionHistory({
+            participants: reactions,
+            start: generateDateObject(req.body.startTime),
+            end: generateDateObject(req.body.endTime),
+            location: req.body.location
+        });
+
+        studySession.save().then(function(doc) {
+            console.log("successfully saved this study session to db");
+            
+            //now save this study session to each participant
+            for(var n = 0; n < req.body.selectedUsers.length; n++) {
+                User.findOneAndUpdate(
+                    {"email": req.body.selectedUsers[n].email},
+                    {"$push": {"studySessionsHistory": studySession._id}},
+                    {safe: true, new: true}
+                ).then(function(doc) {
+                    console.log("write this study session to each user too!");
+                    res.send("Created this study session!!");
+                }).catch(function(err) {
+                    console.log(err);
+                });
+            }
+        }).catch(function(err) {
+            console.log(err);
+        });
+    }).catch(function(err) {
+        console.log(err);
+    });
+
+    
+});
 
 
 router.get("/setting/dataRetrieve", middleware.isLoggedIn, function(req, res) {
@@ -579,6 +635,17 @@ function get_all_user_data() {
     }).catch((err) => {
         console.log(err);
     });
+}
+
+
+function generateDateObject(timeString) {
+    const year = Number(timeString.substring(0, 4));
+    // Date's month ranges from 0 (Jan) to 11 (Dec)
+    const month = Number(timeString.substring(5, 7)) - 1;
+    const day = Number(timeString.substring(8, 10));
+    const hours = Number(timeString.substring(11, 13));
+    const minutes = Number(timeString.substring(14, 16));
+    return new Date(year, month, day, hours, minutes);
 }
 
 module.exports = router;

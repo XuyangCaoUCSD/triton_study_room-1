@@ -30,6 +30,7 @@ import { Menu, Icon, Sidebar, Button, Label, Sticky } from 'semantic-ui-react';
 import io from 'socket.io-client';
 import UserProfile from "./routes/UserProfile";
 import SimpleAPItrigger from './routes/SimpleAPItrigger';
+import StudySessionCreation from './routes/StudySessionCreation';
 
 class App extends Component {
     constructor() {
@@ -333,6 +334,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/setting" component={Setting} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/multiUserSelect" component={MultiUserSelect} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/apiTrigger" component={SimpleAPItrigger} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/createStudySession" component={StudySessionCreation} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>

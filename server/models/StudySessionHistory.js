@@ -4,22 +4,25 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 
 // an invited person and his/her reaction to this coming study session
 const ReactionSchema = new mongoose.Schema({
-    person: { type: ObjectId, ref: 'User' },
-    // reaction can have: accept, reject, wait_response
+    // this String storing the person's email
+    person: String,
+    // reaction can have: accept, reject, wait_response, creator
     reaction: String
 });
+
+const Reaction = mongoose.model("Reaction", ReactionSchema);
 
 const StudySessionHistorySchema = new mongoose.Schema({
     participants: [ReactionSchema],
     // is String the best data type?
-    date: String,
-    start: Number,
-    end: Number,
+    start: Date,
+    end: Date,
     location: String
 });
 
 module.exports = {
     StudySessionHistory: mongoose.model("StudySessionHistory", StudySessionHistorySchema),
     StudySessionHistorySchema,
-    ReactionSchema
+    ReactionSchema,
+    Reaction
 }
