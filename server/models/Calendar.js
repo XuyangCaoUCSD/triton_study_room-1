@@ -5,6 +5,7 @@ const EventSchema = new mongoose.Schema({
     title: String,
     start: Date,
     end: Date,
+    desc: String,
     allDay: { type: Boolean, default: false },
     location: String,
     visibility: String
