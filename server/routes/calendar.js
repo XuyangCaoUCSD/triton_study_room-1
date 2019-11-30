@@ -23,8 +23,11 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
             Calendar.create({
                 events: []
             }).then((createdCalendar) => {
-                foundUser.calendar = createdCalendar.id;
-                foundUser.save().then((savedUser) => {
+                User.findByIdAndUpdate(
+                    userId,
+                    {$set: {calendar: createdCalendar.id}},
+                    {safe: true, new: true}
+                ).then((updatedUser) => {
                     console.log('Added calendar field to user');
                     data.events = createdCalendar.events;
                     res.send(data);
@@ -89,8 +92,9 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
             ).then((updatedCalendar) => {
                 console.log('Added event to calendar object');
                 let newEvent = updatedCalendar.events[updatedCalendar.events.length - 1];
+                // Need access to _id
                 data.newEvent = newEvent;
-
+               
                 res.send(data);
 
             }).catch((err) => {
@@ -116,9 +120,10 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                 foundUser.calendar
             ).then((foundCalendar) => {
                 let foundIndex = -1;
+                let events = foundCalendar.events;
                 // Find event to modify
-                for (var i = 0; i < foundCalendar.events.length; ++i) {
-                    if (foundCalendar.events[i].id == calendarEvent._id) {
+                for (var i = 0; i < events.length; ++i) {
+                    if (events[i].id == calendarEvent._id) {
                         foundIndex = i;
                         break;
                     } 
@@ -132,8 +137,13 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                     return;
                 }
 
-                foundCalendar.events[foundIndex] = calendarEvent;
-                foundCalendar.save().then((savedCalendar) => {
+                events[foundIndex] = calendarEvent;
+
+                Calendar.findByIdAndUpdate(
+                    foundCalendar.id,
+                    {$set: {events: events}},
+                    {new: true, safe: true}
+                ).then((savedCalendar) => {
                     console.log('Successfuly modified event in calendar')
                     data.modifiedEvent = savedCalendar.events[foundIndex];
                     res.send(data);

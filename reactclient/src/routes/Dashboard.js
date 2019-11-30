@@ -1,7 +1,7 @@
 import React, {Component } from 'react';
 import { Route, Redirect } from "react-router-dom";
 import {withRouter} from 'react-router'
-import { Segment, Form, TextArea, Message, Menu } from 'semantic-ui-react';
+import { Icon, Popup, Button, Message, Menu } from 'semantic-ui-react';
 import API from '../utilities/API';
 import ChatGroupIcon from '../ChatGroupIcon';
 
@@ -10,7 +10,8 @@ class Dashboard extends Component {
         super(props);
         this.state = {
             chatGroups: {},
-            namespaceNotifications: {} // Map namespace to whether it has notifications
+            namespaceNotifications: {}, // Map namespace to whether it has notifications
+            editingGroups: false
         }
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
@@ -18,6 +19,7 @@ class Dashboard extends Component {
         console.log(this.props);
 
         this.getDashboardGroupsAPICall = this.getDashboardGroupsAPICall.bind(this);
+        this.removeGroup = this.removeGroup.bind(this);
     }
 
     componentDidMount() {
@@ -139,6 +141,39 @@ class Dashboard extends Component {
         this.props.history.push(`/namespace${data.endpoint}`);
     }
 
+    editClickHandler = (e) => {
+        console.log('Editing groups');
+        
+        this.setState({
+            editingGroups: !this.state.editingGroups
+        });
+    }
+
+    // To be passed to ChatGroupIcon as props
+    removeGroup(endpoint) {
+        let currGroups = this.state.chatGroups;
+
+        let foundIndex = -1;
+
+        for (var i = 0; i < currGroups.length; i++) {
+            if (currGroups[i].endpoint === endpoint) {
+                foundIndex = currGroups;
+                break;
+            }
+        }
+
+        if (foundIndex === -1) {
+            console.log('ERROR: COULD NOT FIND GROUP TO REMOVE ON FRONT END');
+            return;
+        }
+
+        currGroups.splice(foundIndex, 1);
+
+        this.setState({
+            chatGroups: currGroups
+        });
+    }
+
     render() {
         if (this.state.unauthorised) {
             return (
@@ -159,7 +194,9 @@ class Dashboard extends Component {
             // Push chat group icon component onto array
             chat_group_icons.push(
                 <ChatGroupIcon 
-                    key={key} data={nsInfo} 
+                    key={key} data={nsInfo}
+                    removeGroup={this.removeGroup}
+                    editingGroups={this.state.editingGroups}
                     hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} 
                     onClickHandler={() => this.iconsClickHandler(nsInfo)} 
                     currUserEmail={this.state.userEmail}
@@ -167,9 +204,22 @@ class Dashboard extends Component {
             );
         });
 
+        let editButtonPopupContent = this.state.editingGroups ? 'Cancel' : 'Leave a group';
+        let editButtonIconName = this.state.editingGroups ? 'cancel' : 'edit';
+
         return (
             <div>
-                <h2>Groups and Messages</h2>
+                <h2 >
+                    Groups and Messages &nbsp;
+                    <Popup 
+                        content={editButtonPopupContent}
+                        trigger={
+                        <Button onClick={this.editClickHandler} size='tiny' circular color='orange' icon>
+                            <Icon name={editButtonIconName} />
+                        </Button>} 
+                    />
+                </h2>
+               
                 <div style={{maxWidth: "180px"}}>
                     <Menu compact icon='labeled' vertical style={{maxWidth: "100%", maxHeight: "100%"}}>
                         {chat_group_icons}
