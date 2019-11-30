@@ -208,7 +208,10 @@ class Namespace extends Component {
 
         }).catch((err) => {
             console.log("Error while getting dashboard route, logging error: \n" + err);
-
+            if (!err) {
+                console.log('Could not confirm error type from server');
+                return;
+            }
             let statusCode = err.response.status.toString();
             if (statusCode === "401") {
                 console.log("ERROR code 401 received - UNAUTHENTICATED");
@@ -897,7 +900,7 @@ class Namespace extends Component {
     }
     
     buildMessage(msg, listKey) {
-        const convertedDate = new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const convertedDate = new Date(msg.time).toLocaleTimeString([], {month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit'});
         let avatarColumnSize = '3.5em';
 
         // Only set source if peopleMap is nonempty

@@ -61,11 +61,11 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
     let patchType = req.body.patchType;
     let calendarEvent = req.body.calendarEvent;
 
-
-    console.log("Reached calendar put route");
+    console.log("Reached calendar patch route");
 
     console.log('patchType is ' + patchType);
-    console.log('calendarEvent is ' + calendarEvent);
+    console.log('calendarEvent is ');
+    console.log(calendarEvent);
 
     let data = {
         success: true
@@ -87,7 +87,7 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                 {$push: {events: calendarEvent}},
                 {safe: true, new: true}
             ).then((updatedCalendar) => {
-                console.log('Added event to calendar');
+                console.log('Added event to calendar object');
                 let newEvent = updatedCalendar.events[updatedCalendar.events.length - 1];
                 data.newEvent = newEvent;
 
@@ -98,18 +98,52 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
             });
 
         } else if (patchType === 'remove') {
+
             Calendar.findByIdAndUpdate(
                 foundUser.calendar,
                 {$pull: {events: calendarEvent}},
                 {safe: true, new: true}
             ).then((updatedCalendar) => {
-                console.log('Removed event to calendar');
+                console.log('Removed event from calendar');
                 res.send(data);
             }).catch((err) => {
                 console.log(err);
             });
 
         } else if (patchType === 'modify') {
+
+            Calendar.findById(
+                foundUser.calendar
+            ).then((foundCalendar) => {
+                let foundIndex = -1;
+                // Find event to modify
+                for (var i = 0; i < foundCalendar.events.length; ++i) {
+                    if (foundCalendar.events[i].id == calendarEvent._id) {
+                        foundIndex = i;
+                        break;
+                    } 
+                }
+
+                if (foundIndex === -1) {
+                    data.success = false;
+                    console.log('Could not find event to modify');
+                    data.errorMessage = 'Could not find event to modify';
+                    res.send(data);
+                    return;
+                }
+
+                foundCalendar.events[foundIndex] = calendarEvent;
+                foundCalendar.save().then((savedCalendar) => {
+                    console.log('Successfuly modified event in calendar')
+                    data.modifiedEvent = savedCalendar.events[foundIndex];
+                    res.send(data);
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+            }).catch((err) => {
+                console.log(err);
+            });
 
         } else {
             console.log('Invalid patchType');
