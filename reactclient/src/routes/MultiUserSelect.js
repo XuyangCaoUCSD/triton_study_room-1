@@ -21,7 +21,8 @@ export default class MultiUserSelect extends Component {
             startTime: "",
             endTime: "",
             eventTitle: "",
-            location: ""
+            location: "",
+            desc: ""
         };
 
         this.pushUser = this.pushUser.bind(this);
@@ -144,7 +145,8 @@ export default class MultiUserSelect extends Component {
                 startTime: this.state.startTime,
                 endTime: this.state.endTime,
                 title: this.state.eventTitle,
-                location: this.state.location
+                location: this.state.location,
+                desc: this.state.desc
             };
 
             API({
@@ -203,6 +205,11 @@ export default class MultiUserSelect extends Component {
                     <input type="text" style={{maxWidth:300}}
                     onChange={e => this.setState({location: e.target.value})}
                     ></input>
+                    <br /><br />
+                    <Label>Study session description</Label>
+                    <input type="text" style={{maxWidth:300}}
+                    onChange={e => this.setState({desc: e.target.value})}
+                    ></input>
                 </div>
                 
             );
@@ -219,14 +226,16 @@ export default class MultiUserSelect extends Component {
                     <Form>
                     <Form.Field>
                     <Label>{this.props.creationType === "createNamespace" ? "Study group name" : "Study session name"}</Label>
+                    <br />
                     <input type="text" style={{maxWidth:300}}
                     onChange={e => this.setState({eventTitle: e.target.value})}></input>
-                    <br />
+                    <br /><br />
                     {this.ifGenerateLocation()}
                     </Form.Field>
-                    <br /><br />
+                    <Label>Pick up some people</Label>
+                    <br />
                     <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
-                    <br /><br />
+                    <br />
                     <UserDropdown endpoint={this.props.endpoint} uponSelection={this.pushUser} />
                     <br /><br />
                     {this.ifGenerateTimePick()}

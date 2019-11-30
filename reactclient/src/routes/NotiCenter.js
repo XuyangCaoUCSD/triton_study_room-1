@@ -51,6 +51,12 @@ export default class NotiCenter extends Component {
                     email={this.state.notifications[i].triggerEmail}
                     info2={this.state.notifications[i].extra2}
                     spaceCreatorName={this.state.notifications[i].spaceCreatorName}
+                    desc={this.state.notifications[i].desc}
+                    listOfReactions={this.state.notifications[i].listOfReactions}
+                    location={this.state.notifications[i].location}
+                    yourReaction={this.state.notifications[i].yourReaction}
+                    start={this.state.notifications[i].start}
+                    end={this.state.notifications[i].end}
                 />
             );
         }
