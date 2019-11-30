@@ -75,10 +75,10 @@ class UserDropdown extends Component {
         return (
             
             <Dropdown
-            placeholder="Or select a user directly"
-            fluid
-            selection
-            options={this.state.dropdownView}
+                placeholder="Or select a user directly"
+                fluid
+                selection
+                options={this.state.dropdownView}
             />
             
         );

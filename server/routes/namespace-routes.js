@@ -11,6 +11,43 @@ const { setNamespaceUnreads, setRoomUnreads } = require('../socketMain');
 
 const router = express.Router();
 
+router.get('/', middleware.isLoggedIn, (req, res) => {
+    let collectedNamespaces = [];
+    let userId = req.session.passport.user;
+
+    let data = {
+        success: true
+    }
+
+    User.findById(userId).select('namespaces').then((foundUser) => {
+
+        Namespace.find({}).select('groupName endpoint img privateChat privateGroup').then(function(allNamespaces) {
+            for(var i = 0; i < allNamespaces.length; i++) {
+                if (allNamespaces[i].privateChat === false && allNamespaces[i].privateGroup === false) {
+                    if (foundUser.namespaces.indexOf(allNamespaces[i].id) !== -1) {
+                        continue;
+                    }
+
+                    tailoredData = {
+                        groupName: allNamespaces[i].groupName,
+                        endpoint: allNamespaces[i].endpoint,
+                        img: allNamespaces[i].img
+                    }
+                    collectedNamespaces.push(tailoredData);
+                }
+            }
+            
+            data.collectedNamespaces = collectedNamespaces;
+            res.send(data);
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+    }).catch((err) => {
+        console.log(err);
+    });
+    
+});
 
 // Create new group
 router.post('/', middleware.isLoggedIn, (req, res) => {

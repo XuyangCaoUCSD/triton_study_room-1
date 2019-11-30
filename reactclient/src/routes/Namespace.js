@@ -6,13 +6,13 @@ import {
   Link
 } from "react-router-dom";
 import API from '../utilities/API';
-// import Room from '../Room';
 import io from 'socket.io-client';
 import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Modal, Button, Label, Menu } from 'semantic-ui-react';
 import Loading from "../Loading";
 import UploadFile from "../ChildComponents/UploadFile";
 import FilesView from "../ChildComponents/FilesView";
 import ChatGroupIcon from '../ChatGroupIcon';
+import MultiUserSelect from './MultiUserSelect';
 import Linkify from 'react-linkify';
 
 class Namespace extends Component {
@@ -50,6 +50,7 @@ class Namespace extends Component {
         this.handleFilesViewWindowOpen = this.handleFilesViewWindowOpen.bind(this);
         this.closeFilesViewWindow = this.closeFilesViewWindow.bind(this);
         this.getUpdatedNamespaceInfo = this.getUpdatedNamespaceInfo.bind(this);
+        this.closeGroupModal = this.closeGroupModal.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -532,6 +533,20 @@ class Namespace extends Component {
         });   
     }
 
+    createGroupClickHandler = (e) => {
+        console.log('Opening create group modal');
+
+        this.setState({
+            createGroupModalOpen: true
+        });
+    }
+
+    closeGroupModal(e) {
+        this.setState({
+            createGroupModalOpen: false
+        })
+    }
+
     // To handle newly join people and maybe newly created rooms
     getUpdatedNamespaceInfo() {
         API({
@@ -653,7 +668,8 @@ class Namespace extends Component {
                 groupDisplayName = this.state.groupName;
             }
 
-           
+            
+
 
             return (
                 // TODO make outer one screen (height: "100vh", width: "100vw")
@@ -674,6 +690,33 @@ class Namespace extends Component {
     }
 
     namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
+        let createGroupsButton = 
+            <Popup 
+                content={'Create a study group or study session'}
+                trigger={
+                    <div style={{float: 'right'}}>
+                        <Button style={{position: 'relative', zIndex: 10}} onClick={this.createGroupClickHandler} size='huge' circular icon>
+                            <Icon name='add' />
+                        </Button>
+                    </div>        
+                    
+                } 
+            />;
+
+        let createGroupModal = 
+            <Modal
+                open={this.state.createGroupModalOpen}
+                closeIcon
+                onClose={this.closeGroupModal}
+                size='large' 
+                trigger={createGroupsButton}
+            >
+                <Modal.Header>Create groups</Modal.Header>
+                <Modal.Content >
+                    <MultiUserSelect getGroupsAPICall={this.getGroupsAPICall} closeGroupModal={this.closeGroupModal} endpoint={this.state.endpoint} creationType="createNamespace" />
+                </Modal.Content>
+            </Modal>;
+
         let filesView =
             <Modal
                 open={this.state.filesViewWindowOpen}
@@ -698,7 +741,7 @@ class Namespace extends Component {
             <span>
                 <Header style={{display: 'inline'}} size='tiny' as='h5' >
                     <Icon name='user' />
-                    <Header.Content>Direct Message</Header.Content>{filesView}
+                    <Header.Content>Direct Message</Header.Content>{createGroupModal}{filesView}
                 </Header>
             </span>;
 
@@ -728,7 +771,7 @@ class Namespace extends Component {
                 <span>
                     <Header style={{display: 'inline'}} size='tiny' as='h5' >
                         <Icon name='users' />
-                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{filesView}
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{createGroupModal}{filesView}
                     </Header>
                 </span>
         }
@@ -740,7 +783,7 @@ class Namespace extends Component {
                 onClose={this.closeFileUploadWindow}
                 size='small' 
                 trigger={
-                    <Button size='tiny' onClick={this.handleFileUploadWindowOpen} style={{right: "0.4%", top: "7%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
+                    <Button size='tiny' primary onClick={this.handleFileUploadWindowOpen} style={{right: "0.4%", top: "7%", zIndex: 10, position: 'absolute'}} icon='paperclip' />
                 }
             >
                 <Modal.Header>Upload Files</Modal.Header>

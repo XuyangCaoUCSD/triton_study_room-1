@@ -157,26 +157,6 @@ router.get("/logout", (req, res) => {
     res.send("LOGGED OUT SUCCESS");
 });
 
-router.get('/getPublicNamespaces', middleware.isLoggedIn, (req, res) => {
-    let collectedNamespaces = [];
-    Namespace.find({}).select('groupName endpoint img privateChat privateGroup').then(function(allNamespaces) {
-        for(var i = 0; i < allNamespaces.length; i++) {
-            if (allNamespaces[i].privateChat === false && allNamespaces[i].privateGroup === false) {
-                tailoredData = {
-                    groupName: allNamespaces[i].groupName,
-                    endpoint: allNamespaces[i].endpoint,
-                    img: allNamespaces[i].img
-                }
-                collectedNamespaces.push(tailoredData);
-            }
-        }
-
-        res.send(collectedNamespaces);
-    }).catch(function(err) {
-        console.log(err);
-    });
-})
-
 router.post('/createStudySession', middleware.isLoggedIn, async (req, res) => {
     console.log(req.body);
     let userId = req.session.passport.user;
