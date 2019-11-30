@@ -42,7 +42,8 @@ export default class NotiCenter extends Component {
         const cards = [];
         for (var i = 0; i < this.state.notifications.length; i++) {
             cards.push(
-                <NotificationCard 
+                <NotificationCard
+                    key={i}
                     name={this.state.notifications[i].extra}
                     type={this.state.notifications[i].type}
                     trigger={this.state.notifications[i].trigger}

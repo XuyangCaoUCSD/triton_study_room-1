@@ -23,15 +23,14 @@ class NotificationCard extends Component {
   _acceptSession(event) {
     console.log("accepted study session!");
     //front end change
-    
-    for(var i = 0; i < this.state.listOfReactions.length; i++) {
-      if(this.state.listOfReactions[i].person === "yourselfDiscovered") {
-        //too complex if temp and reassign, so I will just modify and forceUpdate
-        this.state.listOfReactions[i].reaction = "accept";
+    let tempReactions = [...this.state.listOfReactions];
+    for(var i = 0; i < tempReactions.length; i++) {
+      if(tempReactions[i].person === "yourselfDiscovered") {
+        tempReactions[i].reaction = "accept";
         continue;
       }
     }
-    this.setState({yourReaction: "accept"});
+    this.setState({yourReaction: "accept", listOfReactions: tempReactions});
 
     //front end change
     this.consumeCard("accepted");
@@ -41,14 +40,15 @@ class NotificationCard extends Component {
   _declineSession(event) {
     console.log("decline study session!");
     //front end change
-    for(var i = 0; i < this.state.listOfReactions.length; i++) {
-      if(this.state.listOfReactions[i].person === "yourselfDiscovered") {
+    let tempReactions = [...this.state.listOfReactions];
+    for(var i = 0; i < tempReactions.length; i++) {
+      if(tempReactions[i].person === "yourselfDiscovered") {
         //too complex if temp and reassign, so I will just modify and forceUpdate
-        this.state.listOfReactions[i].reaction = "reject";
+        tempReactions[i].reaction = "reject";
         continue;
       }
     }
-    this.setState({yourReaction: "reject"});
+    this.setState({yourReaction: "reject", listOfReactions: tempReactions});
 
     //back end change
     this.consumeCard("declined");
@@ -174,7 +174,7 @@ class NotificationCard extends Component {
       const items = [];
       for(var i = 0; i < this.props.listOfReactions.length; i++) {
         items.push(
-          <List.Item>
+          <List.Item key={i}>
             <Image avatar src={this.props.listOfReactions[i].avatar} />
             <List.Content>
               <List.Header as='a'>{this.props.listOfReactions[i].person === "yourselfDiscovered" ? "Yourself" : this.props.listOfReactions[i].name}</List.Header>
