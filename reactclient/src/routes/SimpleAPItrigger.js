@@ -21,7 +21,7 @@ class SimpleAPItrigger extends Component {
         // put the updated value (with user id) into the request body in the form of json
         API({
             method: 'get',
-            url: "/api/getPublicNamespaces",
+            url: "/api/namespace/cse100/get-potential-list",
             withCredentials: true,
         }).then((response) => {
             // check what our back-end Express will respond (Does it receive our data?)
