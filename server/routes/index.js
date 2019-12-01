@@ -301,11 +301,21 @@ router.post("/setting", middleware.isLoggedIn, function(req, res) {
             console.log(err);
         });
 
-
     }).catch(function(err) {
         console.log(err);
     });
 
+});
+
+router.get("/simpleEmailRetrieve", middleware.isLoggedIn, function(req, res) {
+    const userId = req.session.passport.user;
+    User.findById(userId).then(function(myData) {
+        res.send({
+            myEmail: myData.email
+        });
+    }).catch(function(err) {
+        console.log(err);
+    });
 });
 
 

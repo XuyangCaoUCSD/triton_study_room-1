@@ -1,16 +1,20 @@
 // front-end underlying technology: React
 import React, {Component} from 'react';
 // we use axios for data communication between front-end and back-end
-import { Button, Checkbox, Form, Image, List, Modal, Label } from 'semantic-ui-react'
+import { Button, Checkbox, Form, Image, List, Modal, Label, Grid, Icon } from 'semantic-ui-react'
 
 import API from '../utilities/API';
+
+import userSearch from './UserSearch';
+import UserSearch from './UserSearch';
 
 export default class FriendList extends Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            friendlist: []
+            friendlist: [],
+            myEmail: ""
         }
 
         this.fetch_data = this.fetch_data.bind(this);
@@ -45,6 +49,26 @@ export default class FriendList extends Component {
             // otherwise some error occurs
             console.log("error when submitting: "+error);
         });
+
+        API({
+            // assemble HTTP get request
+            // again include the user id so our backend will know who you are
+            method: 'get',
+            url: "/api/simpleEmailRetrieve",
+            withCredentials: true,
+        }).then((response) => {
+            // extract the data from the body of response
+            console.log("data successfully retrieved from backend!");
+            console.log(response.data);
+            if (this._isMounted) {
+                // assign what we received to the state variables which will be rendered
+                this.setState({myEmail: response.data.myEmail});
+            }
+            
+        }).catch((error) => {
+            // otherwise some error occurs
+            console.log("error when submitting: "+error);
+        });
     }
 
     generateFriendList() {
@@ -55,8 +79,8 @@ export default class FriendList extends Component {
                     closeIcon
                     size='small'  
                     trigger={
-                        <List.Item as='a'>
-                            <Image key={i} avatar src={this.state.friendlist[i].avatar} />
+                        <List.Item key={i} as="a">
+                            <Image avatar src={this.state.friendlist[i].avatar} />
                             <List.Content>
                             <List.Header >{this.state.friendlist[i].title}</List.Header>
                             <List.Description>
@@ -86,7 +110,9 @@ export default class FriendList extends Component {
                           </List.Content>
                           </List.Item>
                       </List>
-                      <Label>A friend of yours</Label>
+                      <Label size="large">A friend of yours</Label>
+                      <br /><br />
+                      <Button name={this.state.friendlist[i].email} onClick={this._clickDirectMessage}>Direct message</Button>
                     </Modal.Description>
                 </Modal.Content>
             </Modal>
@@ -97,15 +123,60 @@ export default class FriendList extends Component {
         return friendItems;
     }
 
+    _clickDirectMessage = (e) => {
+        const myEmail = this.state.myEmail;
+        const friendEmail = e.target.name;
+        console.log(myEmail);
+        console.log(friendEmail);
+
+        let data = {
+            privateChat: true,
+            secondUserEmail: friendEmail
+        }
+
+        API({
+            method: 'post',
+            url: "/api/namespace",
+            withCredentials: true,
+            data
+        }).then((res) => {
+            console.log('Post request to namespace for private message response is:');
+
+            let data = res.data;
+            console.log('data is');
+            console.log(data);
+
+            if (!data.success) {
+                console.log('Error/failure encountered');
+                return;
+            }
+
+            this.props.history.push(`/namespace${data.group.endpoint}`);
+            // window.location.reload(); // Force reload to force rerender as using same Namespace class instance
+
+            
+        }).catch((err) => {
+            console.log(err);
+        });
+
+    }
+
 
     render() {
         return(
-            <div>
-                <h3>Friend List</h3>
-                <List>
-                    {this.generateFriendList()}
-                </List>
-            </div>
+            <Grid>
+                <Grid.Column width={3}>
+                    <h3>Friend List</h3>
+                    <List animated selection>
+                        {this.generateFriendList()}
+                    </List>
+                </Grid.Column>
+                <Grid.Column width={3}>
+                    <h3>Search to add a friend <Icon name="user plus"></Icon></h3>
+                    <UserSearch />
+                </Grid.Column>
+            </Grid>
+
 
         );
     }

@@ -61,6 +61,7 @@ class Dashboard extends Component {
             selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint'),
             selectedNamespaceGroupName: e.currentTarget.getAttribute('groupName')
         })
+
     }
 
     handleJoinNamespace() {
