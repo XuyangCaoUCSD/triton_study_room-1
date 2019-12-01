@@ -684,6 +684,7 @@ class Calendar extends Component {
                     onSelectEvent={this.handleEventClick}
                     onSelectSlot={this.handleSelectSlot}
                     views={['month', 'week', 'day', 'agenda']}
+                    defaultView='week'
                     localizer={this.localizer}
                     startAccessor="start"
                     endAccessor="end"

@@ -12,7 +12,7 @@ class Dashboard extends Component {
             chatGroups: {},
             namespaceNotifications: {}, // Map namespace to whether it has notifications
             editingGroups: false,
-            publicNamspacesOptions: [
+            publicNamespacesOptions: [
             ],
             selectedPublicNamespaceEndpoint: "",
             selectedNamespaceGroupName: ""

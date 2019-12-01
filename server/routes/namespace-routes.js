@@ -138,6 +138,22 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
 
             setRoomUnreads(endpoint, currRoom.roomName, userId, false);
 
+            console.log('admins are ');
+            console.log(foundNamespace.admins);
+            let isAdmin = false;
+            for (var adminIdx = 0; adminIdx < foundNamespace.admins.length; adminIdx++) {
+                // '===' does not work
+                if (userId == foundNamespace.admins[adminIdx]) {
+                    isAdmin = true;
+                    break;
+                }
+            }
+
+            if (isAdmin) {
+                console.log('IS ADMIN\n');
+                data.isAdmin = true;
+            }
+
             ChatHistory.findById(
                 chatHistoryId
             ).then((foundChatHistory) => {
