@@ -14,7 +14,8 @@ class Dashboard extends Component {
             editingGroups: false,
             publicNamspacesOptions: [
             ],
-            selectedPublicNamespaceEndpoint: ""
+            selectedPublicNamespaceEndpoint: "",
+            selectedNamespaceGroupName: ""
         }
 
         this.props.removeNavBarNotifications(); // No need to display notif in navbar when at groups page
@@ -55,10 +56,10 @@ class Dashboard extends Component {
         window.removeEventListener('beforeunload', this.componentCleanup);
     }
 
-    handlePublicNamespaceClick = (e) => {
-        e.preventDefault();
+    handlePublicNamespaceOnMouseUp = (e) => {
         this.setState({
-            selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint')
+            selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint'),
+            selectedNamespaceGroupName: e.currentTarget.getAttribute('groupName')
         })
 
     }
@@ -81,7 +82,8 @@ class Dashboard extends Component {
 
             if (this._isMounted) {
                 this.setState({
-                    selectedPublicNamespaceEndpoint: ""
+                    selectedPublicNamespaceEndpoint: "",
+                    selectedNamespaceGroupName: ""
                 })
                 this.getDashboardGroupsAPICall();
                 this.getPublicNamespaces();
@@ -176,9 +178,10 @@ class Dashboard extends Component {
                     key: nsInfo.endpoint,
                     value: nsInfo.endpoint,
                     endpoint: nsInfo.endpoint,
+                    groupName: nsInfo.groupName,
                     image: nsInfo.img,
                     text: nsInfo.groupName,
-                    onClick: this.handlePublicNamespaceClick
+                    onMouseUp: this.handlePublicNamespaceOnMouseUp // Don't override existing onclick
                 }
             });
 
@@ -351,6 +354,8 @@ class Dashboard extends Component {
                                 search
                                 fluid
                                 selection
+                                closeOnEscape
+                                text={this.state.selectedNamespaceGroupName}
                                 options={this.state.publicNamespacesOptions}
                             /> 
                         </div>
