@@ -51,6 +51,7 @@ class Namespace extends Component {
         this.closeFilesViewWindow = this.closeFilesViewWindow.bind(this);
         this.getUpdatedNamespaceInfo = this.getUpdatedNamespaceInfo.bind(this);
         this.closeGroupModal = this.closeGroupModal.bind(this);
+        this.closeStudySessionModal = this.closeStudySessionModal.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -547,6 +548,20 @@ class Namespace extends Component {
         })
     }
 
+    createStudySessionClickHandler = (e) => {
+        console.log('Opening create study session modal');
+
+        this.setState({
+            createStudySessionModalOpen: true
+        });
+    }
+
+    closeStudySessionModal(e) {
+        this.setState({
+            createStudySessionModalOpen: false
+        });
+    }
+
     // To handle newly join people and maybe newly created rooms
     getUpdatedNamespaceInfo() {
         API({
@@ -692,7 +707,7 @@ class Namespace extends Component {
     namespaceHTML(chatGroups, rooms, messages, activeUsersList) {
         let createGroupsButton = 
             <Popup 
-                content={'Create a study group or study session'}
+                content={'Create a study group chat'}
                 trigger={
                     <div style={{float: 'right'}}>
                         <Button style={{position: 'relative', zIndex: 10}} onClick={this.createGroupClickHandler} size='huge' circular icon>
@@ -713,21 +728,54 @@ class Namespace extends Component {
             >
                 <Modal.Header>Create groups</Modal.Header>
                 <Modal.Content >
-                    <MultiUserSelect getGroupsAPICall={this.getGroupsAPICall} closeGroupModal={this.closeGroupModal} endpoint={this.state.endpoint} creationType="createNamespace" />
+                    <MultiUserSelect getGroupsAPICall={this.getGroupsAPICall} closeModal={this.closeGroupModal} endpoint={this.state.endpoint} creationType="createNamespace" />
                 </Modal.Content>
             </Modal>;
 
-        let filesView =
+        let createStudySessionButton = 
+            <Popup 
+                content={'Make a study session with people in this group'}
+                trigger={
+                    <div style={{float: 'right'}}>
+                        <Button style={{position: 'relative', zIndex: 10}} onClick={this.createStudySessionClickHandler} size='huge' circular icon>
+                            <Icon name='book' />
+                        </Button>
+                    </div>        
+                    
+                } 
+            />;
+
+        let createStudySessionModal = 
+            <Modal
+                open={this.state.createStudySessionModalOpen}
+                closeIcon
+                onClose={this.closeStudySessionModal}
+                size='large' 
+                trigger={createStudySessionButton}
+            >
+                <Modal.Header>Create a study session</Modal.Header>
+                <Modal.Content >
+                    <MultiUserSelect closeModal={this.closeStudySessionModal} endpoint={this.state.endpoint} creationType="createStudySession" />
+                </Modal.Content>
+            </Modal>;
+
+        let filesViewButton =
+            <Popup 
+                content={'View files shared in this group'}
+                trigger={
+                    <div style={{float: 'right'}}>
+                        <Button size='big' circular onClick={this.handleFilesViewWindowOpen} style={{ zIndex: 10, position: 'relative'}} icon='file archive' />
+                    </div>  
+                } 
+            />;
+
+        let filesView = 
             <Modal
                 open={this.state.filesViewWindowOpen}
                 closeIcon
                 onClose={this.closeFilesViewWindow}
                 size='small' 
-                trigger={
-                    <div style={{float: 'right'}}>
-                        <Button size='big' circular onClick={this.handleFilesViewWindowOpen} style={{ zIndex: 10, position: 'relative'}} icon='file archive' />
-                    </div>        
-                }
+                trigger={filesViewButton} 
             >
                 <Modal.Header>{this.state.currNs.groupName} Files</Modal.Header>
                 <FilesView endpoint={this.state.currNs.endpoint}/>
@@ -741,7 +789,7 @@ class Namespace extends Component {
             <span>
                 <Header style={{display: 'inline'}} size='tiny' as='h5' >
                     <Icon name='user' />
-                    <Header.Content>Direct Message</Header.Content>{createGroupModal}{filesView}
+                    <Header.Content>Direct Message</Header.Content>{filesView}{createStudySessionModal}{createGroupModal}
                 </Header>
             </span>;
 
@@ -771,7 +819,7 @@ class Namespace extends Component {
                 <span>
                     <Header style={{display: 'inline'}} size='tiny' as='h5' >
                         <Icon name='users' />
-                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{createGroupModal}{filesView}
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{filesView}{createStudySessionModal}{createGroupModal}
                     </Header>
                 </span>
         }

@@ -13,7 +13,6 @@ class Dashboard extends Component {
             namespaceNotifications: {}, // Map namespace to whether it has notifications
             editingGroups: false,
             publicNamspacesOptions: [
-                { key: 'af', value: 'af', flag: 'af', text: 'Afghanistan' }
             ],
             selectedPublicNamespaceEndpoint: ""
         }
@@ -336,18 +335,30 @@ class Dashboard extends Component {
                 </div>
 
                 <div className='five wide column'>
-                    <Dropdown
-                        placeholder='Select Group to join'
-                        search
-                        fluid
-                        selection
-                        options={this.state.publicNamespacesOptions}
-                    />
+                    <div className='row'>
+                        <div className='five wide column'>
+                            <br></br>
+                            <h3>Find a class to join</h3>
+                        </div>
+                    </div>
+
+                    <div className='row'>
+                        <div className='three wide column'>
+                            <Dropdown
+                                placeholder='Select a class'
+                                search
+                                fluid
+                                selection
+                                options={this.state.publicNamespacesOptions}
+                            /> 
+                        </div>
+                        <div className='two wide column' >
+                            {joinNamespaceButton}
+                        </div>
+                    </div>
                 </div>
 
-                <div className='four wide column' >
-                    {joinNamespaceButton}
-                </div>
+                
                 
             </div>
             

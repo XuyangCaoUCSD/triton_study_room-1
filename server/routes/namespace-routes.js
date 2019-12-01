@@ -159,6 +159,7 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                             return {
                                 img: ns.img,
                                 privateChat: ns.privateChat,
+                                privateGroup: ns.privateGroup,
                                 endpoint: ns.endpoint,
                                 groupName: ns.groupName,
                                 peopleDetails

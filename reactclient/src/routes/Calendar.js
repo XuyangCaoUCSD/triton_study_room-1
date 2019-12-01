@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import moment from 'moment';
-import { Button, Form, Input, Select, Confirm, TextArea } from 'semantic-ui-react';
+import { Button, Form, Input, Select, Confirm, TextArea, Icon } from 'semantic-ui-react';
 import API from '../utilities/API';
 import Modal from 'react-awesome-modal';
 import DateTimeRangeContainer from 'react-advanced-datetimerange-picker';
@@ -658,7 +658,10 @@ class Calendar extends Component {
 
         return (
             <div>
-                <Button primary style={{position: 'absolute', top: "3.6%", right: '28%'}} onClick={this.handleCreateEventOpen}>Add an event</Button> 
+                <Button icon labelPosition='left' primary style={{position: 'absolute', top: "3.6%", right: '28%'}} onClick={this.handleCreateEventOpen}>
+                    <Icon name='add to calendar'></Icon>
+                    Add an event
+                </Button> 
                 <Confirm
                     open={this.state.removeConfirmOpen}
                     content='Are you sure you want to remove this event?'

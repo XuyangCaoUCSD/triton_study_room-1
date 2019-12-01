@@ -245,7 +245,7 @@ class Profile extends Component {
             <div>
                 {errorDisplay}
     
-                <h2 id="setting-title">Profile Settings Page <img id="gear" src="https://img.icons8.com/wired/64/000000/gear.png" /></h2>
+                <h2 id="setting-title">My Profile and Settings <img id="gear" src="https://img.icons8.com/wired/64/000000/gear.png" /></h2>
 
                 <input type="file" onChange={this.fileSelectedHandler} />
                 <br></br>
