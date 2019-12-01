@@ -15,7 +15,7 @@ export default class StudySessionCreation extends Component {
 
     render() {
         return(
-            <MultiUserSelect creationType="createStudySession"/>
+            <MultiUserSelect endpoint="/friend" creationType="createStudySession"/>
         );
     }
 
