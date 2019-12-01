@@ -1,13 +1,13 @@
-const Dibs = require('./utitlities/dibs/dibs.js');
+const Dibs = require('./utilities/dibs/dibs.js');
 
 let dibs = new Dibs();
 
-dibs.getRooms().forEach( function( room ) {
-    dibs.getRoomOpenHours( room, 2019, 11, 25,
-        function( hours ) {
-            console.log( hours )
-        },
-        function ( error ) {
-            console.log( error )
-        });
-} );
+dibs.update( function() {
+    dibs.getRooms().forEach( function( room ) {
+        dibs.getRoomReservedHours( room, 2019, 11, 27,
+
+            function( reservations ){
+                console.log( "---RESERVATIONS FOR ROOM" + room.getID() + "---\n" + reservations );
+            });
+    });
+});
