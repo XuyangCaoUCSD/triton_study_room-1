@@ -350,9 +350,27 @@ router.get("/userSearch/:endpoint", middleware.isLoggedIn, async (req, res) => {
 
     User.findById(userId).then( async function(foundUser) {
         let friendList = foundUser.friends;
-    
+        if(endpoint === "/friend") {
+            for(var i = 0; i < friendList.length; i++) {
+                await User.findById(friendList[i]).then(function(friendData) {
+                    let user = {
+                        title: friendData.name,
+                        about_me: friendData.aboutMe,
+                        avatar: friendData.avatar,
+                        email: friendData.email,
+                        is_friend: "A friend of yours"
+                    };
+
+                    to_be_sent.push(user);
+                }).catch(function(err) {
+                    console.log(err);
+                });  
+            }
+
+            res.send(to_be_sent);
+        }
         //if the endpoint is customized
-        if(endpoint !== "/global") {
+        else if(endpoint !== "/global") {
             
             Namespace.findOne({"endpoint": endpoint}).then( async function(spaceInfo) {
                 console.log(spaceInfo.people);
