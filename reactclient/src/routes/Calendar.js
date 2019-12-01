@@ -658,7 +658,7 @@ class Calendar extends Component {
 
         return (
             <div>
-                <Button icon labelPosition='left' primary style={{position: 'absolute', top: "3.6%", right: '28%'}} onClick={this.handleCreateEventOpen}>
+                <Button icon labelPosition='left' primary style={{position: 'absolute', top: "3.8%", right: '21%'}} onClick={this.handleCreateEventOpen}>
                     <Icon name='add to calendar'></Icon>
                     Add an event
                 </Button> 
@@ -687,7 +687,7 @@ class Calendar extends Component {
                     localizer={this.localizer}
                     startAccessor="start"
                     endAccessor="end"
-                    style={{height: 700, width: 1500}}
+                    style={{height: "93vh", width: "100wh"}}
                 />  
             </div>
         );
