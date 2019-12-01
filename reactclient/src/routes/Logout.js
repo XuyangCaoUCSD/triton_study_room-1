@@ -9,7 +9,7 @@ import {
 } from "react-router-dom";
 import UserForm from '../UserForm';
 import auth from "../auth/auth";
-import { Message } from 'semantic-ui-react';
+import { Message, Button, Form } from 'semantic-ui-react';
 
 class Logout extends Component {
     constructor(props) {
@@ -42,9 +42,11 @@ class Logout extends Component {
 
         return (
             <div>
-                <form style={{ textAlign: "center" }} onSubmit={this.testLogoutListener}>
-                    <button>Logout</button>
-                </form>
+                <Form style={{ textAlign: "center" }} onSubmit={this.testLogoutListener}>
+                    <Button primary >
+                        Logout
+                    </Button>
+                </Form>
             </div>
         );
     }

@@ -9,7 +9,7 @@ import {
 } from "react-router-dom";
 import UserForm from '../UserForm';
 import auth from "../auth/auth";
-import {Grid, Header, Label, Message, Divider, Image} from 'semantic-ui-react';
+import { Grid, Header, Label, Message, Divider, Image, Button, Icon } from 'semantic-ui-react';
 
 class Login extends Component {
     constructor(props) {
@@ -114,9 +114,13 @@ class Login extends Component {
                         </Grid.Column>
                     </Grid>
                     <Divider/>
-                    <div className="ui blue button" onClick={this.googleLogInHandler}>
+                    <Button labelPosition='left' icon primary onClick={this.googleLogInHandler}>
+                        <Icon name='google'></Icon>
+                        UCSD Student Login
+                    </Button>
+                    {/* <div className="ui blue button" onClick={this.googleLogInHandler}>
                         <i aria-hidden="true" className="google icon"/> UCSD Student Login
-                    </div>
+                    </div> */}
                 </div>
             </div>
         );
