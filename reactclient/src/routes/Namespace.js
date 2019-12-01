@@ -821,7 +821,7 @@ class Namespace extends Component {
                     open={this.state.inviteFriendsModalOpen}
                     closeIcon
                     onClose={this.closeInviteFriendsModal}
-                    size='large' 
+                    size='small' 
                     trigger={inviteFriendsButton}
                 >
                     <Modal.Header>Invite friends to your group</Modal.Header>

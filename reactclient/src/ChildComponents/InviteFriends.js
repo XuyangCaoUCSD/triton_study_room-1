@@ -82,7 +82,7 @@ class InviteFriends extends Component {
 
         API({
             method: 'get',
-            url: `/api/namespace${this.props.endpoint}/get-potential/listt`,
+            url: `/api/namespace${this.props.endpoint}/get-potential-list`,
             withCredentials: true
         }).then((res) => {
             console.log('Getting filtered friends, Server responded with:');
@@ -102,7 +102,7 @@ class InviteFriends extends Component {
                     value: friend.email,
                     email: friend.email,
                     "user-name": friend.name,
-                    image: friend.avatar,
+                    image: { avatar: true, src: friend.avatar },
                     text: friend.name,
                     onMouseUp: this.handleFriendSelectOnMouseUp // Don't override existing onclick
                 }
@@ -143,7 +143,7 @@ class InviteFriends extends Component {
 
         let inviteFriendButton = <Button primary disabled onClick={this.handleInviteFriend}>Invite</Button>;
 
-        if (this.state.selectedPublicNamespaceEndpoint) {
+        if (this.state.selectedFriendEmail) {
             inviteFriendButton = <Button primary onClick={this.handleInviteFriend}>Invite</Button>;
         }
 

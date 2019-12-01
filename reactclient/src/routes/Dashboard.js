@@ -25,7 +25,7 @@ class Dashboard extends Component {
         this.getDashboardGroupsAPICall = this.getDashboardGroupsAPICall.bind(this);
         this.handleJoinNamespace = this.handleJoinNamespace.bind(this);
         this.getPublicNamespaces = this.getPublicNamespaces.bind(this);
-        this.removeGroup = this.removeGroup.bind(this);
+        this.updateGroups = this.updateGroups.bind(this);
     }
 
     componentDidMount() {
@@ -252,29 +252,8 @@ class Dashboard extends Component {
     }
 
     // To be passed to ChatGroupIcon as props
-    removeGroup(endpoint) {
-        let currGroups = this.state.chatGroups;
-
-        let foundIndex = -1;
-
-        for (var i = 0; i < currGroups.length; i++) {
-            if (currGroups[i].endpoint === endpoint) {
-                foundIndex = currGroups;
-                break;
-            }
-        }
-
-        if (foundIndex === -1) {
-            console.log('ERROR: COULD NOT FIND GROUP TO REMOVE ON FRONT END');
-            return;
-        }
-
-        currGroups.splice(foundIndex, 1);
-
-        this.setState({
-            chatGroups: currGroups
-        });
-
+    updateGroups() {
+        this.getDashboardGroupsAPICall();
         this.getPublicNamespaces();
     }
 
@@ -299,7 +278,7 @@ class Dashboard extends Component {
             chat_group_icons.push(
                 <ChatGroupIcon 
                     key={key} data={nsInfo}
-                    removeGroup={this.removeGroup}
+                    updateGroups={this.updateGroups}
                     editingGroups={this.state.editingGroups}
                     hasNotifications={this.state.namespaceNotifications[nsInfo.endpoint]} 
                     onClickHandler={() => this.iconsClickHandler(nsInfo)} 

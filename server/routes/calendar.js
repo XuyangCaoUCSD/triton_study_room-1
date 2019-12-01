@@ -137,16 +137,25 @@ router.patch('/', middleware.isLoggedIn, (req, res) => {
                     return;
                 }
 
-                events[foundIndex] = calendarEvent;
+                // events[foundIndex] = calendarEvent;
 
-                Calendar.findByIdAndUpdate(
-                    foundCalendar.id,
-                    {$set: {events: events}},
-                    {new: true, safe: true}
-                ).then((savedCalendar) => {
-                    console.log('Successfuly modified event in calendar')
-                    data.modifiedEvent = savedCalendar.events[foundIndex];
+                Calendar.updateOne(
+                    {"_id": foundCalendar.id, "events._id": calendarEvent._id},
+                    {
+                        "$set": 
+                            {
+                                "events.$.title": calendarEvent.title, 
+                                "events.$.start": calendarEvent.start, 
+                                "events.$.end": calendarEvent.end,
+                                "events.$.desc": calendarEvent.desc
+                            },
+                    }
+                ).then((doc) => {
+                    console.log('Successfully modified calendar event');
+                    console.log(doc);
+                    data.modifiedEvent = calendarEvent; // pass back the item passed in api call
                     res.send(data);
+                    
                 }).catch((err) => {
                     console.log(err);
                 });
