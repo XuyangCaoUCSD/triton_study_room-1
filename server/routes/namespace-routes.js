@@ -138,6 +138,22 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
 
             setRoomUnreads(endpoint, currRoom.roomName, userId, false);
 
+            console.log('admins are ');
+            console.log(foundNamespace.admins);
+            let isAdmin = false;
+            for (var adminIdx = 0; adminIdx < foundNamespace.admins.length; adminIdx++) {
+                // '===' does not work
+                if (userId == foundNamespace.admins[adminIdx]) {
+                    isAdmin = true;
+                    break;
+                }
+            }
+
+            if (isAdmin) {
+                console.log('IS ADMIN\n');
+                data.isAdmin = true;
+            }
+
             ChatHistory.findById(
                 chatHistoryId
             ).then((foundChatHistory) => {
@@ -311,6 +327,8 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 return;
             }
 
+            data.newGroupEndpoint = foundNamespace.endpoint;
+
             if (foundNamespace.people.indexOf(userId) !== -1) {
                 console.log('User already in namespace');
                 data.success = false;
@@ -318,6 +336,7 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 res.send(data);
                 return;
             }
+            
 
             // Never should need to join direct message this way
             if (foundNamespace.privateChat) {
@@ -345,62 +364,162 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                     return;
                 }
 
-                let people = foundNamespace.people;
                 let peopleDetails = foundNamespace.peopleDetails;
+                
+                // Check if user is in people details, if so, update info, else, push new info
+                let foundDetailsIdx = -1;
+                
+                for (var detailsIdx = 0; detailsIdx < peopleDetails.length;  detailsIdx++) {
+                    if (peopleDetails[detailsIdx].email == foundUser.email) {
+                        console.log('Attempting update of existing user details!\n');
+                        foundDetailsIdx = detailsIdx; // Needed to guarantee not do something later
+                        Namespace.updateOne(
+                            {"_id": foundNamespace.id, "peopleDetails.email": foundUser.email},
+                            {
+                                "$set": 
+                                    {
+                                        "peopleDetails.$.avatar": foundUser.avatar, 
+                                        "peopleDetails.$.name": foundUser.name, 
+                                        "peopleDetails.$.givenName": foundUser.givenName,
+                                        "peopleDetails.$.email": foundUser.email
+                                    },
+                                $pull: {invited: foundUser.email},
+                                $push: {people: userId}
+                            }
+                        ).then((doc) => {
+                            console.log('Successfully updated existing user details and remove from invited list');
+                            console.log(doc);
 
-                invited.splice(invitedIndex, 1);
-                people.push(userId);
-                peopleDetails.push(userDetails);
+                            User.findByIdAndUpdate(
+                                userId,
+                                {$push: {"namespaces": foundNamespace.id}},
+                                {safe: true, new: true}
+                            ).then((updatedUser) => {
+                                console.log('Added namespace to user');
+                                res.send(data);
+                            }).catch((err) => {
+                                console.log(err);
+                            });
 
-                Namespace.findByIdAndUpdate(
-                    foundNamespace.id,
-                    {$set: {invited: invited, people: people, peopleDetails: peopleDetails}},
-                    {safe: true, new: true}
-                ).then((updatedNamespace) => {
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                        return;
+                    }
+                }
 
-                    console.log('Updated namespace with user and details');
-                    data.newGroupEndpoint = updatedNamespace.endpoint;
+                // If not found (not already existing), push new details onto existing array
+                if (foundDetailsIdx === -1) {
+                    Namespace.updateOne(
+                        {"_id": foundNamespace.id},
+                        { $pull: {invited: foundUser.email} }
+                    ).then((doc) => {
+                        console.log('Removed user from invited list');
+                        console.log(doc);
 
-                    User.findByIdAndUpdate(
-                        userId,
-                        {$push: {"namespaces": updatedNamespace.id}},
-                        {safe: true, new: true}
-                    ).then((updatedUser) => {
-                        console.log('Added namespace to user');
-                        res.send(data)
+                        Namespace.findByIdAndUpdate(
+                            foundNamespace.id,
+                            {
+                                $push: {people: userId, peopleDetails: userDetails},
+                            },
+                            {safe: true, new: true}
+                        ).then((updatedNamespace) => {
+    
+                            console.log('Updated namespace with user and details');
+    
+                            User.findByIdAndUpdate(
+                                userId,
+                                {$push: {"namespaces": updatedNamespace.id}},
+                                {safe: true, new: true}
+                            ).then((updatedUser) => {
+                                console.log('Added namespace to user');
+                                res.send(data)
+                            }).catch((err) => {
+                                console.log(err);
+                            });
+                            return;
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+
                     }).catch((err) => {
                         console.log(err);
                     });
                     
-                }).catch((err) => {
-                    console.log(err);
-                })
+                }
 
             } else {
                 console.log('Joining a default class groups');
-                // DEFAULT CLASS GROUPS
-                Namespace.findByIdAndUpdate(
-                    foundNamespace.id,
-                    {$push: {'people': userId, 'peopleDetails': userDetails}},
-                    {safe: true, new: true}
-                ).then((updatedNamespace) => {
-                    console.log('Updated namespace with user and details');
-                    data.newGroupEndpoint = updatedNamespace.endpoint;
+                // First do a find to see if user already in people details
+                let peopleDetails = foundNamespace.peopleDetails;
+                
+                // Check if user is in people details, if so, update info, else, push new info
+                let foundDetailsIdx = -1;
+            
+                for (var detailsIdx = 0; detailsIdx < peopleDetails.length;  detailsIdx++) {
+                    if (peopleDetails[detailsIdx].email == foundUser.email) {
+                        console.log('Attempting update of existing user details!\n');
+                        foundDetailsIdx = detailsIdx; // Needed to not do something later
+                        Namespace.updateOne(
+                            {"_id": foundNamespace.id, "peopleDetails.email": foundUser.email},
+                            {
+                                "$set": 
+                                    {
+                                        "peopleDetails.$.avatar": foundUser.avatar, 
+                                        "peopleDetails.$.name": foundUser.name, 
+                                        "peopleDetails.$.givenName": foundUser.givenName,
+                                        "peopleDetails.$.email": foundUser.email
+                                    },
+                                $push: {people: userId}
+                            }
+                        ).then((doc) => {
+                            console.log('Successfully updated existing user details');
+                            console.log(doc);
 
-                    User.findByIdAndUpdate(
-                        userId,
-                        {$push: {"namespaces": updatedNamespace.id}},
+                            User.findByIdAndUpdate(
+                                userId,
+                                {$push: {"namespaces": foundNamespace.id}},
+                                {safe: true, new: true}
+                            ).then((updatedUser) => {
+                                console.log('Added namespace to user');
+                                res.send(data);
+                            }).catch((err) => {
+                                console.log(err);
+                            });
+                            
+                            return;
+
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+                    }
+                }
+
+                // If not found (details not already existing), push new details onto existing array
+                if (foundDetailsIdx === -1) {
+                    console.log('Attempting to add new user details!\n');
+                    Namespace.findByIdAndUpdate(
+                        foundNamespace.id,
+                        {$push: {people: userId, peopleDetails: userDetails}},
                         {safe: true, new: true}
-                    ).then((updatedUser) => {
-                        console.log('Added namespace to user');
-                        res.send(data)
+                    ).then((updatedNamespace) => {
+                        console.log('Updated namespace with user and details');
+
+                        User.findByIdAndUpdate(
+                            userId,
+                            {$push: {"namespaces": updatedNamespace.id}},
+                            {safe: true, new: true}
+                        ).then((updatedUser) => {
+                            console.log('Added namespace to user');
+                            res.send(data);
+                        }).catch((err) => {
+                            console.log(err);
+                        });
+
                     }).catch((err) => {
                         console.log(err);
                     });
-
-                }).catch((err) => {
-                    console.log(err);
-                })
+                }
 
             }
 
@@ -518,8 +637,8 @@ router.patch('/:namespace/remove-user', middleware.isLoggedIn, (req, res) => {
             endpoint: endpoint
         }).then((foundNamespace) => {
 
-            let people = foundNamespace.people;
-            let userIndex = people.indexOf(userId);
+            // Find user id in people array
+            let userIndex = foundNamespace.people.indexOf(userId);
             if (userIndex === -1) {
                 console.log('User was already not in namespace');
                 data.success = false;
@@ -527,40 +646,33 @@ router.patch('/:namespace/remove-user', middleware.isLoggedIn, (req, res) => {
                 res.send(data);
                 return;
             }
-    
-            // Remove userId from people array
-            
-            // Should be >= 0
-            if (userIndex >= 0) {
-                people.splice(userIndex, 1);
-            }
 
-            let peopleDetails = foundNamespace.peopleDetails;
+            // let peopleDetails = foundNamespace.peopleDetails;
     
-            // Find index of correct user object in details array to remove
-            for (var i = 0; i < peopleDetails.length; i++) {
-                if (peopleDetails[i].email === foundUser.email) {
-                    break;
-                }
-            }
+            // // Find index of correct user object in details array to remove
+            // for (var i = 0; i < peopleDetails.length; i++) {
+            //     if (peopleDetails[i].email === foundUser.email) {
+            //         break;
+            //     }
+            // }
     
-            if (i === peopleDetails.length) {
-                console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
-                data.success = false;
-                data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
-                res.send(data);
-                return;
-            }
+            // if (i === peopleDetails.length) {
+            //     console.log('ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY');
+            //     data.success = false;
+            //     data.errorMessage = 'ERROR, COULD NOT FIND USER IN USERDETAILS ARRAY';
+            //     res.send(data);
+            //     return;
+            // }
     
-            peopleDetails.splice(i, 1);
+            // peopleDetails.splice(i, 1);
             
             // Save updated namespace
             Namespace.findByIdAndUpdate(
                 foundNamespace.id,
-                {$set: {people: people, peopleDetails: peopleDetails}},
+                {$pull: {people: userId}}, // {$set: {people: people, peopleDetails: peopleDetails}},
                 {save: true, new: true}
             ).then((updatedNamespace) => {
-                console.log('Removed user and their details from namespace');
+                console.log('Removed user from namespace');
 
                 User.findByIdAndUpdate(
                     userId,

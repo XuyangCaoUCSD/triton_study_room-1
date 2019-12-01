@@ -11,6 +11,7 @@ import { Segment, Form, TextArea, Message, List, Image, Header, Icon, Popup, Mod
 import Loading from "../Loading";
 import UploadFile from "../ChildComponents/UploadFile";
 import FilesView from "../ChildComponents/FilesView";
+import InviteFriends from '../ChildComponents/InviteFriends';
 import ChatGroupIcon from '../ChatGroupIcon';
 import MultiUserSelect from './MultiUserSelect';
 import Linkify from 'react-linkify';
@@ -52,6 +53,7 @@ class Namespace extends Component {
         this.getUpdatedNamespaceInfo = this.getUpdatedNamespaceInfo.bind(this);
         this.closeGroupModal = this.closeGroupModal.bind(this);
         this.closeStudySessionModal = this.closeStudySessionModal.bind(this);
+        this.closeInviteFriendsModal = this.closeInviteFriendsModal.bind(this);
 
         // Don't actually need to bind this to arrow functions
         this.messageInputHandler = this.messageInputHandler.bind(this);
@@ -108,6 +110,7 @@ class Namespace extends Component {
             let currNs = data.currNs;
             let roomNotifications = data.roomNotifications;
             let userEmail = data.userEmail;
+            let isAdmin = data.isAdmin;
 
             let peopleMap = {};
             
@@ -131,7 +134,8 @@ class Namespace extends Component {
                 userEmail,
                 currNs,
                 namespaceEndpointsMap,
-                peopleMap
+                peopleMap,
+                isAdmin
             });
 
             if (this.socket != null) {
@@ -562,6 +566,20 @@ class Namespace extends Component {
         });
     }
 
+    inviteFriendsClickHandler = (e) => {
+        console.log('Opening invite friends modal');
+
+        this.setState({
+            inviteFriendsModalOpen: true
+        })
+    }
+
+    closeInviteFriendsModal(e) {
+        this.setState({
+            inviteFriendsModalOpen: false
+        })
+    }
+
     // To handle newly join people and maybe newly created rooms
     getUpdatedNamespaceInfo() {
         API({
@@ -781,6 +799,40 @@ class Namespace extends Component {
                 <FilesView endpoint={this.state.currNs.endpoint}/>
             </Modal>;
 
+        let inviteFriendsButton = null;
+        let inviteFriendsModal = null;
+        if (this.state.isAdmin) {
+            console.log('\nI AM ADMIN\n');
+            inviteFriendsButton = 
+                <Popup 
+                    content={'Invite friends to group'}
+                    trigger={
+                        <div style={{float: 'right'}}>
+                            <Button style={{position: 'relative', zIndex: 10}} onClick={this.inviteFriendsClickHandler} size='huge' circular icon>
+                                <Icon name='add user' />
+                            </Button>
+                        </div>        
+                        
+                    } 
+                />;
+
+            inviteFriendsModal = 
+                <Modal
+                    open={this.state.inviteFriendsModalOpen}
+                    closeIcon
+                    onClose={this.closeInviteFriendsModal}
+                    size='small' 
+                    trigger={inviteFriendsButton}
+                >
+                    <Modal.Header>Invite friends to your group</Modal.Header>
+                    <Modal.Content >
+                        <InviteFriends endpoint={this.state.endpoint} />
+                    </Modal.Content>
+                </Modal>;
+
+        }
+        
+
         // Default stuff are for private chat, overwrite if not
         let roomsDiv = null;
         let activeUsersDiv = null;
@@ -819,7 +871,7 @@ class Namespace extends Component {
                 <span>
                     <Header style={{display: 'inline'}} size='tiny' as='h5' >
                         <Icon name='users' />
-                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{filesView}{createStudySessionModal}{createGroupModal}
+                        <Header.Content>{this.state.currRoom.roomName}</Header.Content>{filesView}{createStudySessionModal}{createGroupModal}{inviteFriendsModal}
                     </Header>
                 </span>
         }

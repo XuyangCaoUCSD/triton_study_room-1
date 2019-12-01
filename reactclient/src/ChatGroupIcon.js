@@ -53,14 +53,16 @@ class ChatGroupIcon extends Component {
 
     removeFromNamespaceAPI() {
         
-        if (!this.state.data || !this.state.data.endpoint) {
+        if (!this.props.data || !this.props.data.endpoint) {
             console.log('No data or endpoint to call remove from namespace API');
             return;
         }
         console.log('Calling remove from namespace API');
+
+        let endpoint = this.props.data.endpoint;
         API({
             method: 'patch',
-            url: `/api/namespace${this.state.endpoint}/remove-user`,
+            url: `/api/namespace${endpoint}/remove-user`,
             withCredentials: true
         }).then((res) => {
             let data = res.data;
@@ -73,7 +75,7 @@ class ChatGroupIcon extends Component {
                 confirmRemoveOpen: false
             });
             // Update groups display
-            this.props.removeGroup(this.state.endpoint);
+            this.props.updateGroups();
 
         }).catch((err) => {
             console.log('ERROR on removing user from namespace')
