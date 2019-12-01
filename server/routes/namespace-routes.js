@@ -188,6 +188,51 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
+router.get('/:namespace/get-potential-list', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+    let potentialList = [];
+
+    //get namespace existing users and create the hashtable first
+    Namespace.findOne({"endpoint": endpoint}).then(function(spaceInfo) {
+        const handymap = {}
+        for(var i = 0; i < spaceInfo.people.length; i++) {
+            handymap[spaceInfo.people[i]] = true;
+        }
+
+        //then check each of the admin's friends against handymap
+        User.findById(userId).then(async function(adminInfo) {
+            for(var j = 0; j < adminInfo.friends.length; j++) {
+                if(!(handymap[adminInfo.friends[j]])) {
+                    //this user is selected, extract his/her basic information
+                    await User.findById(adminInfo.friends[j]).then(function(selectedInfo) {
+                        const infoItem = {
+                            name: selectedInfo.name,
+                            email: selectedInfo.email,
+                            avatar: selectedInfo.avatar,
+                        };
+                        potentialList.push(infoItem);
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                }
+            }
+
+            res.send(potentialList);
+
+            
+
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+    }).catch(function(err) {
+        console.log(err);
+    });
+    
+});
+
+
 
 // Adds user to namespace (only for private group or public groups. Direct messagets should automatically add user)
 router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
