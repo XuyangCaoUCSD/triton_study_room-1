@@ -188,6 +188,57 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
+router.patch('/:namespace/selected-invitee', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+    let inviteeEmail = req.body.inviteeEmail;
+    let responseData = {
+        success: true,
+    };
+    //add the user to the invited array in that namespace
+    Namespace.findOneAndUpdate(
+        {"endpoint": endpoint},
+        {"$push": {"invited": inviteeEmail}},
+        {safe: true, new: true}
+    ).then(function(doc) {
+        console.log("added the user to invited list");
+        
+        //generate the card for that user
+        let notiCard = {
+            type: "namespace_invite",
+            trigger: doc._id,
+            extra: "",
+            extra2: ""
+        };
+        User.findById(userId).then(function(adminInfo) {
+            notiCard.extra = adminInfo.name;
+            //card prepared, now push to the user
+            User.findOneAndUpdate(
+                {"email": inviteeEmail},
+                {"$push": {"request_notification": notiCard}},
+                {safe: true, new: true}
+
+            ).then(function(updatedInvitee) {
+                console.log(updatedInvitee);
+                res.send(responseData);
+
+            }).catch(function(err) {
+                console.log(err);
+                responseData.success = false;
+            });
+
+        }).catch(function(err) {
+            console.log(err);
+            responseData.success = false;
+        });
+
+    }).catch(function(err) {
+        console.log(err);
+        responseData.success = false;
+    })
+
+});
+
 router.get('/:namespace/get-potential-list', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
     let endpoint = "/" + req.params.namespace;
@@ -218,7 +269,10 @@ router.get('/:namespace/get-potential-list', middleware.isLoggedIn, (req, res) =
                 }
             }
 
-            res.send(potentialList);
+            res.send({
+                potentialList: potentialList,
+                success: true
+            });
 
             
 
