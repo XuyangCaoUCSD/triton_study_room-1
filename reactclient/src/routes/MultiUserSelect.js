@@ -1,7 +1,7 @@
 // front-end underlying technology: React
 import React, {Component} from 'react';
 // we use axios for data communication between front-end and back-end
-import { Button, Checkbox, Form, Image, Grid, List, Label } from 'semantic-ui-react'
+import { Button, Checkbox, Form, Image, Grid, List, Label, Input } from 'semantic-ui-react'
 
 import API from '../utilities/API';
 
@@ -200,15 +200,20 @@ export default class MultiUserSelect extends Component {
         if(this.props.creationType === "createStudySession") {
             return (
                 <div>
-                    <Label>Pick a start time</Label>
-                    <input type="datetime-local" id="start-point"
-                    name="start-point" style={{maxWidth:300}}
-                    onChange={e => this.setState({startTime: e.target.value})}></input>
-                    <br />
-                    <Label>Pick an end time</Label>
+                    <Form.Field required>
+                        <label>Pick a start time</label>
+                        <input type="datetime-local" id="start-point"
+                        name="start-point" style={{maxWidth:300}}
+                        onChange={e => this.setState({startTime: e.target.value})}></input>
+                    </Form.Field>
+                    <Form.Field required>
+                    <label>Pick an end time</label>
                     <input type="datetime-local" id="end-point"
                     name="end-point" style={{maxWidth:300}}
                     onChange={e => this.setState({endTime: e.target.value})}></input>
+                    </Form.Field>
+                    
+
                 </div>
             );
         }
@@ -221,15 +226,16 @@ export default class MultiUserSelect extends Component {
         if(this.props.creationType === "createStudySession") {
             return (
                 <div>
-                    <Label>Study session location</Label>
-                    <input type="text" style={{maxWidth:300}}
-                    onChange={e => this.setState({location: e.target.value})}
-                    ></input>
-                    <br /><br />
-                    <Label>Study session description</Label>
-                    <input type="text" style={{maxWidth:300}}
-                    onChange={e => this.setState({desc: e.target.value})}
-                    ></input>
+
+
+                    <Form.Field onChange={e => this.setState({location: e.target.value})} control={Input} label="Study session location">
+
+                    </Form.Field>
+
+                    <Form.Field onChange={e => this.setState({desc: e.target.value})} control={Input} label="Study session description">
+
+                    </Form.Field>
+
                 </div>
                 
             );
@@ -242,20 +248,17 @@ export default class MultiUserSelect extends Component {
     render() {
         return (
             <Grid>
-                <Grid.Column width={8}>
+                <Grid.Column width={6}>
                     <Form>
-                    <Form.Field>
-                    <Label>{this.props.creationType === "createNamespace" ? "Study group name" : "Study session title"}</Label>
-                    <br />
-                    <input type="text" style={{maxWidth:300}}
-                    onChange={e => this.setState({eventTitle: e.target.value})}></input>
-                    <br /><br />
-                    {this.ifGenerateLocation()}
+                    <Form.Field required control={Input} onChange={e => this.setState({eventTitle: e.target.value})} label={this.props.creationType === "createNamespace" ? "Study group name" : "Study session title"}>
                     </Form.Field>
-                    <Label>Invite some people</Label>
+                    {this.ifGenerateLocation()}
                     <br />
-                    <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
-                    <br />
+                    <Form.Field>
+                        <label>Invite some people</label>
+                        <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
+                    </Form.Field>
+
                     <UserDropdown endpoint={this.props.endpoint} uponSelection={this.pushUser} />
                     <br /><br />
                     {this.ifGenerateTimePick()}
@@ -263,6 +266,7 @@ export default class MultiUserSelect extends Component {
                     <Button onClick={this._multiUserSubmit}>{this.props.creationType === "createNamespace" ? "Create a study group" : "Create this study session"}</Button>
                     </Form>
                 </Grid.Column>
+                <Grid.Column width={3}></Grid.Column>
                 <Grid.Column width={4}>
                     <h3>Selected Users</h3>
                     <List>

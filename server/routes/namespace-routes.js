@@ -204,6 +204,105 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
     
 });
 
+router.patch('/:namespace/selected-invitee', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+    let inviteeEmail = req.body.inviteeEmail;
+    let responseData = {
+        success: true,
+    };
+    //add the user to the invited array in that namespace
+    Namespace.findOneAndUpdate(
+        {"endpoint": endpoint},
+        {"$push": {"invited": inviteeEmail}},
+        {safe: true, new: true}
+    ).then(function(doc) {
+        console.log("added the user to invited list");
+        
+        //generate the card for that user
+        let notiCard = {
+            type: "namespace_invite",
+            trigger: doc._id,
+            extra: "",
+            extra2: ""
+        };
+        User.findById(userId).then(function(adminInfo) {
+            notiCard.extra = adminInfo.name;
+            //card prepared, now push to the user
+            User.findOneAndUpdate(
+                {"email": inviteeEmail},
+                {"$push": {"request_notification": notiCard}},
+                {safe: true, new: true}
+
+            ).then(function(updatedInvitee) {
+                console.log(updatedInvitee);
+                res.send(responseData);
+
+            }).catch(function(err) {
+                console.log(err);
+                responseData.success = false;
+            });
+
+        }).catch(function(err) {
+            console.log(err);
+            responseData.success = false;
+        });
+
+    }).catch(function(err) {
+        console.log(err);
+        responseData.success = false;
+    })
+
+});
+
+router.get('/:namespace/get-potential-list', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let endpoint = "/" + req.params.namespace;
+    let potentialList = [];
+
+    //get namespace existing users and create the hashtable first
+    Namespace.findOne({"endpoint": endpoint}).then(function(spaceInfo) {
+        const handymap = {}
+        for(var i = 0; i < spaceInfo.people.length; i++) {
+            handymap[spaceInfo.people[i]] = true;
+        }
+
+        //then check each of the admin's friends against handymap
+        User.findById(userId).then(async function(adminInfo) {
+            for(var j = 0; j < adminInfo.friends.length; j++) {
+                if(!(handymap[adminInfo.friends[j]])) {
+                    //this user is selected, extract his/her basic information
+                    await User.findById(adminInfo.friends[j]).then(function(selectedInfo) {
+                        const infoItem = {
+                            name: selectedInfo.name,
+                            email: selectedInfo.email,
+                            avatar: selectedInfo.avatar,
+                        };
+                        potentialList.push(infoItem);
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                }
+            }
+
+            res.send({
+                potentialList: potentialList,
+                success: true
+            });
+
+            
+
+        }).catch(function(err) {
+            console.log(err);
+        });
+
+    }).catch(function(err) {
+        console.log(err);
+    });
+    
+});
+
+
 
 // Adds user to namespace (only for private group or public groups. Direct messagets should automatically add user)
 router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
