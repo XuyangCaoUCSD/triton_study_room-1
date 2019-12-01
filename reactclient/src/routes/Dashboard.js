@@ -311,10 +311,10 @@ class Dashboard extends Component {
         let editButtonPopupContent = this.state.editingGroups ? 'Cancel' : 'Leave a group';
         let editButtonIconName = this.state.editingGroups ? 'cancel' : 'edit';
 
-        let joinNamespaceButton = <Button disabled onClick={this.handleJoinNamespace}>Join Group</Button>;
+        let joinNamespaceButton = <Button primary disabled onClick={this.handleJoinNamespace}>Join Group</Button>;
 
         if (this.state.selectedPublicNamespaceEndpoint) {
-            joinNamespaceButton = <Button onClick={this.handleJoinNamespace}>Join Group</Button>;
+            joinNamespaceButton = <Button primary onClick={this.handleJoinNamespace}>Join Group</Button>;
         }
 
 

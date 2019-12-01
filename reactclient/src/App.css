@@ -30,3 +30,17 @@
     opacity: 0.06;
     z-index: -10;
 }
+
+#after {
+    content: "";
+    background: url("https://images.adsttc.com/media/images/542b/597f/c07a/80c9/ea00/02ee/large_jpg/South_Elevation.jpg?1412127092");
+    opacity: 0.08;
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    background-size: cover;
+    /* Preserve aspet ratio */
+    min-width: 100%;
+    min-height: 100%;
+    z-index: -1;   
+  }
