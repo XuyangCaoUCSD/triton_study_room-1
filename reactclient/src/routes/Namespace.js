@@ -959,10 +959,13 @@ class Namespace extends Component {
                 <br /><br /><br /><br /><br /><br /><br /><br /><br />
                
                 <div>
-                    {this.state.userEmail != userInfo.email && <Button email={userInfo.email} user-name={userInfo.name} size="mini" color='green' onClick={this.activeUserClickHandler}  content='Message' />}     
+                    {this.state.userEmail !== userInfo.email && <Button email={userInfo.email} user-name={userInfo.name} size="mini" color='green' onClick={this.activeUserClickHandler}  content='Message' />}     
                 </div>         
             </div>
         )
+
+        let modalHeader = this.state.userEmail !== userInfo.email ? userInfo.name : 'You';
+
         return (
             <Modal
                 closeIcon
@@ -977,7 +980,7 @@ class Namespace extends Component {
                     </List.Item>
                 }
             >
-                <Modal.Header>{userInfo.name}</Modal.Header>
+                <Modal.Header>{modalHeader}</Modal.Header>
                 <Modal.Content image>
                     <Image wrapped size='medium' src={userInfo.avatar} />
                     <Modal.Description>

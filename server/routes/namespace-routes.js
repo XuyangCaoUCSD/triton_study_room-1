@@ -205,6 +205,13 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
         Namespace.findOne({
             endpoint: endpoint
         }).then((foundNamespace) => {
+            if (!foundNamespace) {
+                data.success = false;
+                data.errorMessage = "Group does not exist";
+                res.send(data);
+                return;
+            }
+
             if (foundNamespace.people.indexOf(userId) !== -1) {
                 console.log('User already in namespace');
                 data.success = false;
@@ -213,7 +220,7 @@ router.patch('/:namespace/add-user', middleware.isLoggedIn, (req, res) => {
                 return;
             }
 
-            // Never should need to join direct message this way?
+            // Never should need to join direct message this way
             if (foundNamespace.privateChat) {
                 data.success = false;
                 res.send(data);
