@@ -3,7 +3,8 @@ const  express       = require('express'),
        passport      = require('passport'),
        passportSetup = require('../config/passport-setup'), // IMPORTANT: Need to require somewhere to run file so google auth is initialised
        User          = require('../models/User'),
-       Namespace     = require('../models/Namespace');
+       Namespace     = require('../models/Namespace'),
+       { Calendar }  = require('../models/Calendar');
        middleware    = require('../middleware/index');
 
 const { StudySessionHistory, Reaction } = require('../models/StudySessionHistory');
@@ -63,6 +64,7 @@ router.get('/dashboard', middleware.isLoggedIn, (req, res) => {
                     endpoint: ns.endpoint,
                     groupName: ns.groupName,
                     privateChat: ns.privateChat,
+                    privateGroup: ns.privateGroup,
                     peopleDetails
                 }
             });
@@ -238,6 +240,25 @@ router.post('/createStudySession', middleware.isLoggedIn, async (req, res) => {
             }).catch(function(err) {
                 console.log(err);
             });
+
+            // Update creator's calendar with new event
+            let newEvent = {
+                title: studySession.title,
+                start: studySession.start,
+                end: studySession.end,
+                location: studySession.location,
+                desc: studySession.desc
+            }
+
+            Calendar.findByIdAndUpdate(
+                ownerInfo.calendar,
+                {$push: {events: newEvent}}
+            ).then((updatedCalendar) => {     
+                console.log('Added new event to user (creator) ' + ownerInfo.email + "'s calendar");
+            }).catch((err) => {
+                console.log(err);
+            });
+
 
             res.send("Created this study session!!");
         }).catch(function(err) {
@@ -664,6 +685,24 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
                     });
                 }
             }
+
+            let newEvent = {
+                title: sessionInfo.title,
+                start: sessionInfo.start,
+                end: sessionInfo.end,
+                location: sessionInfo.location,
+                desc: sessionInfo.desc
+            }
+
+            Calendar.findByIdAndUpdate(
+                userData.calendar,
+                {$push: {events: newEvent}}
+            ).then((updatedCalendar) => {     
+                console.log('Added new event to user ' + userData.email + "'s calendar");
+            }).catch((err) => {
+                console.log(err);
+            });
+
         }).catch(function(err) {
             console.log(err);
         });

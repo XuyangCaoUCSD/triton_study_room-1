@@ -2,6 +2,7 @@
 import React, {Component} from 'react';
 import { Button, Card, Image, Label, List } from 'semantic-ui-react';
 import API from '../utilities/API';
+import moment from 'moment';
 
 class NotificationCard extends Component {
   constructor(props) {
@@ -188,8 +189,8 @@ class NotificationCard extends Component {
       <div>
         <h4>Note:<br/>{this.props.desc}</h4>
         <h4>Location:<br/>{this.props.location}</h4>
-        <h5>Start time:<br/>{(new Date(this.props.start)).toString()}</h5>
-        <h5>End time:<br />{(new Date(this.props.end)).toString()}</h5>
+        <h5>Start time:<br/>{moment(this.props.start).format('LLLL')}</h5>
+        <h5>End time:<br />{moment(this.props.end).format('LLLL')}</h5>
         <h4>People invovled:</h4>
         <List>{items}</List>
         

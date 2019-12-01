@@ -75,34 +75,34 @@ class FilesView extends Component {
     }
 
     buildFile(fileInfo, listKey) {
-        return (
-            <li key={listKey}>
-                <Message style={{whiteSpace: 'pre-wrap'}}>
-                    <div>
-                        <div>
-                            <Header size='small'>{fileInfo.originalName}</Header>
-                        </div>            
-                        <div>
-                            <Linkify>
-                                {fileInfo.url}
-                            </Linkify>
-                        </div>              
-                    </div>   
-                </Message>
-            </li>
-        ); 
-
         // return (
         //     <li key={listKey}>
         //         <Message style={{whiteSpace: 'pre-wrap'}}>
         //             <div>
         //                 <div>
-        //                     <Header size='small'><a href={fileInfo.url}>{fileInfo.originalName}</a></Header>
-        //                 </div>          
+        //                     <Header size='small'>{fileInfo.originalName}</Header>
+        //                 </div>            
+        //                 <div>
+        //                     <Linkify>
+        //                         {fileInfo.url}
+        //                     </Linkify>
+        //                 </div>              
         //             </div>   
         //         </Message>
         //     </li>
         // ); 
+
+        return (
+            <li key={listKey}>
+                <Message style={{whiteSpace: 'pre-wrap'}}>
+                    <div>
+                        <div>
+                            <Header size='small'><a href={fileInfo.url}>{fileInfo.originalName}</a></Header>
+                        </div>          
+                    </div>   
+                </Message>
+            </li>
+        ); 
     }
 
     render() {
