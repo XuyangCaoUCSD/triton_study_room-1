@@ -102,7 +102,7 @@ class Setting extends Component {
     // render the component
     render() {
         return(
-            <div class="setting-form">
+            <div className="setting-form">
                 <Form.Field>
                 <br />
                 <h2 id="setting-title">Profile Settings Page <img id="gear" src="https://img.icons8.com/wired/64/000000/gear.png" /></h2>
@@ -115,7 +115,7 @@ class Setting extends Component {
                     </Form.Field>
                     <Form.Field>
                     <label>About Me</label>
-                    <textarea style={{maxWidth:500}} class="box"  onChange={e => this.setState({aboutMe: e.target.value})} defaultValue={this.state.aboutMe}></textarea>
+                    <textarea style={{maxWidth:500}} className="box"  onChange={e => this.setState({aboutMe: e.target.value})} defaultValue={this.state.aboutMe}></textarea>
                     </Form.Field>
                     <Form.Field>
                     <label>Phone Number</label>
