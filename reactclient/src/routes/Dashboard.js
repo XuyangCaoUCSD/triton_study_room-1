@@ -56,9 +56,11 @@ class Dashboard extends Component {
     }
 
     handlePublicNamespaceClick = (e) => {
+        e.preventDefault();
         this.setState({
             selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint')
         })
+
     }
 
     handleJoinNamespace() {

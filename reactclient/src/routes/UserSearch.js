@@ -213,7 +213,7 @@ export default class UserSearch extends Component {
             value={value}
             resultRenderer={this.resultRenderer}
             {...this.props}
-            placeholder='Search by email or name'
+            placeholder={'Search by email or name'}
             />
 
             
