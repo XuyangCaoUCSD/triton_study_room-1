@@ -101,6 +101,10 @@ export default class MultiUserSelect extends Component {
         console.log('selectedUsers are');
         console.log(this.state.selectedUsers);
         if(this.props.creationType === "createNamespace") {
+            if(this.state.eventTitle === "") {
+                alert("Please enter a name for this study group!");
+                return;
+            }
             API({
                 method: 'post',
                 url: "/api/namespace",
@@ -127,6 +131,12 @@ export default class MultiUserSelect extends Component {
             });
         } 
         else if(this.props.creationType === "createStudySession") {
+            //check if the user has entered an event title
+            if(this.state.eventTitle === "") {
+                alert("Please enter a title for this study session!");
+                return;
+            }
+
             //check if the user has not pick time yet
             if(this.state.startTime === "" || this.state.endTime === "") {
                 alert("Please pick both the start time and end time!");
@@ -235,14 +245,14 @@ export default class MultiUserSelect extends Component {
                 <Grid.Column width={8}>
                     <Form>
                     <Form.Field>
-                    <Label>{this.props.creationType === "createNamespace" ? "Study group name" : "Study session name"}</Label>
+                    <Label>{this.props.creationType === "createNamespace" ? "Study group name" : "Study session title"}</Label>
                     <br />
                     <input type="text" style={{maxWidth:300}}
                     onChange={e => this.setState({eventTitle: e.target.value})}></input>
                     <br /><br />
                     {this.ifGenerateLocation()}
                     </Form.Field>
-                    <Label>Pick up some people</Label>
+                    <Label>Invite some people</Label>
                     <br />
                     <UserSearch endpoint={this.props.endpoint} goal="multi_select" uponSelection={this.pushUser} />
                     <br />

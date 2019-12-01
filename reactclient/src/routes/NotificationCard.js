@@ -145,7 +145,7 @@ class NotificationCard extends Component {
     else if(reactionType==="wait_response") {
       return(
         <List.Description style={{color: "purple"}}>
-        waiting for the response
+        pending response
         </List.Description>
       );
     }
@@ -203,7 +203,7 @@ class NotificationCard extends Component {
     if(this.props.type === "friend_request" || this.props.type === "namespace_invite") {
       return (    <div className='ui two buttons'>
                     <Button basic color='green' onClick={this._onAccept}>
-                      Approve
+                      Accept
                     </Button>
                     <Button basic color='red' onClick={this._onDecline}>
                       Decline
@@ -249,7 +249,7 @@ class NotificationCard extends Component {
         return(
           <div className='ui two buttons'>
             <Button basic color='green' onClick={this._acceptSession}>
-              Approve
+              Accept
             </Button>
             <Button basic color='red' onClick={this._declineSession}>
               Decline
