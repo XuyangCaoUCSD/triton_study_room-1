@@ -153,29 +153,25 @@ router.post('/avatars', middleware.isLoggedIn, (req, res) => {
                                     for (index = 0; index < peopleDetails.length; index ++) {
                                         if (peopleDetails[index].email === updatedUser.email) {
                                             foundIndex = index;
-                                            break;
+                                            Namespace.updateOne(
+                                                {"_id": updatedNamespace.id, "peopleDetails.email": updatedUser.email},
+                                                {"$set": {"peopleDetails.$.avatar": updatedUser.avatar} }
+                                            ).then((doc) => {
+                                                console.log('Updated user avatar in namespace!');
+                                                console.log(doc);
+                                            }).catch((err) => {
+                                                console.log(err);
+                                            });
+                                            return;
                                         }
                                     };
 
                                     if (foundIndex === -1) {
-                                        console.log('Error, could not file user info to remove from namespace');
+                                        console.log('Error, could not find user info to remove from namespace');
                                         return;
                                     }
 
-                                    peopleDetails[index].avatar = updatedUser.avatar;
-
-                                    Namespace.findByIdAndUpdate(
-                                        updatedNamespace.id,
-                                        {$set: {peopleDetails: peopleDetails}},
-                                        {new: true, safe: true}
-                                    ).then((updatedAgainNamespace) => {
-                                        console.log('Updated user details in namespace!');
-                                    }).catch((err) => {
-                                        console.log(err);
-                                    })
-
-                                    // console.log('Updated namespace is');
-                                    // console.log(updatedNamespace);
+                                
                                 }).catch((err) => {
                                     console.log(err);
                                 });

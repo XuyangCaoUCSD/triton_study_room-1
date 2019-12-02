@@ -245,7 +245,7 @@ class App extends Component {
                         <NavLink as='a' to="/notification" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='bell' />
-                                Nottifcations
+                                Notifications
                             </Menu.Item>
                         </NavLink>
                         <NavLink as='a' to="/dashboard" onClick={() => {this.onSetSidebarOpen(false)}}>

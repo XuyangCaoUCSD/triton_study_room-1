@@ -209,7 +209,8 @@ class Calendar extends Component {
             start: new Date(this.state.currentEventStart),
             end: new Date(this.state.currentEventEnd),
             title: e.target.elements.title.value,
-            desc: e.target.elements.desc.value
+            desc: e.target.elements.desc.value,
+            // location: e.target.elements.location.value
         }
 
         console.log('modified event is');
@@ -684,6 +685,7 @@ class Calendar extends Component {
                     onSelectEvent={this.handleEventClick}
                     onSelectSlot={this.handleSelectSlot}
                     views={['month', 'week', 'day', 'agenda']}
+                    defaultView='week'
                     localizer={this.localizer}
                     startAccessor="start"
                     endAccessor="end"
