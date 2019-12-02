@@ -193,8 +193,8 @@ router.post('/createStudySession', middleware.isLoggedIn, async (req, res) => {
         //create the StudySessionHistory
         const studySession = new StudySessionHistory({
             participants: reactions,
-            start: generateDateObject(req.body.startTime),
-            end: generateDateObject(req.body.endTime),
+            start: new Date(req.body.startTime),
+            end: new Date(req.body.endTime),
             location: req.body.location,
             title: req.body.title,
             desc: req.body.desc

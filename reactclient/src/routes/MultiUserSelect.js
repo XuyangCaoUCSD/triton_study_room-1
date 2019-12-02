@@ -171,6 +171,7 @@ export default class MultiUserSelect extends Component {
             });
         } 
         else if(this.props.creationType === "createStudySession") {
+            
             //check if the user has entered an event title
             if(this.state.eventTitle === "") {
                 alert("Please enter a title for this study session!");
@@ -183,13 +184,16 @@ export default class MultiUserSelect extends Component {
                 return;
             }
 
+            let startDate = new Date(this.state.startTime);
+            let endDate = new Date(this.state.endTime);
+
             //check if current time < picked start time < picked end time
-            if(!(this.currentTime < this.generateDateObject(this.state.startTime))) {
+            if(!(this.currentTime < startDate)) {
                 alert("Your picked start time is before the current time! Please reselect.");
                 return;
             }
 
-            if(!(this.generateDateObject(this.state.startTime) < this.generateDateObject(this.state.endTime))) {
+            if(!(startDate < endDate)) {
                 alert("Your picked end time is not after your picked start time! Please reselect.");
                 return;
             }
@@ -199,8 +203,8 @@ export default class MultiUserSelect extends Component {
             const bodyData = {
                 selectedUsers: this.state.selectedUsers,
                 sessionName: "ece35 midterm review",
-                startTime: this.state.startTime,
-                endTime: this.state.endTime,
+                startTime: startDate,
+                endTime: endDate,
                 title: this.state.eventTitle,
                 location: this.state.location,
                 desc: this.state.desc
@@ -337,6 +341,8 @@ export default class MultiUserSelect extends Component {
                     {this.ifGenerateTimePick()}
                     <br /><br />
                     <Button onClick={this._multiUserSubmit}>{this.props.creationType === "createNamespace" ? "Create a study group" : "Create this study session"}</Button>
+                    <h3>start time is {this.state.startTime}</h3>
+                    <h3>end time is {this.state.endTime}</h3>
                     </Form>
                 </Grid.Column>
                 <Grid.Column width={2}></Grid.Column>
