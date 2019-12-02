@@ -22,12 +22,14 @@ export default class MultiUserSelect extends Component {
             endTime: "",
             eventTitle: "",
             location: "",
-            desc: ""
+            desc: "",
+            matchingSchedule: []
         };
 
         this.pushUser = this.pushUser.bind(this);
         this._removeUser = this._removeUser.bind(this);
         this._multiUserSubmit = this._multiUserSubmit.bind(this);
+        this.scheduleMatchAPI = this.scheduleMatchAPI.bind(this);
     }
 
     //push an user into selectedUsers
@@ -60,8 +62,14 @@ export default class MultiUserSelect extends Component {
               </List.Item>
             );
             this.setState({usersDisplay: tempUsersDisplay});
+            if(this.props.creationType === "createStudySession") {
+                //Here we call the schedule matching API
+                this.scheduleMatchAPI(tempSelectedUsers);
+            }
         }
-        console.log("array is "+JSON.stringify(this.state));
+
+
+        //console.log("array is "+JSON.stringify(this.state));
     }
 
     _removeUser(event) {
@@ -71,6 +79,10 @@ export default class MultiUserSelect extends Component {
                 const tempSelectedUsers = this.state.selectedUsers;
                 tempSelectedUsers.splice(i, 1);
                 this.setState({selectedUsers: tempSelectedUsers});
+                if(this.props.creationType === "createStudySession") {
+                    //Here we call the schedule matching API
+                    this.scheduleMatchAPI(tempSelectedUsers);
+                }
             }
         }
 
@@ -81,6 +93,8 @@ export default class MultiUserSelect extends Component {
                 this.setState({usersDisplay: tempUsersDisplay});
             }
         }
+
+
 
     }
 
@@ -93,6 +107,32 @@ export default class MultiUserSelect extends Component {
         const minutes = Number(timeString.substring(14, 16));
         return new Date(year, month, day, hours, minutes);
     }
+
+    scheduleMatchAPI(hotData) {
+        
+        console.log("we have selected users: "+JSON.stringify(hotData));
+        API({
+            method: 'post',
+            url: "/api/calendar/shedule-matching",
+            data: {
+                users: hotData
+            },
+            withCredentials: true,
+        }).then((response) => {
+            // check what our back-end Express will respond (Does it receive our data?)
+            // console.log(response.data);
+            if(this._isMounted) {
+                this.setState({matchingSchedule: response.data.availableTime});
+            }
+        }).catch((error) => {
+            // if we cannot send the data to Express
+            console.log("error when shedule matching: "+error);
+            alert("failed to update schedule matching fields!");
+        });
+        
+    }
+
+    
 
     _multiUserSubmit(event) {
         event.preventDefault();
@@ -190,6 +230,10 @@ export default class MultiUserSelect extends Component {
     componentDidMount() {
         this._isMounted = true;
         this.currentTime = new Date();
+        if(this.props.creationType === "createStudySession") {
+            //Here we call the schedule matching API
+            this.scheduleMatchAPI([]);
+        }
     }
 
     componentWillUnmount() {
@@ -245,6 +289,35 @@ export default class MultiUserSelect extends Component {
         }
     }
 
+    displayListOfSchedule() {
+        const ListOfSchedules = [];
+        for(var i = 0; i < this.state.matchingSchedule.length; i++) {
+            ListOfSchedules.push(
+                <List.Item>
+                    {this.state.matchingSchedule[i]}
+                </List.Item>     
+            )
+        }
+
+        return ListOfSchedules;
+    }
+
+    ifGenerateMatchSchedule() {
+        if(this.props.creationType === "createStudySession") {
+            return (
+                <Grid.Column width={4}>
+                    <h3>Common available time in the following two weeks</h3>
+                    <List>
+                        {this.displayListOfSchedule()} 
+                    </List>
+                </Grid.Column>
+
+            );
+        } else {
+            return (null);
+        }
+    }
+
     render() {
         return (
             <Grid>
@@ -266,13 +339,14 @@ export default class MultiUserSelect extends Component {
                     <Button onClick={this._multiUserSubmit}>{this.props.creationType === "createNamespace" ? "Create a study group" : "Create this study session"}</Button>
                     </Form>
                 </Grid.Column>
-                <Grid.Column width={3}></Grid.Column>
+                <Grid.Column width={2}></Grid.Column>
                 <Grid.Column width={4}>
                     <h3>Selected Users</h3>
                     <List>
                         {this.state.usersDisplay}
                     </List>
                 </Grid.Column>
+                {this.ifGenerateMatchSchedule()}
             </Grid>
         );
     };

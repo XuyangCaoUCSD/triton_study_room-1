@@ -58,6 +58,28 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
    
 });
 
+router.post('/shedule-matching', middleware.isLoggedIn, (req, res) => {
+    let userId = req.session.passport.user;
+    let matchedSchedule = [];
+    let users = req.body.users;
+
+    User.findById(userId).then(function(selfInfo) {
+        console.log(selfInfo);
+        matchedSchedule.push(selfInfo.email);
+
+        for(var i = 0; i < users.length; i++) {
+            matchedSchedule.push(users[i].email);
+        }
+
+        res.send({
+            availableTime: matchedSchedule
+        });
+    }).catch(function(err) {
+        console.log(err);
+    })
+    
+});
+
 
 router.patch('/', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
