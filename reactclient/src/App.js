@@ -26,6 +26,7 @@ import io from 'socket.io-client';
 import UserProfile from "./routes/UserProfile";
 import StudySessionCreation from './routes/StudySessionCreation';
 import FriendList from './routes/FriendList';
+import DibsList from "./routes/DibsList";
 
 class App extends Component {
     constructor() {
@@ -323,6 +324,7 @@ class App extends Component {
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/multiUserSelect" component={MultiUserSelect} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/createStudySession" component={StudySessionCreation} />
                             <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/friendList" component={FriendList} />
+                            <ProtectedRoute authMemoHandler={this.authMemoHandler} isLoggedIn={this.state.isLoggedIn} exact path="/dibslist" component={DibsList} />
 
                             <Route path="*" component={() => "404 NOT FOUND"} />
                         </Switch>

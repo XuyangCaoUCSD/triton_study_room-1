@@ -6,6 +6,7 @@ const  express       = require('express'),
        Namespace     = require('../models/Namespace'),
        { Calendar }  = require('../models/Calendar');
        middleware    = require('../middleware/index');
+       Dibs          = require('../utilities/dibs/dibs.js');
 
 const { StudySessionHistory, Reaction } = require('../models/StudySessionHistory');
 
@@ -13,7 +14,12 @@ const redisClient = require('../redisClient');
 
 var router = express.Router();
 
+let dibs = new Dibs();
+dibs.update( () => console.log( "DIBS DATA HAS BEEN UPDATED" ) );
+
 const { Notification } = require("../models/Notification");
+
+
 
 // Root route
 router.get("/", (req, res) => {
@@ -757,6 +763,19 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
   res.send("successfully updated the database and consumed the notification");
 });
 
+// TODO this route will grab DIBS rooms from the API
+router.get("/dibsRooms", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS ROOMS ROUTE REACHED');
+    var ret = [];
+    dibs.getRooms().map( room => ret.push( {
+        RoomID: room.getID(),
+        Picture: room.getPictureURL(),
+        BuildingID: room.getBuilding().getID(),
+        BuildingName: room.getBuilding().getName(),
+        Name: room.getName()
+    } ) );
+    res.send( ret );
+});
 
 // Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads
 function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotifications, data) {
