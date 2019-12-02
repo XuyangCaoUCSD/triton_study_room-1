@@ -1,16 +1,8 @@
 import PropTypes from "prop-types";
 import _ from "lodash";
 import React, { Component } from "react";
-import { Search, Grid, Header, Segment, Label, Image, Button, Modal, List } from "semantic-ui-react";
+import { Search, Label, Image, Button, Modal, List } from "semantic-ui-react";
 import API from '../utilities/API';
-import NotificationCard from './NotificationCard';
-
-
-// resultRenderer.propTypes = {
-//   title: PropTypes.string,
-//   description: PropTypes.string,
-// }
-
 
 
 export default class UserSearch extends Component {
@@ -150,7 +142,7 @@ export default class UserSearch extends Component {
         this.setState({ value: result.title });
         if(this.props.goal === "multi_select") {
             console.log(result.title);
-            this.props.uponSelection(result);
+            this.props.uponselection(result);
         }
         
     };
@@ -224,5 +216,5 @@ export default class UserSearch extends Component {
 UserSearch.defaultProps = {
     endpoint: "/global",
     goal: "add_friend",
-    uponSelection: () => {}
+    uponselection: () => {}
 };

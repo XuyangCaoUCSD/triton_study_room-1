@@ -42,31 +42,45 @@ passport.use(
 
                 console.log('profile is');
                 console.log(profile);
-                // Create and save new user
-                new User({
-                    name: profile._json.name,
-                    givenName: profile._json.given_name,
-                    familyName: profile._json.family_name,
-                    email: profile._json.email,
-                    googleId: profile.id,
-                    aboutMe: "",
-                    phone: "",
-                    classes: [],
-                    request_notification: [],
 
-                    // Temp give default namespaces
-                    namespaces: [
-                        // "5dce55fddbcc431250507b82",
-                        // "5dce55fddbcc431250507b86",
-                        // "5dce55fddbcc431250507b88"
-                    ]
-                }).save().then((newUser) => {
-                    console.log('new user created: ' + newUser);
-                    done(null, newUser);
+                Calendar.create({
+                    events: []
+                }).then((createdCalendar) => {
+                    console.log('Created new calendar for new user');
+                    
+                    // Create and save new user
+                    new User({
+                        name: profile._json.name,
+                        givenName: profile._json.given_name,
+                        familyName: profile._json.family_name,
+                        email: profile._json.email,
+                        googleId: profile.id,
+                        aboutMe: "",
+                        phone: "",
+                        classes: [],
+                        request_notification: [],
+                        calendar: createdCalendar.id,
+
+                        // Temp give default namespaces
+                        namespaces: [
+                            // "5dce55fddbcc431250507b82",
+                            // "5dce55fddbcc431250507b86",
+                            // "5dce55fddbcc431250507b88"
+                        ]
+                    }).save().then((newUser) => {
+                        console.log('new user created: ' + newUser);
+                        done(null, newUser);
+                    }).catch((err) => {
+                        console.log("Error saving new user to db");
+                        console.log(err);
+                    });
+
                 }).catch((err) => {
-                    console.log("Error saving new user to db");
                     console.log(err);
                 });
+
+                
+                
             }
         });
 

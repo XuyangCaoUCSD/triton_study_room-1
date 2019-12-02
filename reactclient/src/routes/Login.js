@@ -1,15 +1,6 @@
 import React, {Component } from 'react';
-import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
-    Link,
-    useHistory,
-    useLocation
-} from "react-router-dom";
-import UserForm from '../UserForm';
 import auth from "../auth/auth";
-import { Grid, Header, Label, Message, Divider, Image, Button, Icon } from 'semantic-ui-react';
+import { Grid, Header, Message, Divider, Image, Button, Icon } from 'semantic-ui-react';
 
 class Login extends Component {
     constructor(props) {

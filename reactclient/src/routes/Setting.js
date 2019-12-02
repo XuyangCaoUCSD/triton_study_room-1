@@ -3,7 +3,7 @@
 // front-end underlying technology: React
 import React, {Component} from 'react';
 // we use axios for data communication between front-end and back-end
-import { Button, Checkbox, Form, Image } from 'semantic-ui-react'
+import { Button, Checkbox, Form } from 'semantic-ui-react'
 
 import API from '../utilities/API';
 

@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import { Dropdown, Grid } from "semantic-ui-react";
+import { Dropdown } from "semantic-ui-react";
 import API from '../utilities/API';
 
 
@@ -55,8 +55,8 @@ class UserDropdown extends Component {
                         description: response.data[i].email,                       
                         onClick: e => {
                             let index = e.currentTarget.getAttribute("sourceindex");
-                            this.props.uponSelection(this.state.source[index]);
-                          }
+                            this.props.uponselection(this.state.source[index]);
+                        }
                    };
                    const usersCollected = this.state.dropdownView.concat(user);
                    this.setState({dropdownView: usersCollected});
@@ -87,7 +87,7 @@ class UserDropdown extends Component {
 
 UserDropdown.defaultProps = {
     endpoint: "global",
-    uponSelection: () => {}
+    uponselection: () => {}
 };
 
 export default UserDropdown;

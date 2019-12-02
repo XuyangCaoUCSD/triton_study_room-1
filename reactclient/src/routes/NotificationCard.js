@@ -1,6 +1,6 @@
 //jshint esversion: 6
 import React, {Component} from 'react';
-import { Button, Card, Image, Label, List } from 'semantic-ui-react';
+import { Button, Card, Image, List } from 'semantic-ui-react';
 import API from '../utilities/API';
 import moment from 'moment';
 

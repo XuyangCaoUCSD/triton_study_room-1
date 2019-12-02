@@ -1,5 +1,4 @@
 import React, {Component } from 'react';
-import { Route, Redirect } from "react-router-dom";
 import {withRouter} from 'react-router'
 import { Icon, Popup, Button, Message, Menu, Dropdown } from 'semantic-ui-react';
 import API from '../utilities/API';
@@ -59,7 +58,7 @@ class Dashboard extends Component {
     handlePublicNamespaceOnMouseUp = (e) => {
         this.setState({
             selectedPublicNamespaceEndpoint: e.currentTarget.getAttribute('endpoint'),
-            selectedNamespaceGroupName: e.currentTarget.getAttribute('groupName')
+            selectedNamespaceGroupName: e.currentTarget.getAttribute('groupname')
         })
 
     }
@@ -178,7 +177,7 @@ class Dashboard extends Component {
                     key: nsInfo.endpoint,
                     value: nsInfo.endpoint,
                     endpoint: nsInfo.endpoint,
-                    groupName: nsInfo.groupName,
+                    groupname: nsInfo.groupName,
                     image: nsInfo.img,
                     text: nsInfo.groupName,
                     onMouseUp: this.handlePublicNamespaceOnMouseUp // Don't override existing onclick

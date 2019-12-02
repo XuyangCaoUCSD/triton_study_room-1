@@ -1,11 +1,10 @@
 // front-end underlying technology: React
 import React, {Component} from 'react';
 // we use axios for data communication between front-end and back-end
-import { Button, Checkbox, Form, Image, List, Modal, Label, Grid, Icon } from 'semantic-ui-react'
+import { Button, Image, List, Modal, Label, Grid, Icon } from 'semantic-ui-react'
 
 import API from '../utilities/API';
 
-import userSearch from './UserSearch';
 import UserSearch from './UserSearch';
 
 export default class FriendList extends Component {

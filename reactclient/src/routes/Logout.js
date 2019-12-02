@@ -1,15 +1,6 @@
 import React, {Component } from 'react';
-import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
-    Link,
-    useHistory,
-    useLocation
-} from "react-router-dom";
-import UserForm from '../UserForm';
 import auth from "../auth/auth";
-import { Message, Button, Form } from 'semantic-ui-react';
+import { Button, Form } from 'semantic-ui-react';
 
 class Logout extends Component {
     constructor(props) {

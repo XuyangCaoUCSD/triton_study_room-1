@@ -1,6 +1,6 @@
 //jshint esversion: 6
 import React, {Component} from 'react';
-import { Button, Card, Image } from 'semantic-ui-react';
+import { Card } from 'semantic-ui-react';
 import NotificationCard from './NotificationCard';
 import API from '../utilities/API';
 

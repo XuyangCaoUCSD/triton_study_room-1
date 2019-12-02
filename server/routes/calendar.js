@@ -1,9 +1,9 @@
 const  express       = require('express'),
        User          = require('../models/User'),
-       Namespace     = require('../models/Namespace'),
        { Calendar }  = require('../models/Calendar'),
        middleware    = require('../middleware/index');
 
+const findFreeIntervals = require('../utilities/schedule-matching');
 var router = express.Router();
 
 
@@ -60,23 +60,89 @@ router.get('/', middleware.isLoggedIn, (req, res) => {
 
 router.post('/shedule-matching', middleware.isLoggedIn, (req, res) => {
     let userId = req.session.passport.user;
-    let matchedSchedule = [];
     let users = req.body.users;
 
-    User.findById(userId).then(function(selfInfo) {
-        console.log(selfInfo);
-        matchedSchedule.push(selfInfo.email);
+    let data = {
+        success: true
+    };
+ 
 
-        for(var i = 0; i < users.length; i++) {
-            matchedSchedule.push(users[i].email);
+    User.findById(userId).then(async function(selfInfo) {
+       
+        // First include creator's calendar id
+        let calendarIds = [selfInfo.calendar];
+
+        // Get all calendar ids of people involved
+        for (var i = 0; i < users.length; i++) {
+            let currUser = users[i];
+            let calendarId = await User.findOne({
+                email: currUser.email
+            }).then((foundCurrUser) => {
+                if (!foundCurrUser) {
+                    return "error";
+                }
+                
+                return foundCurrUser.calendar;
+            }).catch((err) => {
+                return "error";
+                console.log(err);
+            });
+
+            if (calendarId === "error") {
+                console.log('Error finding user details skipping for now');
+                continue;
+            }
+
+            calendarIds.push(calendarId);
         }
 
-        res.send({
-            availableTime: matchedSchedule
-        });
+        console.log('calendarIds are ');
+        console.log(calendarIds);
+
+        let allEventIntervals = [];
+        
+        // Get all events from people involved
+        for (var calIdsIdx = 0; calIdsIdx < calendarIds.length; calIdsIdx++) {
+            var currEvents = await Calendar.findById(
+                calendarIds[calIdsIdx]
+            ).then((foundCalendar) => {
+                // Even empty array in javascript is truthy, so this null check is ok
+                if (!foundCalendar) {
+                    return "error";
+                }
+                return foundCalendar.events;
+            }).catch((err) => {
+                console.log(err);
+                return "errror";
+            });
+
+            if (currEvents === "error") {
+                console.log('Error finding user details skipping for now');
+                continue;
+            }
+
+            let eventIntervals = currEvents.map((event) => {
+                return [new Date(event.start), new Date(event.end)];
+            })
+
+            allEventIntervals = allEventIntervals.concat(eventIntervals);
+        }
+
+        console.log('allEventIntervals are');
+        console.log(allEventIntervals);
+
+
+        let freeIntervals = findFreeIntervals(allEventIntervals);
+        console.log('Free intervals are');
+        console.log(freeIntervals);
+       
+        data.availableTimes = freeIntervals;
+        res.send(data);
+       
+  
     }).catch(function(err) {
         console.log(err);
-    })
+    });
     
 });
 

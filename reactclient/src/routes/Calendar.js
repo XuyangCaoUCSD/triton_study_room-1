@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import moment from 'moment';
-import { Button, Form, Input, Select, Confirm, TextArea, Icon } from 'semantic-ui-react';
+import { Button, Form, Input, Confirm, TextArea, Icon } from 'semantic-ui-react';
 import API from '../utilities/API';
 import Modal from 'react-awesome-modal';
 import DateTimeRangeContainer from 'react-advanced-datetimerange-picker';

@@ -1,6 +1,6 @@
 import React, {Component } from 'react';
 import API from '../utilities/API';
-import { Form, Header, Segment, Message, Button, Image, Icon } from 'semantic-ui-react';
+import { Header, Segment, Message } from 'semantic-ui-react';
 import 'react-circular-progressbar/dist/styles.css';
 import Loading from "../Loading";
 import Linkify from 'react-linkify';

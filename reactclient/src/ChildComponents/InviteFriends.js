@@ -1,7 +1,5 @@
 import React, {Component } from 'react';
-import { Route, Redirect } from "react-router-dom";
-import {withRouter} from 'react-router'
-import { Icon, Popup, Button, Message, Menu, Dropdown } from 'semantic-ui-react';
+import { Button, Dropdown } from 'semantic-ui-react';
 import API from '../utilities/API';
 import Loading from "../Loading";
 
@@ -24,7 +22,6 @@ class InviteFriends extends Component {
 
         this.getFilteredFriends();
     }
-
 
 
     componentWillUnmount() {

@@ -10,18 +10,13 @@ import './App.css';
 // import socket from './utilities/socketConnection';
 import Loading from "./Loading";
 import Dashboard from './routes/Dashboard';
-import Home from './routes/Home';
-import About from './routes/About';
 import Login from './routes/Login';
 import Logout from './routes/Logout';
-import Register from './routes/Register';
 import Namespace from './routes/Namespace';
 import UserSearch from './routes/UserSearch';
 import NotiCenter from "./routes/NotiCenter";
 import Calendar from './routes/Calendar';
 import Profile from './routes/Profile';
-import NotificationCard from './routes/NotificationCard';
-import Setting from './routes/Setting';
 import MultiUserSelect from './routes/MultiUserSelect';
 import auth from "./auth/auth";
 import { ProtectedRoute } from './auth/ProtectedRoute';
@@ -212,12 +207,12 @@ class App extends Component {
                         <Button basic inverted icon onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Icon name='bars' />
                         </Button>
-                        <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(false)}}>
+                        {/* <NavLink as='a' to="/" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='home' />      
                                 Home
                             </Menu.Item>
-                        </NavLink>
+                        </NavLink> */}
                         <NavLink to="/login" onClick={() => {this.onSetSidebarOpen(false)}}>
                             <Menu.Item link>
                                 <Icon name='sign-in' />      
