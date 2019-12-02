@@ -8,9 +8,6 @@ class ChatGroupIcon extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            data: this.props.data,
-            hasNotifications: null, // Set in did mount
-            endpoint: null, // set in did mount
             confirmRemoveOpen: false
         }
 
@@ -19,14 +16,6 @@ class ChatGroupIcon extends Component {
 
     componentDidMount() {
         this._isMounted = true;
-
-        // Set props in did mount to change on props update (if in constructor, will ignore updates) (check out react documentation)
-        this.setState ({
-            data: this.props.data,
-            hasNotifications: this.props.hasNotifications,
-            endpoint: this.props.data ? this.props.data.endpoint : null,
-            confirmRemoveOpen: false
-        });
     }
 
     componentWillUnmount() {
@@ -84,11 +73,17 @@ class ChatGroupIcon extends Component {
     }
 
     render() {
-        if (!this.state.data) {
+        if (!this.props.data) {
             return <Loading type="spinningBubbles" color="#0B6623" />
         }
 
+        let data = this.props.data;
+
         if (this.state.confirmRemoveOpen) {
+            let confirmHeaderContent = "Are you sure you want to leave this group permanently?";
+            if (this.props.data.privateChat) {
+                confirmHeaderContent = "Are you sure you want to close this direct message?";
+            }
             return (
                 <Modal
                     visible={this.state.confirmRemoveOpen} 
@@ -98,7 +93,7 @@ class ChatGroupIcon extends Component {
                     onClickAway={this.closeConfirmModal}
                 >
                     <div>
-                        <h3>Are you sure you want to leave this group permanently?</h3>
+                        <h3>{confirmHeaderContent}</h3>
                         <br></br>
                         <Button onClick={this.closeConfirmModal}>Cancel</Button> <Button onClick={this.confirmRemove} negative>Confirm</Button>
                     </div>
@@ -120,7 +115,7 @@ class ChatGroupIcon extends Component {
             messageNotification = <Label style={{right: "8%", top: "10%", zIndex: 10, position: 'absolute'}} circular color='red' empty></Label>;
         }
 
-        let data = this.state.data;
+        
         let clickHandler = this.props.onClickHandler;
 
         // Will be truthy when user press edit groups
