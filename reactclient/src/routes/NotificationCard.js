@@ -191,7 +191,7 @@ class NotificationCard extends Component {
         <h4>Location:<br/>{this.props.location}</h4>
         <h5>Start time:<br/>{moment(this.props.start).format('LLLL')}</h5>
         <h5>End time:<br />{moment(this.props.end).format('LLLL')}</h5>
-        <h4>People invovled:</h4>
+        <h4>People involved:</h4>
         <List>{items}</List>
         
 
