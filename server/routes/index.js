@@ -698,6 +698,24 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
                     let updatedParticipants = sessionInfo.participants;
                     if(req.body.choice === "accepted") {
                         updatedParticipants[q].reaction = "accept";
+
+                        // Update event in calendar
+                        let newEvent = {
+                            title: sessionInfo.title,
+                            start: sessionInfo.start,
+                            end: sessionInfo.end,
+                            location: sessionInfo.location,
+                            desc: sessionInfo.desc
+                        }
+            
+                        Calendar.findByIdAndUpdate(
+                            userData.calendar,
+                            {$push: {events: newEvent}}
+                        ).then((updatedCalendar) => {     
+                            console.log('Added new event to user ' + userData.email + "'s calendar");
+                        }).catch((err) => {
+                            console.log(err);
+                        });
                     }
                     else if(req.body.choice === "declined") {
                         updatedParticipants[q].reaction = "reject";
@@ -713,23 +731,6 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
                     });
                 }
             }
-
-            let newEvent = {
-                title: sessionInfo.title,
-                start: sessionInfo.start,
-                end: sessionInfo.end,
-                location: sessionInfo.location,
-                desc: sessionInfo.desc
-            }
-
-            Calendar.findByIdAndUpdate(
-                userData.calendar,
-                {$push: {events: newEvent}}
-            ).then((updatedCalendar) => {     
-                console.log('Added new event to user ' + userData.email + "'s calendar");
-            }).catch((err) => {
-                console.log(err);
-            });
 
         }).catch(function(err) {
             console.log(err);
