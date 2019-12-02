@@ -46,8 +46,16 @@ class ChatGroupIcon extends Component {
             console.log('No data or endpoint to call remove from namespace API');
             return;
         }
-        console.log('Calling remove from namespace API');
 
+        if (this._isMounted) {
+            this.setState({
+                confirmRemoveOpen: false
+            });
+    
+        }
+
+        console.log('Calling remove from namespace API');
+        
         let endpoint = this.props.data.endpoint;
         API({
             method: 'patch',
@@ -59,10 +67,6 @@ class ChatGroupIcon extends Component {
                 console.log('Failed to remove user from namespace');
                 return;
             }
-            
-            this.setState({
-                confirmRemoveOpen: false
-            });
             // Update groups display
             this.props.updateGroups();
 
