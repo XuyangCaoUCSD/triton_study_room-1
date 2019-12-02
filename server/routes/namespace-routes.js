@@ -154,6 +154,96 @@ router.get('/:namespace', middleware.isLoggedIn, (req, res) => {
                 data.isAdmin = true;
             }
 
+            // If private chat, add users again if necessary (BIG IF case)
+            if (foundNamespace.privateChat) {
+                let user2Id;
+                
+                if (foundNamespace.people[0] == userId) {
+                    user2Id = foundNamespace.people[1];
+                } else {
+                    user2Id = foundNamespace.people[0];
+                }
+
+                User.findById(userId)
+                .then((foundUser1) => {
+                    if (!foundUser1) {
+                        console.log('ERROR User1 not found');
+                        data.success = false;
+                        res.send(data)
+                        return;
+                    }
+        
+                    User.findById(user2Id)
+                    .then((foundUser2) => {
+                        if (!foundUser2) {
+                            console.log('ERROR other user' + 'not found');
+                            data.success = false;
+                            res.send(data);
+                            return;
+                        }
+
+                        let user1HasNamespace = foundUser1.namespaces.indexOf(foundNamespace.id) !== -1;
+                        let user2HasNamespace = foundUser2.namespaces.indexOf(foundNamespace.id) !== -1;
+                        // If a user previously left add again
+                        if (!user1HasNamespace || !user2HasNamespace) {
+                            if (!user1HasNamespace && !user2HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser1.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser1) => {
+                                    console.log('Adding namespace to user 1 again');
+                                    
+                                    User.findByIdAndUpdate(
+                                        foundUser2.id,
+                                        {$push: {namespaces: foundNamespace.id}},
+                                        {new: true, safe: true}
+                                    ).then((updatedUser2) => {
+                                        console.log('Adding namespace to user 2 again');
+
+                                    }).catch((err) => {
+                                        console.log(err);
+                                    });
+                                    
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+
+                            } else if (!user1HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser1.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser1) => {
+                                    console.log('Adding namespace to user 1 again');
+
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+                                
+                            } else if (!user2HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser2.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser2) => {
+                                    console.log('Adding namespace to user 2 again');
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+
+                            }
+                        }
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+
+                }).catch((err) => {
+                    console.log(err);
+                });
+        
+            }
+
             ChatHistory.findById(
                 chatHistoryId
             ).then((foundChatHistory) => {
@@ -666,28 +756,34 @@ router.patch('/:namespace/remove-user', middleware.isLoggedIn, (req, res) => {
     
             // peopleDetails.splice(i, 1);
             
-            // Save updated namespace
-            Namespace.findByIdAndUpdate(
-                foundNamespace.id,
-                {$pull: {people: userId}}, // {$set: {people: people, peopleDetails: peopleDetails}},
-                {save: true, new: true}
-            ).then((updatedNamespace) => {
-                console.log('Removed user from namespace');
+            User.findByIdAndUpdate(
+                userId,
+                {$pull: {namespaces: foundNamespace.id}},
+                {safe: true, new: true}
+            ).then((updatedUser) => {
+                console.log('Removed namespace from user namespaces array');
 
-                User.findByIdAndUpdate(
-                    userId,
-                    {$pull: {namespaces: updatedNamespace.id}},
-                    {safe: true, new: true}
-                ).then((updatedUser) => {
-                    console.log('Removed namespace from user namespaces array');
+                // Only remove user from namespace if not private chat
+                if (!foundNamespace.privateChat) {
+                    // Remove user from namespace if not private chat
+                    Namespace.findByIdAndUpdate(
+                        foundNamespace.id,
+                        {$pull: {people: userId}}, // {$set: {people: people, peopleDetails: peopleDetails}},
+                        {save: true, new: true}
+                    ).then((updatedNamespace) => {
+                        console.log('Removed user from namespace');
+                        res.send(data);
+                    }).catch((err) => {
+                        console.log(err);
+                    });
+                } else {
                     res.send(data);
-                }).catch((err) => {
-                    console.log(err);
-                });
-                
+                }
+               
             }).catch((err) => {
                 console.log(err);
             });
+            
     
     
         }).catch((err) => {
@@ -789,12 +885,78 @@ function findOrCreateNewGroup(res, firstUserId, secondUserEmail, privateChat = n
                 Namespace.findOne({
                     endpoint: groupEndpoint
                 }).then((foundNamespace) => {
-                    // If already exist, just return it
+                    // If already exist
                     if (foundNamespace) {
                         console.log('Existing direct message group');
-                        data.group = foundNamespace;
-                        res.send(data);
-                        return;
+                        let user1HasNamespace = foundUser1.namespaces.indexOf(foundNamespace.id) !== -1;
+                        let user2HasNamespace = foundUser2.namespaces.indexOf(foundNamespace.id) !== -1;
+                        // If a user previously left add again
+                        if (!user1HasNamespace || !user2HasNamespace) {
+
+                            if (!user1HasNamespace && !user2HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser1.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser1) => {
+                                    console.log('Adding namespace to user 1 again');
+                                    
+                                    User.findByIdAndUpdate(
+                                        foundUser2.id,
+                                        {$push: {namespaces: foundNamespace.id}},
+                                        {new: true, safe: true}
+                                    ).then((updatedUser2) => {
+                                        console.log('Adding namespace to user 2 again');
+        
+                                        data.group = foundNamespace;
+                                        res.send(data);
+        
+                                    }).catch((err) => {
+                                        console.log(err);
+                                    });
+                                   
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+
+                            } else if (!user1HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser1.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser1) => {
+                                    console.log('Adding namespace to user 1 again');
+    
+                                    data.group = foundNamespace;
+                                    res.send(data);
+    
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+                                
+                            } else if (!user2HasNamespace) {
+                                User.findByIdAndUpdate(
+                                    foundUser2.id,
+                                    {$push: {namespaces: foundNamespace.id}},
+                                    {new: true, safe: true}
+                                ).then((updatedUser2) => {
+                                    console.log('Adding namespace to user 2 again');
+    
+                                    data.group = foundNamespace;
+                                    res.send(data);
+    
+                                }).catch((err) => {
+                                    console.log(err);
+                                });
+
+                            }
+
+                        } else {
+                            data.group = foundNamespace;
+                            res.send(data);
+                        }
+
+                        return; // important
                     }
 
                     // If not exist, create new
