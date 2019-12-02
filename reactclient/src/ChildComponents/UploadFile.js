@@ -1,14 +1,6 @@
 import React, {Component } from 'react';
-import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
-    Link,
-    useHistory,
-    useLocation
-} from "react-router-dom";
 import API from '../utilities/API';
-import { Form, Message, Button, Image, Icon } from 'semantic-ui-react';
+import { Message, Button, Icon } from 'semantic-ui-react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
