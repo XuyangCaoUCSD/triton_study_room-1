@@ -763,19 +763,57 @@ router.post("/NotiCenter/consumeCard", middleware.isLoggedIn, function(req, res)
   res.send("successfully updated the database and consumed the notification");
 });
 
-// TODO this route will grab DIBS rooms from the API
-router.get("/dibsRooms", middleware.isLoggedIn, function(req, res) {
-    console.log('DIBS ROOMS ROUTE REACHED');
+
+
+
+// TODO this route will grab DIBS buildings from the API
+router.get("/dibsAllBuildings", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS ALL BUILDINGS ROUTE REACHED');
     var ret = [];
-    dibs.getRooms().map( room => ret.push( {
-        RoomID: room.getID(),
-        Picture: room.getPictureURL(),
-        BuildingID: room.getBuilding().getID(),
-        BuildingName: room.getBuilding().getName(),
-        Name: room.getName()
-    } ) );
+    dibs.getBuildings().map( building => ret.push( building ) );
     res.send( ret );
 });
+
+// TODO this route will grab DIBS rooms from the API
+router.get("/dibsAllRooms", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS ALL ROOMS ROUTE REACHED');
+    var ret = [];
+    dibs.getRooms().map( room => ret.push( room ) );
+    res.send( ret );
+});
+
+// TODO this route will grab a specific DIBS building from the API
+router.post("/dibsBuilding", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS BUILDING ROUTE REACHED');
+    res.send( dibs.getBuildingByID( req.body.building_id ) );
+});
+
+// TODO this route will grab a specific DIBS room from the API
+router.post("/dibsRoom", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS ROOM ROUTE REACHED');
+    res.send( dibs.getRoomByID( req.body.room_id ) );
+});
+
+// TODO this route will find all DIBS rooms open during the given time frame
+router.post("/dibsAvailableRooms", middleware.isLoggedIn, function(req, res) {
+    console.log('DIBS AVAILABLE ROOMS ROUTE REACHED');
+
+    //These will be ISO strings
+    const start = req.body.start;
+    const end = req.body.end;
+
+
+
+    let rooms = dibs.getRooms();
+
+    for( const room of rooms ) {
+        dibs.getRoomAvailableHours( room, year, month, day, function( hours ) {
+        })
+    }
+
+    res.send( dibs.getRoomByID( req.body.room_id ) );
+});
+
 
 // Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads
 function getUserNamespaceUnreads(userId, i, namespaces, res, namespaceNotifications, data) {

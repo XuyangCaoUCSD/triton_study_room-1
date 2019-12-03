@@ -3,6 +3,81 @@ const DibsRoom = require('./dibsRoom.js');
 const DibsBuilding = require('./dibsBuilding.js');
 const DibsRoomHours = require('./dibsRoomHours');
 
+const INDEX_JUMPS_PER_HOUR = 2;
+const INDEX_JUMPS_PER_HALF_HOUR = 1;
+const MINUTES_PER_HALF_HOUR = 30;
+const HALF_HOURS_IN_DAY = 48;
+
+/**
+ * Takes a date and maps it to the half-hour of the day, indexed, in which the date rests
+ *
+ * For example, 00:00 is at hour 0, minute 0, so it belongs in half-hour 0 (the first half-hour)
+ * So does 00:29, which belongs in the first half hour.
+ *
+ * @param date The Date object for the time in question
+ */
+function calculateHalfHourToIndex( date ) {
+    let min = date.getMinutes();
+    let hour = date.getHours();
+    return ( hour * INDEX_JUMPS_PER_HOUR ) + Math.floor( min / MINUTES_PER_HALF_HOUR ) * INDEX_JUMPS_PER_HALF_HOUR;
+}
+
+/**
+ * Takes a half-hour of the day, indexed, and maps its start time to a date
+ *
+ * For example, half-hour 0 starts at 00:00
+ *
+ * @param index The half hour of the day, indexed starting at 0
+ */
+function calculateIndexToHalfHour( index ) {
+
+}
+
+function calculateAvailableHours( openHours, reservedHours ) {
+
+    /*
+     * The first half hour of the 24-hour day is at  0.
+     * That is, index  0 represents [00:00, 00:30]
+     *
+     *
+     * The last  half hour of the 24-hour day is at 47
+     * That is, index 47 represents [23:30, 00:00]
+     *
+     *
+     * Also note that hour  0 or [00:00, 01:00] spans indices [ 0,  1],
+     *                hour  1 or [01:00, 02:00] spans indices [ 2,  3],
+     *                hour 11 or [12:00, 13:00] spans indices [22, 23],
+     *                hour 23 or [23:00, 00:00] spans indices [46, 47]
+     */
+    let isOpenAtHalfHour = new Array( HALF_HOURS_IN_DAY );
+    isOpenAtHalfHour.fill( false );
+
+    let startIndex = 0;
+    let endIndex = 0;
+
+    //hourOpen is of type DibsRoomHour
+    //here we find the hours at which the room is actually open
+    for( const hourOpen of openHours ) {
+        startIndex = calculateHalfHourToIndex( new Date( hourOpen.getStart() ) );
+        endIndex = calculateHalfHourToIndex( new Date( hourOpen.getEnd() ) );
+        isOpenAtHalfHour.fill( true, startIndex, endIndex ) ;
+    }
+
+    //hourReserved is of type DibsRoomHour
+    //here we negate the hours at which the room is reserved
+    for( const hourReserved of reservedHours ) {
+        startIndex = calculateHalfHourToIndex( new Date( hourReserved.getStart() ) );
+        endIndex = calculateHalfHourToIndex( new Date( hourReserved.getEnd() ) );
+        isOpenAtHalfHour.fill( false, startIndex, endIndex ) ;
+    }
+
+    for( let i = 0; i < HALF_HOURS_IN_DAY; i++ ) {
+        if( isOpenAtHalfHour[i] ) {
+            lowerBound = new Date(  )
+        }
+    }
+}
+
 /**
  * Allows us to access the D!BS API
  * As a note, all date/times are UTC-0800, Pacific Standard Time
@@ -59,6 +134,7 @@ class Dibs {
      * @param buildingJSON The JSON sent by the D!BS system
      */
     parseBuilding( buildingJSON ) {
+        if( buildingJSON.BuildingID === 0 ) return;
         let nextBuilding = new DibsBuilding( buildingJSON.BuildingID,
                                              buildingJSON.Description,
                                              buildingJSON.Latitude,
@@ -74,7 +150,7 @@ class Dibs {
      * @param roomJSON The JSON sent by the D!BS system
      */
     parseRoom( roomJSON ) {
-        let nextRoom = new DibsRoom( this.buildings.get( roomJSON.BuildingID ),
+        let nextRoom = new DibsRoom( roomJSON.BuildingID,
                                      roomJSON.Description,
                                      roomJSON.Name,
                                      roomJSON.Picture,
@@ -99,6 +175,7 @@ class Dibs {
                     for( var buildingJSON of response.data )
                         this.parseBuilding( buildingJSON );
 
+                    //after which we can get all rooms
                     this.api.get( Dibs.API_ROOMS )
                             .then( function ( response ) {
 
@@ -141,9 +218,9 @@ class Dibs {
      */
     handleRoomHoursRequest( response, onGet ) {
 
-        var hours = [];
-        for( var hourJSON of response.data ) {
-            var nextHour = new DibsRoomHours( this.getRoomByID( hourJSON.RoomID ), hourJSON.StartTime, hourJSON.EndTime );
+        let hours = [];
+        for( const hourJSON of response.data ) {
+            let nextHour = new DibsRoomHours( this.getRoomByID( hourJSON.RoomID ), hourJSON.StartTime, hourJSON.EndTime );
             hours.push( nextHour );
         }
         onGet( hours );
@@ -151,7 +228,7 @@ class Dibs {
     }
 
     /**
-     * The open hours of the room on the given date and time.
+     * The business hours of the room on the given date and time.
      * @param room The room for which hours are needed
      * @param year for the given year
      * @param month for the given month
@@ -182,6 +259,24 @@ class Dibs {
                 this.handleRoomHoursRequest( response, onGet );
             }.bind( this )  )
             .catch( onError );
+    }
+
+    /**
+     * The available time blocks in a room on the D!BS system
+     * @param room The room for which hours are needed
+     * @param year for the given year
+     * @param month for the given month
+     * @param day on the given day
+     * @param onGet The function to call taking in a single DibsRoomHours[] argument after the data has been found
+     * @param onError the function to call taking in a single promise error argument on the occasion an error occurs
+     */
+    getRoomAvailableHours( room, year, month, day, onGet, onError ) {
+        this.getRoomOpenHours( room, year, month, day, function( openHours ) {
+            this.getRoomReservedHours( room, year, month, day, function( reservedHours ) {
+                const availableHours = calculateAvailableHours( openHours, reservedHours );
+                onGet( availableHours );
+            }.bind( this ), onError )
+        }.bind(this), onError );
     }
 
     /**

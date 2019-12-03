@@ -3,7 +3,7 @@
  */
 class DibsRoom {
 
-    building;
+    building_id;
     description;
     name;
     picture_url;
@@ -11,14 +11,14 @@ class DibsRoom {
 
     /**
      * Creates the DibsRoom
-     * @param building The DibsBuilding containing this room
+     * @param building_id The id of the building containing this room
      * @param description The description of the room, if available
      * @param name The name of the room
      * @param picture_url The URL containing the thumbnail for the room
      * @param room_id The room's integer ID
      */
-    constructor( building, description, name, picture_url, room_id ) {
-        this.building = building;
+    constructor( building_id, description, name, picture_url, room_id ) {
+        this.building_id = building_id;
         this.description = description;
         this.name = name;
         this.picture_url = picture_url;
@@ -58,11 +58,11 @@ class DibsRoom {
     }
 
     /**
-     * The building containing this room
+     * The id of the building containing this room
      * @returns {*}
      */
-    getBuilding() {
-        return this.building;
+    getBuildingID() {
+        return this.building_id;
     }
 }
 

@@ -86,7 +86,7 @@ class DibsBuilding {
      * @param room The DibsRoom that belongs in the building
      */
     addRoom( room ) {
-        if( room.getBuilding().getID() === this.getID() )
+        if( room.getBuildingID() === this.getID() )
             this.rooms.push( room )
     }
 }
