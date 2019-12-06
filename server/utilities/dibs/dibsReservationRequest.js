@@ -14,8 +14,7 @@ class DibsReservationRequest {
     /**
      * Creates the reservation request.
      * @param room The DibsRoom in which to make the reservation.
-     * @param startDate The start date of the reservation, which takes the format
-     *        "YYYY-MM-DDTHH:MM:SS" UTC-0800
+     * @param startDate A Date representing the start of the reservation
      * @param duration The length of the reservation, which may be in increments of 0.5 hours, no more than 3
      * @param firstName The first name of the contact
      * @param lastName The last name of the contact
@@ -29,12 +28,12 @@ class DibsReservationRequest {
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.startDate = startDate;
-        this.duration = duration;
+        this.duration = Math.round( duration / 0.5 ) * 0.5;
     }
 
     /**
      * The room in which the reservation is made
-     * @returns {*}
+     * @returns {room}
      */
     getRoom() {
         return this.room;
@@ -42,7 +41,7 @@ class DibsReservationRequest {
 
     /**
      * The first name of the contact
-     * @returns {*}
+     * @returns {string}
      */
     getFirstName() {
         return this.firstName;
@@ -50,7 +49,7 @@ class DibsReservationRequest {
 
     /**
      * The last name of the contact
-     * @returns {*}
+     * @returns {string}
      */
     getLastName() {
         return this.lastName;
@@ -58,7 +57,7 @@ class DibsReservationRequest {
 
     /**
      * The email of the contact
-     * @returns {*}
+     * @returns {string}
      */
     getEmail() {
         return this.email;
@@ -66,23 +65,34 @@ class DibsReservationRequest {
 
     /**
      * The phone number of the contact, in the format (XXX) XXX-XXXX
-     * @returns {*}
+     * @returns {string}
      */
     getPhoneNumber() {
         return this.phoneNumber;
     }
 
     /**
-     * The start date of the reservation, in the format "YYYY-MM-DDTHH:MM:SS" UTC-0800
-     * @returns {*}
+     * The start date of the reservation
+     * @returns {Date}
      */
     getStartDate() {
         return this.startDate;
     }
 
     /**
+     * The end date of the reservation
+     * @returns {Date}
+     */
+    getEndDate() {
+        let endDate = new Date( this.startDate );
+        //milliseconds per hour = 60 * 60 * 1000
+        endDate.setTime( endDate.getTime() + ( 60 * 60 * 1000 * this.duration ) );
+        return endDate;
+    }
+
+    /**
      * The duration of the reservation, in increments of 0.5 no more than 3.0
-     * @returns {*}
+     * @returns {number}
      */
     getDuration() {
         return this.duration;
@@ -90,14 +100,14 @@ class DibsReservationRequest {
 
     /**
      * Creates a JSON object that can be sent to the D!BS system
-     * @returns {{firstName: *, lastName: *, emailAddress: *, reservationLength: *, phoneNumber: *, staffAccess: boolean, langCode: string, roomid: *, startDate: *, cardNumber: string}}
+     * @returns {{firstName: string, lastName: string, emailAddress: string, reservationLength: number, phoneNumber: string, roomid: number, startDate: string}}
      */
     toJSON() {
         return {
             firstName: this.firstName,
             lastName: this.lastName,
             roomid: this.room.getID(),
-            startDate: this.startDate,
+            startDate: this.startDate.toLocalISOString(),
             reservationLength: this.duration,
             phoneNumber: this.phoneNumber,
             emailAddress: this.email,

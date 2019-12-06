@@ -3,81 +3,6 @@ const DibsRoom = require('./dibsRoom.js');
 const DibsBuilding = require('./dibsBuilding.js');
 const DibsRoomHours = require('./dibsRoomHours');
 
-const INDEX_JUMPS_PER_HOUR = 2;
-const INDEX_JUMPS_PER_HALF_HOUR = 1;
-const MINUTES_PER_HALF_HOUR = 30;
-const HALF_HOURS_IN_DAY = 48;
-
-/**
- * Takes a date and maps it to the half-hour of the day, indexed, in which the date rests
- *
- * For example, 00:00 is at hour 0, minute 0, so it belongs in half-hour 0 (the first half-hour)
- * So does 00:29, which belongs in the first half hour.
- *
- * @param date The Date object for the time in question
- */
-function calculateHalfHourToIndex( date ) {
-    let min = date.getMinutes();
-    let hour = date.getHours();
-    return ( hour * INDEX_JUMPS_PER_HOUR ) + Math.floor( min / MINUTES_PER_HALF_HOUR ) * INDEX_JUMPS_PER_HALF_HOUR;
-}
-
-/**
- * Takes a half-hour of the day, indexed, and maps its start time to a date
- *
- * For example, half-hour 0 starts at 00:00
- *
- * @param index The half hour of the day, indexed starting at 0
- */
-function calculateIndexToHalfHour( index ) {
-
-}
-
-function calculateAvailableHours( openHours, reservedHours ) {
-
-    /*
-     * The first half hour of the 24-hour day is at  0.
-     * That is, index  0 represents [00:00, 00:30]
-     *
-     *
-     * The last  half hour of the 24-hour day is at 47
-     * That is, index 47 represents [23:30, 00:00]
-     *
-     *
-     * Also note that hour  0 or [00:00, 01:00] spans indices [ 0,  1],
-     *                hour  1 or [01:00, 02:00] spans indices [ 2,  3],
-     *                hour 11 or [12:00, 13:00] spans indices [22, 23],
-     *                hour 23 or [23:00, 00:00] spans indices [46, 47]
-     */
-    let isOpenAtHalfHour = new Array( HALF_HOURS_IN_DAY );
-    isOpenAtHalfHour.fill( false );
-
-    let startIndex = 0;
-    let endIndex = 0;
-
-    //hourOpen is of type DibsRoomHour
-    //here we find the hours at which the room is actually open
-    for( const hourOpen of openHours ) {
-        startIndex = calculateHalfHourToIndex( new Date( hourOpen.getStart() ) );
-        endIndex = calculateHalfHourToIndex( new Date( hourOpen.getEnd() ) );
-        isOpenAtHalfHour.fill( true, startIndex, endIndex ) ;
-    }
-
-    //hourReserved is of type DibsRoomHour
-    //here we negate the hours at which the room is reserved
-    for( const hourReserved of reservedHours ) {
-        startIndex = calculateHalfHourToIndex( new Date( hourReserved.getStart() ) );
-        endIndex = calculateHalfHourToIndex( new Date( hourReserved.getEnd() ) );
-        isOpenAtHalfHour.fill( false, startIndex, endIndex ) ;
-    }
-
-    for( let i = 0; i < HALF_HOURS_IN_DAY; i++ ) {
-        if( isOpenAtHalfHour[i] ) {
-            lowerBound = new Date(  )
-        }
-    }
-}
-
 /**
  * Allows us to access the D!BS API
  * As a note, all date/times are UTC-0800, Pacific Standard Time
@@ -111,7 +36,7 @@ class Dibs {
 
     /**
      * An array of DibsRoom that lists all rooms available in the system. Should really only be called once per update.
-     * @returns {[]}
+     * @returns {DibsRoom[]}
      */
     getRooms() {
         var rooms = [];
@@ -121,7 +46,7 @@ class Dibs {
 
     /**
      * An array of DibsBuilding that lists all buildings available in the system. Should only be called once per update.
-     * @returns {[]}
+     * @returns {DibsBuilding[]}
      */
     getBuildings() {
         var buildings = [];
@@ -172,14 +97,14 @@ class Dibs {
         this.api.get( Dibs.API_BUILDINGS )
                 .then( function ( response ) {
 
-                    for( var buildingJSON of response.data )
+                    for( const buildingJSON of response.data )
                         this.parseBuilding( buildingJSON );
 
                     //after which we can get all rooms
                     this.api.get( Dibs.API_ROOMS )
                             .then( function ( response ) {
 
-                                for( var roomJSON of response.data )
+                                for( const roomJSON of response.data )
                                     this.parseRoom( roomJSON );
 
                                 onUpdate();
@@ -195,7 +120,7 @@ class Dibs {
     /**
      * The building with the given ID, if it is in the cache
      * @param id The integer ID of the building
-     * @returns {*}
+     * @returns {DibsBuilding}
      */
     getBuildingByID( id ) {
         return this.buildings.get( id );
@@ -204,7 +129,7 @@ class Dibs {
     /**
      * The room with the given ID, if it is in the cache
      * @param id The integer ID of the room
-     * @returns {*}
+     * @returns {DibsRoom}
      */
     getRoomByID( id ) {
         return this.rooms.get( id );
@@ -214,7 +139,6 @@ class Dibs {
      * Handles a call from getRoomOpenHours or getRoomReservedHours after the information is found
      * @param response The response from an AXIOS get request
      * @param onGet The function to which hours are passed once data is found
-     * @returns {[]}
      */
     handleRoomHoursRequest( response, onGet ) {
 
@@ -228,7 +152,7 @@ class Dibs {
     }
 
     /**
-     * The business hours of the room on the given date and time.
+     * The business hours of the room on the given date
      * @param room The room for which hours are needed
      * @param year for the given year
      * @param month for the given month
@@ -245,7 +169,7 @@ class Dibs {
     }
 
     /**
-     * The reserved time blocks in a room on the D!BS system
+     * The reserved time blocks in a room on the given date
      * @param room The room for which hours are needed
      * @param year for the given year
      * @param month for the given month
@@ -262,7 +186,9 @@ class Dibs {
     }
 
     /**
-     * The available time blocks in a room on the D!BS system
+     * The available time blocks in a room *that can be reserved* on the given date
+     * For any date before the current moment, no hours are available
+     * For any time before the current moment, no hours are available
      * @param room The room for which hours are needed
      * @param year for the given year
      * @param month for the given month
@@ -273,8 +199,63 @@ class Dibs {
     getRoomAvailableHours( room, year, month, day, onGet, onError ) {
         this.getRoomOpenHours( room, year, month, day, function( openHours ) {
             this.getRoomReservedHours( room, year, month, day, function( reservedHours ) {
-                const availableHours = calculateAvailableHours( openHours, reservedHours );
+
+                //if there are no open hours, then there are no available hours
+                if( openHours.length === 0 ) return onGet( [] ); //no real return value
+
+                //if no reservations are available, then the entirety of open hours are available to reserve
+                if( reservedHours.length === 0 ) return onGet( openHours ); //no real return value
+
+                //we can assume no reservation overlaps with any closed-room time, or that any reservation
+                //overlaps with another, so let's include closed time as reserved
+
+                let dateStart = new Date( year, month - 1, day, 0, 0, 0 );
+                let dateEnd = new Date( year, month - 1, day, 0, 0, 0 );
+                dateEnd.setDate( dateEnd.getDate() + 1 ) ;
+
+                //invert the open hours
+                let closedHours = DibsRoomHours.invertRoomHours( room, dateStart, dateEnd, openHours )  ;
+
+                //now include the other reserved times
+                closedHours.push( ...reservedHours );
+
+                //we need to order all the "events," which do not overlap so they can be ordered by start time
+                closedHours.sort( ( a, b ) => {
+                    return new Date( a.getStart() ) - new Date( b.getStart() );
+                } );
+
+                //invert the closed hours to give available hours
+                let results = DibsRoomHours.invertRoomHours( room, dateStart, dateEnd, closedHours )  ;
+
+                //lastly, some open hours may occur in the past respective to when this function is called
+                //therefore we must cut some results
+
+                let availableHours = [];
+                const MS_PER_HALF_HOUR = 1000 * 60 * 30;
+
+                //the current date, which we will round to the last half-hour
+                let now = new Date();
+                now = new Date(Math.round( now.getTime() / MS_PER_HALF_HOUR ) * MS_PER_HALF_HOUR );
+
+                //Strategy: events will be purged if they end before or on the rounded date
+                // events that start before the rounded date will be truncated to appear as if they start on the rounded date
+
+                //cast response JSON to DibsRoomHours objects using the given constraints
+                for( const event of results ) {
+
+                    //only accept events that do not end before or on the current date
+                    if( event.getEndDate() > now ) {
+
+                        //if an event starts before the current date,  we'll take the current date--otherwise we take the original start date
+                        if( event.getStartDate() < now )
+                            availableHours.push( new DibsRoomHours( room, now.toLocalISOString(), event.getEnd() ) );
+                        else
+                            availableHours.push( event );
+                    }
+                }
+
                 onGet( availableHours );
+
             }.bind( this ), onError )
         }.bind(this), onError );
     }
@@ -285,20 +266,19 @@ class Dibs {
      * @param onSuccess The function to call when the reservation is made, taking a DibsRoomHours object and message string
      * @param onFailure The function to call when the reservation fails, taking a single message string
      * @param onError the function to call taking in a single promise error argument on the occasion an error occurs
-     * @returns {*}
      */
     postReservation( reservationRequest, onSuccess, onFailure, onError ) {
-        return this.api.post( Dibs.API_POST_RESERVATION, reservationRequest.toJSON() )
-                       .then( function( response ) {
-                           if( response.data.IsSuccess ){
-                               let hoursReserved = new DibsRoomHours( reservationRequest.getRoom(),
-                                                                      reservationRequest.getStart(),
-                                                                      new Date( reservationRequest.getStart() ) + ( reservationRequest.duration * 60 * 60 * 1000 )  ).toString();
-                               onSuccess( hoursReserved, response.data.Message )
-                           }
-                           else onFailure( response.data.Message );
-                       })
-                       .catch( onError )
+        this.api.post( Dibs.API_POST_RESERVATION, reservationRequest.toJSON() )
+                .then( function( response ) {
+                    if( response.data.IsSuccess ) {
+                        let hoursReserved = new DibsRoomHours( reservationRequest.getRoom(),
+                                                               reservationRequest.getStart(),
+                                                          new Date( reservationRequest.getStart() ) + ( reservationRequest.duration * 60 * 60 * 1000 )  ).toString();
+                    onSuccess( hoursReserved, response.data.Message )
+                    }
+                    else onFailure( response.data.Message );
+                })
+                .catch( onError )
     }
 }
 

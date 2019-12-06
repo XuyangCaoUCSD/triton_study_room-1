@@ -27,7 +27,7 @@ class DibsRoom {
 
     /**
      * The integer ID for this room
-     * @returns {*}
+     * @returns {number}
      */
     getID() {
         return this.room_id;
@@ -35,7 +35,7 @@ class DibsRoom {
 
     /**
      * The URL of the thumbnail for this room
-     * @returns {*}
+     * @returns {string}
      */
     getPictureURL() {
         return this.picture_url;
@@ -43,7 +43,7 @@ class DibsRoom {
 
     /**
      * The name of the room
-     * @returns {*}
+     * @returns {string}
      */
     getName() {
         return this.name;
@@ -51,15 +51,15 @@ class DibsRoom {
 
     /**
      * The description of the room
-     * @returns {*}
+     * @returns {string}
      */
     getDescription() {
         return this.description;
     }
 
     /**
-     * The id of the building containing this room
-     * @returns {*}
+     * The integer id of the building containing this room
+     * @returns {number}
      */
     getBuildingID() {
         return this.building_id;

@@ -785,34 +785,29 @@ router.get("/dibsAllRooms", middleware.isLoggedIn, function(req, res) {
 // TODO this route will grab a specific DIBS building from the API
 router.post("/dibsBuilding", middleware.isLoggedIn, function(req, res) {
     console.log('DIBS BUILDING ROUTE REACHED');
-    res.send( dibs.getBuildingByID( req.body.building_id ) );
+    let building;
+    if( (!req.body.building_id) || (building = dibs.getBuildingByID( req.body.building_id )) ) res.send( {} );
+    res.send( building );
 });
 
 // TODO this route will grab a specific DIBS room from the API
 router.post("/dibsRoom", middleware.isLoggedIn, function(req, res) {
     console.log('DIBS ROOM ROUTE REACHED');
-    res.send( dibs.getRoomByID( req.body.room_id ) );
+    let room;
+    if( !req.body.room_id || !(room = dibs.getRoomByID( req.body.room_id )) ) res.send( {} );
+    res.send( room );
 });
 
 // TODO this route will find all DIBS rooms open during the given time frame
-router.post("/dibsAvailableRooms", middleware.isLoggedIn, function(req, res) {
-    console.log('DIBS AVAILABLE ROOMS ROUTE REACHED');
+router.post("/dibsAvailableHours", middleware.isLoggedIn, function(req, res) {
 
-    //These will be ISO strings
-    const start = req.body.start;
-    const end = req.body.end;
+    console.log('DIBS AVAILABLE ROOMS REACHED');
+    let room;
+    if( !req.body.room_id || !req.body.year || !req.body.month || ! req.body.day || !(room = dibs.getRoomByID(req.body.room_id)) ) res.send( [] );
 
-
-
-    let rooms = dibs.getRooms();
-
-    for( const room of rooms ) {
-        dibs.getRoomAvailableHours( room, year, month, day, function( hours ) {
-        })
-    }
-
-    res.send( dibs.getRoomByID( req.body.room_id ) );
+    dibs.getRoomAvailableHours( room, req.body.year, req.body.month, req.body.day, hours => res.send( hours ) )
 });
+
 
 
 // Recursive call function over namespaces to ensure callback chaining for redis calls for namepsace unreads

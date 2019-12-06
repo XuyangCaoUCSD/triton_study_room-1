@@ -32,7 +32,7 @@ class DibsBuilding {
 
     /**
      * The integer ID of the building
-     * @returns {*}
+     * @returns {number}
      */
     getID() {
         return this.building_id;
@@ -40,7 +40,7 @@ class DibsBuilding {
 
     /**
      * The description of the building, if available
-     * @returns {*}
+     * @returns {string}
      */
     getDescription() {
         return this.description;
@@ -48,7 +48,7 @@ class DibsBuilding {
 
     /**
      * The latitude and longitude of the building
-     * @returns {{lon: *, lat: *}}
+     * @returns {{lon: number, lat: number}}
      */
     getCoordiates() {
         return {
@@ -59,7 +59,7 @@ class DibsBuilding {
 
     /**
      * The name of the building
-     * @returns {*}
+     * @returns {string}
      */
     getName() {
         return this.name;
@@ -67,7 +67,7 @@ class DibsBuilding {
 
     /**
      * The URL of the thumbnail showing the building
-     * @returns {*}
+     * @returns {string}
      */
     getPictureURL() {
         return this.picture_url;
@@ -75,7 +75,7 @@ class DibsBuilding {
 
     /**
      * An array of DibsRoom within this building
-     * @returns {*}
+     * @returns {DibsRoom[]}
      */
     getRooms() {
         return this.rooms;
