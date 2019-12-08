@@ -6,6 +6,8 @@ nodeClient/
 server/redisTest.js
 server/uploads/avatars/*
 server/uploads/namespace/*
+server/config/keys.js
+server/keys.js
 
 # Below are from template
 

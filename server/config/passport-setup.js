@@ -1,6 +1,7 @@
 const GoogleStrategy = require('passport-google-oauth20'),
       passport       = require('passport'),
-      User           = require('../models/User');
+      User           = require('../models/User'),
+      { Calendar }   = require('../models/Calendar');
 const keys = require('./keys');
 const ucsdEmailCheck = require('../utilities/ucsdMailCheck');
 

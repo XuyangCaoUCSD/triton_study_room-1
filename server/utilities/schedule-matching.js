@@ -23,12 +23,26 @@ function findFreeIntervals(pIntervals) {
 
     let intervals = [];
 
-    // Only consider intervals in range
-    for (var interval of pIntervals) {
-        if (interval[0] >= now && interval[1] <= maxEnd) {
-            intervals.push(interval);
+    for (var idx = 0; idx < pIntervals.length; idx++) {
+        let interval = pIntervals[idx];
+        if (interval[0] < now) {
+            interval[0] = now;
+        }
+        if (interval[1] > maxEnd) {
+            interval[1] = maxEnd;
+        }
+
+        if (interval[0] < interval[1]) {
+            intervals.push([interval[0], interval[1]])
         }
     }
+
+    // // Only consider intervals in range
+    // for (var interval of pIntervals) {
+    //     if (!(interval[0] >= maxEnd || interval[1] <= now)) {
+    //         intervals.push(interval);
+    //     }
+    // }
 
     console.log('intervals in range are');
     console.log(intervals);
@@ -40,7 +54,7 @@ function findFreeIntervals(pIntervals) {
 
     // Sort by start time
     intervals = intervals.sort((a, b) => {
-        if (a[0] == b[0]) {
+        if (a[0] === b[0]) {
             return a[1] < b[1];
         } else {
             return a[0] > b[0];
@@ -64,7 +78,7 @@ function findFreeIntervals(pIntervals) {
             // If overlapping, merge
             if (interval[0] <= lastInterval[1]) {
                 console.log('max is')
-                mergedIntervals[mergedIntervals.length - 1][1] = Math.max.apply(null, [lastInterval[1], interval[1]]);
+                mergedIntervals[mergedIntervals.length - 1][1] = new Date(Math.max.apply(null, [lastInterval[1], interval[1]]));
             } else {
                 mergedIntervals.push(interval);
             }
